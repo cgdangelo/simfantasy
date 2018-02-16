@@ -1,6 +1,6 @@
-import heapq
-from datetime import timedelta, datetime
 import logging
+from datetime import timedelta
+from heapq import heapify, heappop, heappush
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -11,153 +11,166 @@ logstream.setFormatter(logging.Formatter('%(asctime)s - %(pathname)s @ %(lineno)
 logger.addHandler(logstream)
 
 
-class Event:
-    def __init__(self, simulation):
-        self.simulation = simulation
-        self.scheduled_at = simulation.event_manager.current_time + self.scheduled_in()
+class Simulation:
+    def __init__(self, combat_length: timedelta = None):
+        self.combat_length = combat_length
 
-    def scheduled_in(self):
-        return timedelta()
-
-    def execute(self):
-        logger.debug(Event.execute.__qualname__)
-
-    def __lt__(self, other):
-        return self.scheduled_at < other.scheduled_at
-
-    def __repr__(self):
-        return '{0} {1}'.format(self.__class__.__name__, self.scheduled_at)
-
-
-class CastEvent(Event):
-    def __init__(self, simulation, source):
-        self.source = source
-
-        super().__init__(simulation)
-
-    def scheduled_in(self):
-        return max(self.source.gcd_lock, self.source.animation_lock, timedelta())
-
-
-class ExpireAuraEvent(Event):
-    def __init__(self, simulation, actor, aura, expire_in=None):
-        self.actor = actor
-        self.aura = aura
-
-        self.expire_in = expire_in or aura.duration
-
-        super().__init__(simulation)
-
-    def scheduled_in(self):
-        return self.expire_in
-
-    def execute(self):
-        logger.debug("Expire!")
-
-        self.actor.auras.remove(self.aura)
-
-
-class StraightShotCastEvent(CastEvent):
-    def execute(self):
-        logger.debug("Buff!")
-
-        buff = StraightShotBuff()
-
-        self.source.auras.append(buff)
-
-        self.simulation.event_manager.add_event(
-            ExpireAuraEvent(self.simulation,
-                            actor=self.source,
-                            aura=buff)
-        )
-
-
-class StraightShotBuff:
-    duration = timedelta(seconds=30)
-
-
-class EventManager:
-    def __init__(self):
+        self.actors = []
+        self.current_time = timedelta()
         self.events = []
-        self.current_time = datetime.now()
-        self.events_handled = 0
 
-    def add_event(self, event: Event):
-        heapq.heappush(self.events, event)
+        heapify(self.events)
 
-    def __next__(self):
-        try:
-            event = heapq.heappop(self.events)
+    def add_actor(self, actor):
+        actor not in self.actors and self.actors.append(actor)
 
-            self.events_handled += 1
-            self.current_time += event.scheduled_in()
+    def schedule_in(self, event, delta: timedelta = None):
+        delta = delta or timedelta()
+
+        heappush(self.events, (self.current_time + delta, event))
+
+    def run(self):
+        while self.current_time < self.combat_length:
+            # self.schedule_in(event=ServerTickEvent(sim=self), delta=timedelta(seconds=3))
+
+            for actor in self.actors:
+                if actor.ready:
+                    actor.decide(sim=self)
+
+            time, event = heappop(self.events)
+
+            print(time, event)
 
             event.execute()
 
-            return event
-        except IndexError:
-            return None
+            self.current_time = time
+
+
+class Actor:
+    def __init__(self, target=None, level: int = None):
+        self.animation_lock = timedelta()
+        self.gcd_lock = timedelta()
+        self.target = target
+        self.ready = True
+        self.level = level or 70
+
+        self.auras = []
+
+    def decide(self, sim: Simulation):
+        pass
+
+
+class Bard(Actor):
+    def decide(self, sim: Simulation):
+        if self.target is None:
+            self.target = Actor()
+
+        if not any(isinstance(aura, StraightShotBuff) for aura in self.auras):
+            return sim.schedule_in(StraightShotCast(sim=sim, source=self))
+
+        if not any(isinstance(aura, WindbiteDebuff) for aura in self.target.auras):
+            return sim.schedule_in(WindbiteCast(sim=sim, source=self, target=self.target))
+
+
+class Aura:
+    duration: timedelta
+
+
+class Event:
+    def __init__(self, sim: Simulation):
+        self.sim = sim
+
+    def __lt__(self, other):
+        return False
 
 
 class ServerTickEvent(Event):
     def execute(self):
-        logger.debug('Tick!')
-
-    def scheduled_in(self):
-        return timedelta(milliseconds=333)
-
-
-class SimulationEndEvent(Event):
-    def execute(self):
-        logger.debug('Finished!')
-        logger.debug('Events handled = {0}'.format(self.simulation.event_manager.events_handled))
-
-        exit(0)
-
-
-class Actor:
-    def __init__(self):
-        self.auras = []
-        self.gcd_lock = timedelta()
-        self.animation_lock = timedelta()
-
-    def decide_action(self, simulation):
         pass
 
-    def has_buff(self, buff_class):
-        return any([isinstance(aura, buff_class) for aura in self.auras])
+
+class AuraEvent(Event):
+    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+        super().__init__(sim=sim)
+
+        self.target = target
+        self.aura = aura
 
 
-class Bard(Actor):
-    def decide_action(self, simulation):
-        if not self.has_buff(StraightShotBuff):
-            return StraightShotCastEvent(simulation, source=self)
+class ApplyAuraEvent(AuraEvent):
+    def execute(self):
+        self.target.auras.append(self.aura)
 
 
-class Simulation:
-    def __init__(self, max_length=None):
-        self.event_manager = EventManager()
-        self.actors = []
-        self.max_length = max_length or 300
-        self.start_time = None
+class ExpireAuraEvent(AuraEvent):
+    def execute(self):
+        self.target.auras.remove(self.aura)
 
-    def run(self):
-        self.start_time = datetime.now()
 
-        while True:
-            next(self.event_manager)
+class PlayerReadyEvent(Event):
+    def __init__(self, sim: Simulation, actor: Actor):
+        super().__init__(sim=sim)
 
-            for actor in self.actors:
-                action = actor.decide_action(self)
+        self.actor = actor
 
-                if action is not None:
-                    self.event_manager.add_event(action)
+    def execute(self):
+        self.actor.ready = True
 
-            if self.event_manager.current_time - self.start_time >= timedelta(seconds=self.max_length):
-                self.event_manager.add_event(SimulationEndEvent(simulation=self))
+
+class CastEvent(Event):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor = None, off_gcd: bool = None):
+        super().__init__(sim=sim)
+
+        self.animation = timedelta(seconds=0.75)
+        self.gcd = timedelta(seconds=3) if not off_gcd else timedelta()
+
+        self.source = source
+        self.target = target
+
+    def execute(self):
+        self.source.ready = False
+        self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source), delta=max(self.animation, self.gcd))
+
+
+class StraightShotBuff(Aura):
+    duration = timedelta(seconds=30)
+
+
+class StraightShotCast(CastEvent):
+    def execute(self):
+        super().execute()
+
+        aura = StraightShotBuff()
+
+        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
+        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
+
+
+class WindbiteDebuff(Aura):
+    def __init__(self, source: Actor):
+        super().__init__()
+
+        self.source = source
+
+    @property
+    def duration(self):
+        return timedelta(seconds=15) if self.source.level < 64 else timedelta(seconds=30)
+
+
+class WindbiteCast(CastEvent):
+    def execute(self):
+        super().execute()
+
+        aura = WindbiteDebuff(source=self.source)
+
+        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.target, aura=aura))
+        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.target, aura=aura), delta=aura.duration)
 
 
 if __name__ == '__main__':
-    sim = Simulation()
-    sim.actors.append(Bard())
+    sim = Simulation(combat_length=timedelta(seconds=60))
+
+    bard = Bard()
+
+    sim.add_actor(bard)
     sim.run()
