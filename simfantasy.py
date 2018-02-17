@@ -58,7 +58,7 @@ class Event:
         return False
 
     def __str__(self):
-        return '{0}'.format(self.__class__.__name__)
+        return '<{0}>'.format(self.__class__.__name__)
 
 
 class Actor:
@@ -105,6 +105,9 @@ class AuraEvent(Event):
 
         self.target = target
         self.aura = aura
+
+    def __str__(self):
+        return '<{0} aura={1}>'.format(self.__class__.__name__, self.aura.__class__.__name__)
 
 
 class ApplyAuraEvent(AuraEvent):
