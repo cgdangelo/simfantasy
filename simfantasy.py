@@ -72,6 +72,8 @@ class Actor:
 
         self.auras = []
 
+        self.sim.add_actor(self)
+
     def decide(self):
         pass
 
@@ -185,5 +187,4 @@ if __name__ == '__main__':
 
     bard = Bard(sim=sim)
 
-    sim.add_actor(bard)
     sim.run()
