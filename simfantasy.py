@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 from heapq import heapify, heappop, heappush
-from typing import Type
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -36,7 +35,7 @@ class Simulation:
         while self.current_time <= self.combat_length and len(self.events) > 0:
             for actor in self.actors:
                 if actor.ready:
-                    actor.decide(sim=self)
+                    actor.decide()
 
             time, event = heappop(self.events)
 
@@ -63,7 +62,8 @@ class Event:
 
 
 class Actor:
-    def __init__(self, target=None, level: int = None):
+    def __init__(self, sim: Simulation, target=None, level: int = None):
+        self.sim = sim
         self.animation_lock = timedelta()
         self.gcd_lock = timedelta()
         self.target = target
@@ -72,23 +72,26 @@ class Actor:
 
         self.auras = []
 
-    def decide(self, sim: Simulation):
+    def decide(self):
         pass
 
-    def has_aura(self, aura_class: Type[Aura]):
+    def has_aura(self, aura_class):
         return any(isinstance(aura, aura_class) for aura in self.auras)
+
+    def cast(self, cast_class, target=None):
+        self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target or self.target))
 
 
 class Bard(Actor):
-    def decide(self, sim: Simulation):
+    def decide(self):
         if self.target is None:
-            self.target = Actor()
+            self.target = Actor(sim=self.sim)
 
         if not self.has_aura(StraightShotBuff):
-            return sim.schedule_in(StraightShotCast(sim=sim, source=self))
+            return self.cast(StraightShotCast)
 
         if not self.target.has_aura(WindbiteDebuff):
-            return sim.schedule_in(WindbiteCast(sim=sim, source=self, target=self.target))
+            return self.cast(WindbiteCast)
 
 
 class CombatEndEvent(Event):
@@ -177,7 +180,7 @@ class WindbiteCast(CastEvent):
 if __name__ == '__main__':
     sim = Simulation(combat_length=timedelta(seconds=60))
 
-    bard = Bard()
+    bard = Bard(sim=sim)
 
     sim.add_actor(bard)
     sim.run()
