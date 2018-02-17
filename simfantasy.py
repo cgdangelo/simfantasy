@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from heapq import heapify, heappop, heappush
+from typing import Type
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -12,7 +13,7 @@ logger.addHandler(logstream)
 
 
 class Simulation:
-    def __init__(self, combat_length: timedelta = None):
+    def __init__(self, combat_length: timedelta = timedelta(minutes=5)):
         self.combat_length = combat_length
 
         self.actors = []
@@ -30,9 +31,9 @@ class Simulation:
         heappush(self.events, (self.current_time + delta, event))
 
     def run(self):
-        while self.current_time < self.combat_length:
-            # self.schedule_in(event=ServerTickEvent(sim=self), delta=timedelta(seconds=3))
+        self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
+        while self.current_time <= self.combat_length and len(self.events) > 0:
             for actor in self.actors:
                 if actor.ready:
                     actor.decide(sim=self)
@@ -44,6 +45,21 @@ class Simulation:
             event.execute()
 
             self.current_time = time
+
+
+class Aura:
+    duration: timedelta
+
+
+class Event:
+    def __init__(self, sim: Simulation):
+        self.sim = sim
+
+    def __lt__(self, other):
+        return False
+
+    def __str__(self):
+        return '{0}'.format(self.__class__.__name__)
 
 
 class Actor:
@@ -59,34 +75,25 @@ class Actor:
     def decide(self, sim: Simulation):
         pass
 
+    def has_aura(self, aura_class: Type[Aura]):
+        return any(isinstance(aura, aura_class) for aura in self.auras)
+
 
 class Bard(Actor):
     def decide(self, sim: Simulation):
         if self.target is None:
             self.target = Actor()
 
-        if not any(isinstance(aura, StraightShotBuff) for aura in self.auras):
+        if not self.has_aura(StraightShotBuff):
             return sim.schedule_in(StraightShotCast(sim=sim, source=self))
 
-        if not any(isinstance(aura, WindbiteDebuff) for aura in self.target.auras):
+        if not self.target.has_aura(WindbiteDebuff):
             return sim.schedule_in(WindbiteCast(sim=sim, source=self, target=self.target))
 
 
-class Aura:
-    duration: timedelta
-
-
-class Event:
-    def __init__(self, sim: Simulation):
-        self.sim = sim
-
-    def __lt__(self, other):
-        return False
-
-
-class ServerTickEvent(Event):
+class CombatEndEvent(Event):
     def execute(self):
-        pass
+        self.sim.events.clear()
 
 
 class AuraEvent(Event):
