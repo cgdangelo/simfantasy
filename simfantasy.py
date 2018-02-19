@@ -4,6 +4,8 @@ from enum import Enum, auto
 from heapq import heapify, heappop, heappush
 from math import floor
 
+import numpy
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
@@ -18,7 +20,7 @@ main_stat_per_level = [
     207, 209, 210, 212, 214, 215, 217, 218, 224, 228, 236, 244, 252, 260, 268, 276, 284, 292
 ]
 
-sub_per_level = [
+sub_stat_per_level = [
     56, 57, 60, 62, 65, 68, 70, 73, 76, 78, 82, 85, 89, 93, 96, 100, 104, 109, 113, 116, 122, 127, 133, 138, 144, 150,
     155, 162, 168, 173, 181, 188, 194, 202, 209, 215, 223, 229, 236, 244, 253, 263, 272, 283, 292, 302, 311, 322, 331,
     341, 342, 344, 345, 346, 347, 349, 350, 351, 352, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364,
@@ -155,7 +157,7 @@ def get_racial_attribute_bonuses(race: Race):
         return 0, 0, 0, 0, 0
 
 
-def get_base_stat_by_job(job: Job):
+def get_base_stats_by_job(job: Job):
     if job == Job.GLADIATOR:
         return 95, 90, 100, 50, 95
     elif job == Job.PUGILIST:
@@ -212,11 +214,68 @@ def calculate_base_stats(level: int, job: Job, race: Race):
     base_main_stat = main_stat_per_level[level - 1]
 
     race_stats = get_racial_attribute_bonuses(race)
-    job_stats = get_base_stat_by_job(job)
+    job_stats = get_base_stats_by_job(job)
 
     return tuple(
         floor(base_main_stat * (job_stat / 100)) + race_stats[index] for index, job_stat in enumerate(job_stats)
     )
+
+
+def calculate_action_damage(source, action):
+    strength, dexterity, vitality, intelligence, mind = get_base_stats_by_job(source.job)
+
+    if action.affected_by == Attribute.ATTACK_POWER:
+        if source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+            job_attribute_modifier = dexterity
+            attack_rating = source.stats[Attribute.DEXTERITY]
+        else:
+            job_attribute_modifier = strength
+            attack_rating = source.stats[Attribute.STRENGTH]
+
+        weapon_damage = source.physical_damage
+    elif action.affected_by == Attribute.ATTACK_MAGIC_POTENCY:
+        if source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
+            job_attribute_modifier = mind
+            attack_rating = source.stats[Attribute.MIND]
+        else:
+            job_attribute_modifier = intelligence
+            attack_rating = source.stats[Attribute.INTELLIGENCE]
+
+        weapon_damage = source.magic_damage
+    elif action.affected_by == Attribute.HEALING_MAGIC_POTENCY:
+        job_attribute_modifier = mind
+        weapon_damage = source.magic_damage
+        attack_rating = source.stats[Attribute.MIND]
+    else:
+        raise Exception('Action affected by unexpected attribute.')
+
+    main_stat = main_stat_per_level[source.level - 1]
+    sub_stat = sub_stat_per_level[source.level - 1]
+    divisor = divisor_per_level[source.level - 1]
+
+    f_ptc = action.potency / 100
+    f_wd = floor((main_stat * job_attribute_modifier / 100) + weapon_damage)
+    f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
+    f_det = floor(130 * (source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+    f_tnc = floor(100 * (source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+    f_chr = floor(200 * (source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+
+    p_dhr = floor(550 * (source.stats[Attribute.DIRECT_HIT] - sub_stat) / divisor) / 10
+    p_chr = floor(200 * (source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 50) / 10
+
+    is_direct_hit = numpy.random.uniform() > p_dhr
+    is_critical_hit = numpy.random.uniform() > p_chr
+
+    damage_randomization = numpy.random.uniform(0.95, 1.05)
+
+    damage = floor(
+        (f_ptc * f_wd * f_atk * f_det * f_tnc) *
+        (f_chr if is_critical_hit else 1) *
+        (1.25 if is_direct_hit else 1) *
+        damage_randomization
+    )
+
+    return damage
 
 
 class Simulation:
@@ -276,11 +335,15 @@ class Actor:
                  # TODO Need a better way to assign this.
                  job: Job,
                  level: int = None,
+                 physical_damage: int = None,
+                 magic_damage: int = None,
                  target=None):
         self.sim = sim
         self.race = race
         self.job = job
         self.level = level or 70
+        self.physical_damage = physical_damage
+        self.magic_damage = magic_damage
         self.target = target
 
         self.animation_lock = timedelta()
@@ -355,6 +418,9 @@ class PlayerReadyEvent(Event):
 
 
 class CastEvent(Event):
+    affected_by: Attribute
+    potency: int
+
     def __init__(self, sim: Simulation, source: Actor, target: Actor = None, off_gcd: bool = None):
         super().__init__(sim=sim)
 
@@ -374,6 +440,9 @@ class StraightShotBuff(Aura):
 
 
 class StraightShotCast(CastEvent):
+    affected_by = Attribute.ATTACK_POWER
+    potency = 140
+
     def execute(self):
         super().execute()
 
