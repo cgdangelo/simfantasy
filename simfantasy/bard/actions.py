@@ -1,7 +1,8 @@
 from datetime import timedelta
 
 from simfantasy.enums import Attribute
-from simfantasy.simulator import Actor, ApplyAuraEvent, Aura, CastEvent, ExpireAuraEvent
+from simfantasy.events import CastEvent, ApplyAuraEvent, ExpireAuraEvent
+from simfantasy.simulator import Aura, Actor
 
 
 class StraightShotBuff(Aura):

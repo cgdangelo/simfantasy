@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from simfantasy.bard import Bard
-from simfantasy.enums import Job, Race
+from simfantasy.enums import Race, Job
 from simfantasy.simulator import Simulation
 
 if __name__ == '__main__':
