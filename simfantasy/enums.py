@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Flag as Enum, auto
 
 
 class Attribute(Enum):
@@ -105,8 +105,10 @@ class Slot(Enum):
     LEGS = auto()
     FEET = auto()
     OFF_HAND = auto()
-    EARRING = auto()
+    EARRINGS = auto()
     NECKLACE = auto()
     BRACELET = auto()
-    RING = auto()
+    LEFT_RING = auto()
+    RIGHT_RING = auto()
+    RING = LEFT_RING | RIGHT_RING
     MATERIA = auto()

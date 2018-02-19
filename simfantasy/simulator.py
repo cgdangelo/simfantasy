@@ -95,7 +95,8 @@ class Actor:
                  level: int = None,
                  physical_damage: int = None,
                  magic_damage: int = None,
-                 target: 'Actor' = None):
+                 target: 'Actor' = None,
+                 equipment: Dict[Slot, 'Item'] = None):
         """
         Create a new actor.
 
@@ -115,6 +116,9 @@ class Actor:
         if magic_damage is None:
             magic_damage = 0
 
+        if equipment is None:
+            equipment = {}
+
         self.sim: Simulation = sim
         self.race: Race = race
         self.level: int = level
@@ -133,6 +137,25 @@ class Actor:
         ))
 
         self.sim.actors.append(self)
+
+        self.gear: Dict[Attribute, Item] = {}
+        self.equip_gear(equipment)
+
+    def equip_gear(self, equipment: Dict[Slot, 'Item']):
+        for slot, item in equipment.items():
+            if not slot & item.slot:
+                raise Exception('Tried to place equipment in an incorrect slot.')
+
+            if slot in self.gear and self.gear[slot] is not None:
+                raise Exception('Tried to replace gear in slot.')
+
+            self.gear[slot] = item
+
+            for gear_stat, bonus in item.stats.items():
+                if gear_stat not in self.stats:
+                    self.stats[gear_stat] = 0
+
+                self.stats[gear_stat] += bonus
 
     @abstractmethod
     def decide(self) -> None:
@@ -179,7 +202,7 @@ class Weapon(Item):
                  magic_damage: int,
                  name: str = None,
                  melds: List[Tuple[Attribute, int]] = None):
-        super().__init__(slot=Slot.WEAPON, name=name, melds=melds)
+        super().__init__(slot=Slot.WEAPON, name=name, stats={}, melds=melds)
 
         self.physical_damage = physical_damage
         self.magic_damage = magic_damage

@@ -8,14 +8,13 @@ if __name__ == '__main__':
     sim = Simulation(combat_length=timedelta(seconds=60))
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
-    bard = Bard(sim=sim, race=Race.HIGHLANDER, target=enemy)
 
     savage_aim_vi = (Attribute.CRITICAL_HIT, 40)
     savage_might_vi = (Attribute.DETERMINATION, 40)
     heavens_eye_vi = (Attribute.DIRECT_HIT, 40)
     vitality_vi = (Attribute.VITALITY, 25)
 
-    bow = Weapon(name='Kujakuo', physical_damage=102, magic_damage=69)
+    kujakuo = Weapon(name='Kujakuo', physical_damage=102, magic_damage=69)
 
     true_linen_cap = Item(name='True Linen Cap of Aiming',
                           slot=Slot.HEAD,
@@ -83,8 +82,8 @@ if __name__ == '__main__':
                                Attribute.MAGIC_DEFENSE: 428,
                            },
                            melds=[savage_aim_vi, heavens_eye_vi])
-    carborundum_earring = Item(name='Carborundum Earring of Aiming',
-                               slot=Slot.EARRING,
+    carborundum_earrings = Item(name='Carborundum Earring of Aiming',
+                               slot=Slot.EARRINGS,
                                stats={
                                    Attribute.DEXTERITY: 135,
                                    Attribute.SKILL_SPEED: 122,
@@ -133,5 +132,23 @@ if __name__ == '__main__':
                                 Attribute.MAGIC_DEFENSE: 1,
                             },
                             melds=[vitality_vi])
+
+    bard = Bard(sim=sim,
+                race=Race.HIGHLANDER,
+                target=enemy,
+                equipment={
+                    Slot.WEAPON: kujakuo,
+                    Slot.HEAD: true_linen_cap,
+                    Slot.BODY: true_linen_jacket,
+                    Slot.HANDS: augmented_tomestone_gloves,
+                    Slot.WAIST: slothskin_belt,
+                    Slot.LEGS: true_linen_breeches,
+                    Slot.FEET: slothskin_boots,
+                    Slot.EARRINGS: carborundum_earrings,
+                    Slot.NECKLACE: diamond_necklace,
+                    Slot.BRACELET: augmented_tomestone_bracelet,
+                    Slot.LEFT_RING: augmented_tomestone_ring,
+                    Slot.RIGHT_RING: carborundum_ring
+                })
 
     sim.run()
