@@ -25,8 +25,10 @@ class Simulation:
 
         :param combat_length: Desired combat length. Default: 5 minutes.
         """
+        if combat_length is None:
+            combat_length = timedelta(minutes=5)
 
-        self.combat_length: timedelta = combat_length or timedelta(minutes=5)
+        self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
 
         self.actors: List[Actor] = []
