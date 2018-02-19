@@ -157,6 +157,14 @@ class Actor:
 
                 self.stats[gear_stat] += bonus
 
+            for meld_stat, bonus in item.melds:
+                if meld_stat not in self.stats:
+                    self.stats[meld_stat] = 0
+
+                self.stats[meld_stat] += bonus
+
+        logger.debug(self.stats)
+
     @abstractmethod
     def decide(self) -> None:
         """Given current simulation environment, decide what action should be performed, if any."""
@@ -190,6 +198,9 @@ class Item:
                  name: str = None,
                  stats: Dict[Attribute, int] = None,
                  melds: List[Tuple[Attribute, int]] = None):
+        if melds is None:
+            melds = []
+
         self.slot = slot
         self.name = name
         self.stats = stats
