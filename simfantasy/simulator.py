@@ -2,10 +2,10 @@ import logging
 from abc import abstractmethod
 from datetime import timedelta
 from heapq import heappop, heapify, heappush
-from typing import List, Dict, Type
+from typing import List, Dict, Type, Tuple
 
 from simfantasy.common_math import calculate_base_stats
-from simfantasy.enums import Race, Job, Attribute
+from simfantasy.enums import Race, Job, Attribute, Slot
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -159,3 +159,27 @@ class Actor:
             target = self.target
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
+
+
+class Item:
+    def __init__(self,
+                 slot: Slot,
+                 name: str = None,
+                 stats: Dict[Attribute, int] = None,
+                 melds: List[Tuple[Attribute, int]] = None):
+        self.slot = slot
+        self.name = name
+        self.stats = stats
+        self.melds = melds
+
+
+class Weapon(Item):
+    def __init__(self,
+                 physical_damage: int,
+                 magic_damage: int,
+                 name: str = None,
+                 melds: List[Tuple[Attribute, int]] = None):
+        super().__init__(slot=Slot.WEAPON, name=name, melds=melds)
+
+        self.physical_damage = physical_damage
+        self.magic_damage = magic_damage

@@ -94,3 +94,19 @@ class Job(Enum):
     RED_MAGE = auto()
 
     ENEMY = auto()
+
+
+class Slot(Enum):
+    WEAPON = auto()
+    HEAD = auto()
+    BODY = auto()
+    HANDS = auto()
+    WAIST = auto()
+    LEGS = auto()
+    FEET = auto()
+    OFF_HAND = auto()
+    EARRING = auto()
+    NECKLACE = auto()
+    BRACELET = auto()
+    RING = auto()
+    MATERIA = auto()
