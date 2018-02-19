@@ -86,11 +86,12 @@ class Aura:
 class Actor:
     """A participant in an encounter."""
 
+    job: Job = None
+
     # TODO Get rid of level?
     def __init__(self,
                  sim: Simulation,
                  race: Race,
-                 job: Job,
                  level: int = None,
                  physical_damage: int = None,
                  magic_damage: int = None,
@@ -100,7 +101,6 @@ class Actor:
 
         :param sim: The encounter that the actor will enter.
         :param race: Race and clan.
-        :param job: Job.
         :param level: Level. Note that most calculations only work at 70.
         :param physical_damage: Current weapon's physical damage.
         :param magic_damage: Current weapon's magic damage.
@@ -117,7 +117,6 @@ class Actor:
 
         self.sim: Simulation = sim
         self.race: Race = race
-        self.job: Job = job
         self.level: int = level
         self.physical_damage: int = physical_damage
         self.magic_damage: int = magic_damage
@@ -130,7 +129,7 @@ class Actor:
 
         self.stats: Dict[Attribute, int] = dict(zip(
             (Attribute.STRENGTH, Attribute.DEXTERITY, Attribute.VITALITY, Attribute.INTELLIGENCE, Attribute.MIND),
-            calculate_base_stats(self.level, self.job, race)
+            calculate_base_stats(self.level, self.__class__.job, race)
         ))
 
         self.sim.actors.append(self)
