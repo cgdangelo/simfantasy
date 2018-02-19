@@ -1,16 +1,17 @@
 import logging
 from datetime import timedelta
-from enum import Enum, auto
 from heapq import heapify, heappop, heappush
 from math import floor
 
 import numpy
 
+from simfantasy.enums import Attribute, Job, Race
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 logstream = logging.StreamHandler()
-logstream.setFormatter(logging.Formatter('%(asctime)s - %(pathname)s @ %(lineno)d - %(levelname)s - %(message)s'))
+logstream.setFormatter(logging.Formatter('%(relativeCreated)s [%(levelname)s] %(message)s\n'))
 
 logger.addHandler(logstream)
 
@@ -31,101 +32,6 @@ divisor_per_level = [
     155, 162, 168, 173, 181, 188, 194, 202, 209, 215, 223, 229, 236, 244, 253, 263, 272, 283, 292, 302, 311, 322, 331,
     341, 393, 444, 496, 548, 600, 651, 703, 755, 806, 858, 941, 1032, 1133, 1243, 1364, 1497, 1643, 1802, 1978, 2170,
 ]
-
-
-class Attribute(Enum):
-    STRENGTH = auto()
-    DEXTERITY = auto()
-    VITALITY = auto()
-    INTELLIGENCE = auto()
-    MIND = auto()
-
-    CRITICAL_HIT = auto()
-    DETERMINATION = auto()
-    DIRECT_HIT = auto()
-
-    DEFENSE = auto()
-    MAGIC_DEFENSE = auto()
-
-    ATTACK_POWER = auto()
-    SKILL_SPEED = auto()
-
-    ATTACK_MAGIC_POTENCY = auto()
-    HEALING_MAGIC_POTENCY = auto()
-    SPELL_SPEED = auto()
-
-    TENACITY = auto()
-    PIETY = auto()
-
-
-class Race(Enum):
-    WILDWOOD = auto()
-    DUSKWIGHT = auto()
-    ELEZEN = WILDWOOD | DUSKWIGHT
-
-    MIDLANDER = auto()
-    HIGHLANDER = auto()
-    HYUR = MIDLANDER | HIGHLANDER
-
-    PLAINSFOLK = auto()
-    DUNESFOLK = auto()
-    LALAFELL = PLAINSFOLK | DUNESFOLK
-
-    SEEKER_OF_THE_SUN = auto()
-    KEEPER_OF_THE_MOON = auto()
-    MIQOTE = SEEKER_OF_THE_SUN | KEEPER_OF_THE_MOON
-
-    SEA_WOLF = auto()
-    HELLSGUARD = auto()
-    ROEGADYN = SEA_WOLF | HELLSGUARD
-
-    RAEN = auto()
-    XAELA = auto()
-    AU_RA = RAEN | XAELA
-
-    ENEMY = auto()
-
-
-class Job(Enum):
-    PALADIN = auto()
-    GLADIATOR = auto()
-
-    WARRIOR = auto()
-    MARAUDER = auto()
-
-    MONK = auto()
-    PUGILIST = auto()
-
-    DRAGOON = auto()
-    LANCER = auto()
-
-    BARD = auto()
-    ARCHER = auto()
-
-    WHITE_MAGE = auto()
-    CONJURER = auto()
-
-    BLACK_MAGE = auto()
-    THAUMATURGE = auto()
-
-    SUMMONER = auto()
-    SCHOLAR = auto()
-    ARCANIST = auto()
-
-    NINJA = auto()
-    ROGUE = auto()
-
-    DARK_KNIGHT = auto()
-
-    ASTROLOGIAN = auto()
-
-    MACHINIST = auto()
-
-    SAMURAI = auto()
-
-    RED_MAGE = auto()
-
-    ENEMY = auto()
 
 
 def get_racial_attribute_bonuses(race: Race):
@@ -297,6 +203,8 @@ class Simulation:
         heappush(self.events, (self.current_time + delta, event))
 
     def run(self):
+        logger.info('Running!')
+
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
         while self.current_time <= self.combat_length and len(self.events) > 0:
@@ -306,7 +214,7 @@ class Simulation:
 
             time, event = heappop(self.events)
 
-            print(time, event)
+            logger.debug(event)
 
             event.execute()
 
@@ -330,14 +238,14 @@ class Event:
 
 class Actor:
     def __init__(self,
-                 sim: Simulation,
-                 race: Race,
+                 sim: object,
+                 race: object,
                  # TODO Need a better way to assign this.
-                 job: Job,
-                 level: int = None,
-                 physical_damage: int = None,
-                 magic_damage: int = None,
-                 target=None):
+                 job: object,
+                 level: object = None,
+                 physical_damage: object = None,
+                 magic_damage: object = None,
+                 target: object = None) -> object:
         self.sim = sim
         self.race = race
         self.job = job
@@ -365,20 +273,6 @@ class Actor:
 
     def cast(self, cast_class, target=None):
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target or self.target))
-
-
-class Bard(Actor):
-    job = Job.BARD
-
-    def decide(self):
-        if self.target is None:
-            self.target = Actor(sim=self.sim, race=Race.ENEMY, job=Job.ENEMY)
-
-        if not self.has_aura(StraightShotBuff):
-            return self.cast(StraightShotCast)
-
-        if not self.target.has_aura(WindbiteDebuff):
-            return self.cast(WindbiteCast)
 
 
 class CombatEndEvent(Event):
@@ -433,49 +327,3 @@ class CastEvent(Event):
     def execute(self):
         self.source.ready = False
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source), delta=max(self.animation, self.gcd))
-
-
-class StraightShotBuff(Aura):
-    duration = timedelta(seconds=30)
-
-
-class StraightShotCast(CastEvent):
-    affected_by = Attribute.ATTACK_POWER
-    potency = 140
-
-    def execute(self):
-        super().execute()
-
-        aura = StraightShotBuff()
-
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
-
-
-class WindbiteDebuff(Aura):
-    def __init__(self, source: Actor):
-        super().__init__()
-
-        self.source = source
-
-    @property
-    def duration(self):
-        return timedelta(seconds=15) if self.source.level < 64 else timedelta(seconds=30)
-
-
-class WindbiteCast(CastEvent):
-    def execute(self):
-        super().execute()
-
-        aura = WindbiteDebuff(source=self.source)
-
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.target, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.target, aura=aura), delta=aura.duration)
-
-
-if __name__ == '__main__':
-    sim = Simulation(combat_length=timedelta(seconds=60))
-
-    bard = Bard(sim=sim, race=Race.HIGHLANDER, job=Job.BARD)
-
-    sim.run()
