@@ -24,82 +24,82 @@ divisor_per_level = [
 
 
 def get_racial_attribute_bonuses(race: Race):
-    if race == Race.WILDWOOD:
+    if race is Race.WILDWOOD:
         return 0, 3, -1, 2, -1
-    elif race == Race.DUSKWIGHT:
+    elif race is Race.DUSKWIGHT:
         return 0, 0, -1, 3, 1
-    elif race == Race.MIDLANDER:
+    elif race is Race.MIDLANDER:
         return 2, -1, 0, 3, -1
-    elif race == Race.HIGHLANDER:
+    elif race is Race.HIGHLANDER:
         return 3, 0, 2, -2, 0
-    elif race == Race.PLAINSFOLK:
+    elif race is Race.PLAINSFOLK:
         return -1, 3, -1, 2, 0
-    elif race == Race.DUNESFOLK:
+    elif race is Race.DUNESFOLK:
         return -1, 1, -2, 2, 3
-    elif race == Race.SEEKER_OF_THE_SUN:
+    elif race is Race.SEEKER_OF_THE_SUN:
         return 2, 3, 0, -1, -1
-    elif race == Race.KEEPER_OF_THE_MOON:
+    elif race is Race.KEEPER_OF_THE_MOON:
         return -1, 2, -2, 1, 3
-    elif race == Race.SEA_WOLF:
+    elif race is Race.SEA_WOLF:
         return 2, -1, 3, -2, 1
-    elif race == Race.HELLSGUARD:
+    elif race is Race.HELLSGUARD:
         return 0, -2, 3, 0, 2
-    elif race == Race.RAEN:
+    elif race is Race.RAEN:
         return -1, 2, -1, 0, 3
-    elif race == Race.XAELA:
+    elif race is Race.XAELA:
         return 3, 0, 2, 0, -2
     else:
         return 0, 0, 0, 0, 0
 
 
 def get_base_stats_by_job(job: Job):
-    if job == Job.GLADIATOR:
+    if job is Job.GLADIATOR:
         return 95, 90, 100, 50, 95
-    elif job == Job.PUGILIST:
+    elif job is Job.PUGILIST:
         return 100, 100, 95, 45, 85
-    elif job == Job.MARAUDER:
+    elif job is Job.MARAUDER:
         return 100, 90, 100, 30, 50
-    elif job == Job.LANCER:
+    elif job is Job.LANCER:
         return 105, 95, 100, 40, 60
-    elif job == Job.ARCHER:
+    elif job is Job.ARCHER:
         return 85, 105, 95, 80, 75
-    elif job == Job.CONJURER:
+    elif job is Job.CONJURER:
         return 50, 100, 95, 100, 105
-    elif job == Job.THAUMATURGE:
+    elif job is Job.THAUMATURGE:
         return 40, 95, 95, 105, 70
-    elif job == Job.PALADIN:
+    elif job is Job.PALADIN:
         return 100, 95, 110, 60, 100
-    elif job == Job.MONK:
+    elif job is Job.MONK:
         return 110, 105, 100, 50, 90
-    elif job == Job.WARRIOR:
+    elif job is Job.WARRIOR:
         return 105, 95, 110, 40, 55
-    elif job == Job.DRAGOON:
+    elif job is Job.DRAGOON:
         return 115, 100, 105, 45, 65
-    elif job == Job.BARD:
+    elif job is Job.BARD:
         return 90, 115, 100, 85, 80
-    elif job == Job.WHITE_MAGE:
+    elif job is Job.WHITE_MAGE:
         return 55, 105, 100, 105, 115
-    elif job == Job.BLACK_MAGE:
+    elif job is Job.BLACK_MAGE:
         return 45, 100, 100, 115, 75
-    elif job == Job.ARCANIST:
+    elif job is Job.ARCANIST:
         return 85, 95, 95, 105, 75
-    elif job == Job.SUMMONER:
+    elif job is Job.SUMMONER:
         return 90, 100, 100, 115, 80
-    elif job == Job.SCHOLAR:
+    elif job is Job.SCHOLAR:
         return 90, 100, 100, 105, 115
-    elif job == Job.ROGUE:
+    elif job is Job.ROGUE:
         return 80, 100, 95, 60, 70
-    elif job == Job.NINJA:
+    elif job is Job.NINJA:
         return 85, 110, 100, 65, 75
-    elif job == Job.MACHINIST:
+    elif job is Job.MACHINIST:
         return 85, 115, 100, 80, 85
-    elif job == Job.DARK_KNIGHT:
+    elif job is Job.DARK_KNIGHT:
         return 105, 95, 110, 60, 40
-    elif job == Job.ASTROLOGIAN:
+    elif job is Job.ASTROLOGIAN:
         return 50, 100, 100, 105, 115
-    elif job == Job.SAMURAI:
+    elif job is Job.SAMURAI:
         return 112, 108, 100, 60, 50
-    elif job == Job.RED_MAGE:
+    elif job is Job.RED_MAGE:
         return 55, 105, 100, 115, 110
     else:
         return 0, 0, 0, 0, 0
@@ -119,7 +119,7 @@ def calculate_base_stats(level: int, job: Job, race: Race):
 def calculate_action_damage(source, action):
     strength, dexterity, vitality, intelligence, mind = get_base_stats_by_job(source.job)
 
-    if action.affected_by == Attribute.ATTACK_POWER:
+    if action.affected_by is Attribute.ATTACK_POWER:
         if source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
             job_attribute_modifier = dexterity
             attack_rating = source.stats[Attribute.DEXTERITY]
@@ -128,7 +128,7 @@ def calculate_action_damage(source, action):
             attack_rating = source.stats[Attribute.STRENGTH]
 
         weapon_damage = source.physical_damage
-    elif action.affected_by == Attribute.ATTACK_MAGIC_POTENCY:
+    elif action.affected_by is Attribute.ATTACK_MAGIC_POTENCY:
         if source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
             job_attribute_modifier = mind
             attack_rating = source.stats[Attribute.MIND]
@@ -137,7 +137,7 @@ def calculate_action_damage(source, action):
             attack_rating = source.stats[Attribute.INTELLIGENCE]
 
         weapon_damage = source.magic_damage
-    elif action.affected_by == Attribute.HEALING_MAGIC_POTENCY:
+    elif action.affected_by is Attribute.HEALING_MAGIC_POTENCY:
         job_attribute_modifier = mind
         weapon_damage = source.magic_damage
         attack_rating = source.stats[Attribute.MIND]
