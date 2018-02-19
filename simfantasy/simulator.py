@@ -11,7 +11,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 logstream = logging.StreamHandler()
-logstream.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+logstream.setFormatter(logging.Formatter('[%(levelname)s]\t%(message)s'))
 
 logger.addHandler(logstream)
 
@@ -55,7 +55,7 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        logger.info('Running!')
+        logger.info('%s Running!', timedelta())
 
         from simfantasy.events import CombatEndEvent
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
