@@ -2,6 +2,7 @@ import logging
 from abc import abstractmethod
 from datetime import timedelta
 from heapq import heappop, heapify, heappush
+from pprint import pprint, pformat
 from typing import List, Dict, Type, Tuple
 
 from simfantasy.common_math import calculate_base_stats
@@ -131,10 +132,7 @@ class Actor:
         self.ready: bool = True
         self.auras: List[Aura] = []
 
-        self.stats: Dict[Attribute, int] = dict(zip(
-            (Attribute.STRENGTH, Attribute.DEXTERITY, Attribute.VITALITY, Attribute.INTELLIGENCE, Attribute.MIND),
-            calculate_base_stats(self.level, self.__class__.job, race)
-        ))
+        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level, self.__class__.job, race)
 
         self.sim.actors.append(self)
 

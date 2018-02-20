@@ -35,7 +35,7 @@ if __name__ == '__main__':
                               Attribute.DEFENSE: 428,
                               Attribute.MAGIC_DEFENSE: 428,
                           },
-                          melds=[savage_aim_vi, savage_aim_vi])
+                          melds=[savage_aim_vi, savage_might_vi])
 
     true_linen_jacket = Item(name='True Linen Jacket of Aiming',
                              slot=Slot.BODY,
@@ -47,7 +47,7 @@ if __name__ == '__main__':
                                  Attribute.DEFENSE: 599,
                                  Attribute.MAGIC_DEFENSE: 599,
                              },
-                             melds=[savage_aim_vi, savage_might_vi])
+                             melds=[heavens_eye_vi, heavens_eye_vi])
 
     augmented_tomestone_gloves = Item(name='Augmented Lost Allagan Gloves of Aiming',
                                       slot=Slot.HANDS,

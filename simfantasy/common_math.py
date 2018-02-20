@@ -25,120 +25,362 @@ divisor_per_level = [
 
 def get_racial_attribute_bonuses(race: Race):
     if race is Race.WILDWOOD:
-        return 0, 3, -1, 2, -1
+        return {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: 3,
+            Attribute.VITALITY: -1,
+            Attribute.INTELLIGENCE: 2,
+            Attribute.MIND: -1
+        }
     elif race is Race.DUSKWIGHT:
-        return 0, 0, -1, 3, 1
+        return {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: -1,
+            Attribute.INTELLIGENCE: 3,
+            Attribute.MIND: 1
+        }
     elif race is Race.MIDLANDER:
-        return 2, -1, 0, 3, -1
+        return {
+            Attribute.STRENGTH: 2,
+            Attribute.DEXTERITY: -1,
+            Attribute.VITALITY: 0,
+            Attribute.INTELLIGENCE: 3,
+            Attribute.MIND: -1
+        }
     elif race is Race.HIGHLANDER:
-        return 3, 0, 2, -2, 0
+        return {
+            Attribute.STRENGTH: 3,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: 2,
+            Attribute.INTELLIGENCE: -2,
+            Attribute.MIND: 0
+        }
     elif race is Race.PLAINSFOLK:
-        return -1, 3, -1, 2, 0
+        return {
+            Attribute.STRENGTH: -1,
+            Attribute.DEXTERITY: 3,
+            Attribute.VITALITY: -1,
+            Attribute.INTELLIGENCE: 2,
+            Attribute.MIND: 0
+        }
     elif race is Race.DUNESFOLK:
-        return -1, 1, -2, 2, 3
+        return {
+            Attribute.STRENGTH: -1,
+            Attribute.DEXTERITY: 1,
+            Attribute.VITALITY: -2,
+            Attribute.INTELLIGENCE: 2,
+            Attribute.MIND: 3
+        }
     elif race is Race.SEEKER_OF_THE_SUN:
-        return 2, 3, 0, -1, -1
+        return {
+            Attribute.STRENGTH: 2,
+            Attribute.DEXTERITY: 3,
+            Attribute.VITALITY: 0,
+            Attribute.INTELLIGENCE: -1,
+            Attribute.MIND: -1
+        }
     elif race is Race.KEEPER_OF_THE_MOON:
-        return -1, 2, -2, 1, 3
+        return {
+            Attribute.STRENGTH: -1,
+            Attribute.DEXTERITY: 2,
+            Attribute.VITALITY: -2,
+            Attribute.INTELLIGENCE: 1,
+            Attribute.MIND: 3
+        }
     elif race is Race.SEA_WOLF:
-        return 2, -1, 3, -2, 1
+        return {
+            Attribute.STRENGTH: 2,
+            Attribute.DEXTERITY: -1,
+            Attribute.VITALITY: 3,
+            Attribute.INTELLIGENCE: -2,
+            Attribute.MIND: 1
+        }
     elif race is Race.HELLSGUARD:
-        return 0, -2, 3, 0, 2
+        return {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: -3,
+            Attribute.VITALITY: 3,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: 2
+        }
     elif race is Race.RAEN:
-        return -1, 2, -1, 0, 3
+        return {
+            Attribute.STRENGTH: -1,
+            Attribute.DEXTERITY: -2,
+            Attribute.VITALITY: -1,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: 3
+        }
     elif race is Race.XAELA:
-        return 3, 0, 2, 0, -2
+        return {
+            Attribute.STRENGTH: 3,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: 2,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: -2
+        }
     else:
-        return 0, 0, 0, 0, 0
+        return {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: 0,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: 0
+        }
 
 
 def get_base_stats_by_job(job: Job):
     if job is Job.GLADIATOR:
-        return 95, 90, 100, 50, 95
+        return {
+            Attribute.STRENGTH: 95,
+            Attribute.DEXTERITY: 90,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 50,
+            Attribute.MIND: 95
+        }
     elif job is Job.PUGILIST:
-        return 100, 100, 95, 45, 85
+        return {
+            Attribute.STRENGTH: 100,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 45,
+            Attribute.MIND: 85
+        }
     elif job is Job.MARAUDER:
-        return 100, 90, 100, 30, 50
+        return {
+            Attribute.STRENGTH: 100,
+            Attribute.DEXTERITY: 90,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 30,
+            Attribute.MIND: 50
+        }
     elif job is Job.LANCER:
-        return 105, 95, 100, 40, 60
+        return {
+            Attribute.STRENGTH: 105,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 40,
+            Attribute.MIND: 60
+        }
     elif job is Job.ARCHER:
-        return 85, 105, 95, 80, 75
+        return {
+            Attribute.STRENGTH: 85,
+            Attribute.DEXTERITY: 105,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 80,
+            Attribute.MIND: 75
+        }
     elif job is Job.CONJURER:
-        return 50, 100, 95, 100, 105
+        return {
+            Attribute.STRENGTH: 50,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 100,
+            Attribute.MIND: 105
+        }
     elif job is Job.THAUMATURGE:
-        return 40, 95, 95, 105, 70
+        return {
+            Attribute.STRENGTH: 40,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 105,
+            Attribute.MIND: 70
+        }
     elif job is Job.PALADIN:
-        return 100, 95, 110, 60, 100
+        return {
+            Attribute.STRENGTH: 100,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 110,
+            Attribute.INTELLIGENCE: 60,
+            Attribute.MIND: 100
+        }
     elif job is Job.MONK:
-        return 110, 105, 100, 50, 90
+        return {
+            Attribute.STRENGTH: 110,
+            Attribute.DEXTERITY: 105,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 50,
+            Attribute.MIND: 90
+        }
     elif job is Job.WARRIOR:
-        return 105, 95, 110, 40, 55
+        return {
+            Attribute.STRENGTH: 105,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 110,
+            Attribute.INTELLIGENCE: 40,
+            Attribute.MIND: 55
+        }
     elif job is Job.DRAGOON:
-        return 115, 100, 105, 45, 65
+        return {
+            Attribute.STRENGTH: 115,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 105,
+            Attribute.INTELLIGENCE: 45,
+            Attribute.MIND: 65
+        }
     elif job is Job.BARD:
-        return 90, 115, 100, 85, 80
+        return {
+            Attribute.STRENGTH: 90,
+            Attribute.DEXTERITY: 115,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 85,
+            Attribute.MIND: 80
+        }
     elif job is Job.WHITE_MAGE:
-        return 55, 105, 100, 105, 115
+        return {
+            Attribute.STRENGTH: 55,
+            Attribute.DEXTERITY: 105,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 105,
+            Attribute.MIND: 115
+        }
     elif job is Job.BLACK_MAGE:
-        return 45, 100, 100, 115, 75
+        return {
+            Attribute.STRENGTH: 45,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 115,
+            Attribute.MIND: 75
+        }
     elif job is Job.ARCANIST:
-        return 85, 95, 95, 105, 75
+        return {
+            Attribute.STRENGTH: 85,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 105,
+            Attribute.MIND: 75
+        }
     elif job is Job.SUMMONER:
-        return 90, 100, 100, 115, 80
+        return {
+            Attribute.STRENGTH: 90,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 115,
+            Attribute.MIND: 80
+        }
     elif job is Job.SCHOLAR:
-        return 90, 100, 100, 105, 115
+        return {
+            Attribute.STRENGTH: 90,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 105,
+            Attribute.MIND: 115
+        }
     elif job is Job.ROGUE:
-        return 80, 100, 95, 60, 70
+        return {
+            Attribute.STRENGTH: 80,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 95,
+            Attribute.INTELLIGENCE: 60,
+            Attribute.MIND: 70
+        }
     elif job is Job.NINJA:
-        return 85, 110, 100, 65, 75
+        return {
+            Attribute.STRENGTH: 85,
+            Attribute.DEXTERITY: 110,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 65,
+            Attribute.MIND: 75
+        }
     elif job is Job.MACHINIST:
-        return 85, 115, 100, 80, 85
+        return {
+            Attribute.STRENGTH: 85,
+            Attribute.DEXTERITY: 115,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 80,
+            Attribute.MIND: 85
+        }
     elif job is Job.DARK_KNIGHT:
-        return 105, 95, 110, 60, 40
+        return {
+            Attribute.STRENGTH: 105,
+            Attribute.DEXTERITY: 95,
+            Attribute.VITALITY: 110,
+            Attribute.INTELLIGENCE: 60,
+            Attribute.MIND: 40
+        }
     elif job is Job.ASTROLOGIAN:
-        return 50, 100, 100, 105, 115
+        return {
+            Attribute.STRENGTH: 50,
+            Attribute.DEXTERITY: 100,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 105,
+            Attribute.MIND: 115
+        }
     elif job is Job.SAMURAI:
-        return 112, 108, 100, 60, 50
+        return {
+            Attribute.STRENGTH: 112,
+            Attribute.DEXTERITY: 108,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 60,
+            Attribute.MIND: 50
+        }
     elif job is Job.RED_MAGE:
-        return 55, 105, 100, 115, 110
+        return {
+            Attribute.STRENGTH: 55,
+            Attribute.DEXTERITY: 105,
+            Attribute.VITALITY: 100,
+            Attribute.INTELLIGENCE: 115,
+            Attribute.MIND: 110
+        }
     else:
-        return 0, 0, 0, 0, 0
+        return {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: 0,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: 0
+        }
 
 
 def calculate_base_stats(level: int, job: Job, race: Race):
     base_main_stat = main_stat_per_level[level - 1]
+    base_sub_stat = sub_stat_per_level[level - 1]
 
-    race_stats = get_racial_attribute_bonuses(race)
+    base_stats = {
+        Attribute.STRENGTH: 0,
+        Attribute.DEXTERITY: 0,
+        Attribute.VITALITY: 0,
+        Attribute.INTELLIGENCE: 0,
+        Attribute.MIND: 0,
+        Attribute.CRITICAL_HIT: base_sub_stat,
+        Attribute.DETERMINATION: base_main_stat,
+        Attribute.DIRECT_HIT: base_sub_stat,
+        Attribute.SKILL_SPEED: base_sub_stat,
+    }
+
     job_stats = get_base_stats_by_job(job)
+    race_stats = get_racial_attribute_bonuses(race)
 
-    return tuple(
-        floor(base_main_stat * (job_stat / 100)) + race_stats[index] for index, job_stat in enumerate(job_stats)
-    )
+    for stat, bonus in job_stats.items():
+        base_stats[stat] += floor(base_main_stat * (bonus / 100)) + race_stats[stat]
+
+    return base_stats
 
 
 def calculate_action_damage(source, action):
-    strength, dexterity, vitality, intelligence, mind = get_base_stats_by_job(source.job)
+    base_stats = get_base_stats_by_job(source.job)
 
     if action.affected_by is Attribute.ATTACK_POWER:
         if source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
-            job_attribute_modifier = dexterity
+            job_attribute_modifier = base_stats[Attribute.DEXTERITY]
             attack_rating = source.stats[Attribute.DEXTERITY]
         else:
-            job_attribute_modifier = strength
+            job_attribute_modifier = base_stats[Attribute.STRENGTH]
             attack_rating = source.stats[Attribute.STRENGTH]
 
         weapon_damage = source.physical_damage
     elif action.affected_by is Attribute.ATTACK_MAGIC_POTENCY:
         if source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
-            job_attribute_modifier = mind
+            job_attribute_modifier = base_stats[Attribute.MIND]
             attack_rating = source.stats[Attribute.MIND]
         else:
-            job_attribute_modifier = intelligence
+            job_attribute_modifier = base_stats[Attribute.INTELLIGENCE]
             attack_rating = source.stats[Attribute.INTELLIGENCE]
 
         weapon_damage = source.magic_damage
     elif action.affected_by is Attribute.HEALING_MAGIC_POTENCY:
-        job_attribute_modifier = mind
+        job_attribute_modifier = base_stats[Attribute.MIND]
         weapon_damage = source.magic_damage
         attack_rating = source.stats[Attribute.MIND]
     else:
