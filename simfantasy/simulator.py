@@ -163,8 +163,6 @@ class Actor:
 
                 self.stats[meld_stat] += bonus
 
-        logger.debug(self.stats)
-
     @abstractmethod
     def decide(self) -> None:
         """Given current simulation environment, decide what action should be performed, if any."""
@@ -212,8 +210,9 @@ class Weapon(Item):
                  physical_damage: int,
                  magic_damage: int,
                  name: str = None,
+                 stats: Dict[Attribute, int] = None,
                  melds: List[Tuple[Attribute, int]] = None):
-        super().__init__(slot=Slot.WEAPON, name=name, stats={}, melds=melds)
+        super().__init__(slot=Slot.WEAPON, name=name, stats=stats, melds=melds)
 
         self.physical_damage = physical_damage
         self.magic_damage = magic_damage
