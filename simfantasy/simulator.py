@@ -89,6 +89,12 @@ class Aura:
     duration: timedelta
     """Initial duration of the effect."""
 
+    def apply(self, target):
+        pass
+
+    def expire(self, target):
+        pass
+
 
 class Actor:
     """A participant in an encounter."""

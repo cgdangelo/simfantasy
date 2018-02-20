@@ -8,6 +8,12 @@ from simfantasy.simulator import Aura, Actor
 class StraightShotBuff(Aura):
     duration = timedelta(seconds=30)
 
+    def apply(self, target: Actor):
+        target.stats[Attribute.CRITICAL_HIT] *= 1.1
+
+    def expire(self, target: Actor):
+        target.stats[Attribute.CRITICAL_HIT] /= 1.1
+
 
 class StraightShotCast(CastEvent):
     affected_by = Attribute.ATTACK_POWER

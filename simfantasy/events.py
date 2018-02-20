@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from datetime import timedelta
 
 from simfantasy.common_math import calculate_gcd
@@ -38,11 +37,13 @@ class AuraEvent(Event):
 class ApplyAuraEvent(AuraEvent):
     def execute(self):
         self.target.auras.append(self.aura)
+        self.aura.apply(target=self.target)
 
 
 class ExpireAuraEvent(AuraEvent):
     def execute(self):
         self.target.auras.remove(self.aura)
+        self.aura.expire(target=self.target)
 
 
 class PlayerReadyEvent(Event):
