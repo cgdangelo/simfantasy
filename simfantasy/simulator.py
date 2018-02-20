@@ -139,6 +139,12 @@ class Actor:
         self.equip_gear(equipment)
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
+        """
+        Equip items and adjust stats accordingly.
+
+        :param equipment: Dictionary mapping :class:`Slot<simfantasy.enums.Slot>` to :class:`Item`.
+        :return:
+        """
         for slot, item in equipment.items():
             if not slot & item.slot:
                 raise Exception('Tried to place equipment in an incorrect slot.')
