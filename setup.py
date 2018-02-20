@@ -10,7 +10,7 @@ setup(
     install_requires=[
         'numpy',
     ],
-    extras_requires={
+    extras_require={
         'docs': [
             'sphinx>=1.8',
             'sphinx-autodoc-typehints',
