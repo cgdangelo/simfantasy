@@ -77,3 +77,10 @@ class CastEvent(Event):
         self.source.ready = False
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
                              delta=max(self.animation, calculate_gcd(self.source, self)))
+
+    def __str__(self):
+        return '<{cls} source={source} target={target}>'.format(
+            cls=self.__class__.__name__,
+            source=self.source.name,
+            target=self.target.name,
+        )

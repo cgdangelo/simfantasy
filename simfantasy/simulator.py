@@ -60,10 +60,11 @@ class Simulation:
         heappush(self.events, (self.current_time + delta, event))
 
     def run(self) -> None:
+        """Run the simulation and process all events."""
+
         self.start_time: datetime = datetime.now()
 
-        """Run the simulation and process all events."""
-        logger.info('%s Running!', timedelta().total_seconds())
+        logger.info('%s\t<CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
 
         from simfantasy.events import CombatEndEvent
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
@@ -75,7 +76,7 @@ class Simulation:
 
             time, event = heappop(self.events)
 
-            logger.debug('%s %s', (time - self.start_time).total_seconds(), event)
+            logger.debug('%s\t%s', format((time - self.start_time).total_seconds(), '.3f'), event)
 
             event.execute()
 
