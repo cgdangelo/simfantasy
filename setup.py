@@ -9,5 +9,11 @@ setup(
     include_package_data=True,
     install_requires=[
         'numpy',
-    ]
+    ],
+    extras_requires={
+        'docs': [
+            'sphinx>=1.8',
+            'sphinx-autodoc-typehints',
+        ]
+    }
 )
