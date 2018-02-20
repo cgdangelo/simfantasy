@@ -1,5 +1,7 @@
+from abc import abstractmethod
 from datetime import timedelta
 
+from simfantasy.common_math import calculate_gcd
 from simfantasy.enums import Attribute
 from simfantasy.simulator import Actor, Aura, Simulation
 
@@ -53,17 +55,18 @@ class PlayerReadyEvent(Event):
 
 class CastEvent(Event):
     affected_by: Attribute
+    hastened_by: Attribute
     potency: int
 
     def __init__(self, sim: Simulation, source: Actor, target: Actor = None, off_gcd: bool = None):
         super().__init__(sim=sim)
 
         self.animation = timedelta(seconds=0.75)
-        self.gcd = timedelta(seconds=3) if not off_gcd else timedelta()
+        self.gcd = timedelta(seconds=2.5) if not off_gcd else timedelta()
 
         self.source = source
         self.target = target
 
     def execute(self):
         self.source.ready = False
-        self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source), delta=max(self.animation, self.gcd))
+        self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source), delta=max(self.animation, calculate_gcd(self.source, self)))

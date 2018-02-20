@@ -1,4 +1,5 @@
-from math import floor
+from datetime import timedelta
+from math import floor, ceil
 from typing import Dict, List
 
 import numpy
@@ -434,3 +435,44 @@ def calculate_action_damage(source, action) -> int:
     ))
 
     return damage
+
+
+def calculate_gcd(source, action):
+    speed = source.stats[Attribute.SKILL_SPEED] \
+        if action.hastened_by is Attribute.SKILL_SPEED \
+        else source.stats[Attribute.SPELL_SPEED]
+
+    sub_stat = sub_stat_per_level[source.level - 1]
+    divisor = divisor_per_level[source.level - 1]
+
+    # TODO Implement all these buffs.
+
+    rapid_fire = False
+
+    if rapid_fire:
+        return timedelta(seconds=1.5)
+
+    arrow_mod = 0
+    haste_mod = 0
+    fey_wind_mod = 0
+
+    riddle_of_fire = False
+    riddle_of_fire_mod = 115 if riddle_of_fire else 100
+
+    astral_umbral = False
+    astral_umbral_mod = 50 if astral_umbral else 100
+
+    type_1_mod = 0
+    type_2_mod = 0
+
+    gcd_m = floor((1000 - floor(130 * (speed - sub_stat) / divisor)) * action.gcd.total_seconds())
+
+    gcd_c_a = floor(floor(floor((100 - arrow_mod) * (100 - type_1_mod) / 100) * (100 - haste_mod) / 100) - fey_wind_mod)
+    gcd_c_b = (type_2_mod - 100) / -100
+    gcd_c = floor(
+        floor(floor(ceil(gcd_c_a * gcd_c_b) * gcd_m / 100) * riddle_of_fire_mod / 1000) * astral_umbral_mod / 100
+    )
+
+    gcd = gcd_c / 100
+
+    return timedelta(seconds=gcd)

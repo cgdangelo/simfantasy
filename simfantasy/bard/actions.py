@@ -11,6 +11,7 @@ class StraightShotBuff(Aura):
 
 class StraightShotCast(CastEvent):
     affected_by = Attribute.ATTACK_POWER
+    hastened_by = Attribute.SKILL_SPEED
     potency = 140
 
     def execute(self):
@@ -34,6 +35,8 @@ class WindbiteDebuff(Aura):
 
 
 class WindbiteCast(CastEvent):
+    hastened_by = Attribute.SKILL_SPEED
+
     def execute(self):
         super().execute()
 
