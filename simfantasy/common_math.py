@@ -1,29 +1,36 @@
 from math import floor
+from typing import Dict, List
 
 import numpy
 
 from simfantasy.enums import Race, Job, Attribute
 
-main_stat_per_level = [
+main_stat_per_level: List[int] = [
     20, 21, 22, 24, 26, 27, 29, 31, 33, 35, 36, 38, 41, 44, 46, 49, 52, 54, 57, 60, 63, 67, 71, 74, 78, 81, 85, 89, 92,
     97, 101, 106, 110, 115, 119, 124, 128, 134, 139, 144, 150, 155, 161, 166, 171, 177, 183, 189, 196, 202, 204, 205,
     207, 209, 210, 212, 214, 215, 217, 218, 224, 228, 236, 244, 252, 260, 268, 276, 284, 292
 ]
 
-sub_stat_per_level = [
+sub_stat_per_level: List[int] = [
     56, 57, 60, 62, 65, 68, 70, 73, 76, 78, 82, 85, 89, 93, 96, 100, 104, 109, 113, 116, 122, 127, 133, 138, 144, 150,
     155, 162, 168, 173, 181, 188, 194, 202, 209, 215, 223, 229, 236, 244, 253, 263, 272, 283, 292, 302, 311, 322, 331,
     341, 342, 344, 345, 346, 347, 349, 350, 351, 352, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364,
 ]
 
-divisor_per_level = [
+divisor_per_level: List[int] = [
     56, 57, 60, 62, 65, 68, 70, 73, 76, 78, 82, 85, 89, 93, 96, 100, 104, 109, 113, 116, 122, 127, 133, 138, 144, 150,
     155, 162, 168, 173, 181, 188, 194, 202, 209, 215, 223, 229, 236, 244, 253, 263, 272, 283, 292, 302, 311, 322, 331,
     341, 393, 444, 496, 548, 600, 651, 703, 755, 806, 858, 941, 1032, 1133, 1243, 1364, 1497, 1643, 1802, 1978, 2170,
 ]
 
 
-def get_racial_attribute_bonuses(race: Race):
+def get_racial_attribute_bonuses(race: Race) -> Dict[Attribute, int]:
+    """
+    Get main stat bonuses by clan.
+
+    :param race: Clan.
+    :return: Dictionary mapping :class:`Attribute<simfantasy.enums.Attribute>` to integer bonus values.
+    """
     if race is Race.WILDWOOD:
         return {
             Attribute.STRENGTH: 0,
@@ -130,7 +137,13 @@ def get_racial_attribute_bonuses(race: Race):
         }
 
 
-def get_base_stats_by_job(job: Job):
+def get_base_stats_by_job(job: Job) -> Dict[Attribute, int]:
+    """
+    Get base main stats by job.
+
+    :param job: Job.
+    :return: Dictionary mapping :class:`Attribute<simfantasy.enums.Attribute>` to integer bonus values.
+    """
     if job is Job.GLADIATOR:
         return {
             Attribute.STRENGTH: 95,
@@ -333,7 +346,15 @@ def get_base_stats_by_job(job: Job):
         }
 
 
-def calculate_base_stats(level: int, job: Job, race: Race):
+def calculate_base_stats(level: int, job: Job, race: Race) -> Dict[Attribute, int]:
+    """
+    Calculate base primary and secondary stats.
+
+    :param level: Level of the :class:`Actor<simfantasy.simulator.Actor>`.
+    :param job: Job of the :class:`Actor<simfantasy.simulator.Actor>`.
+    :param race: Race of the :class:`Actor<simfantasy.simulator.Actor>`.
+    :return: Dictionary mapping :class:`Attribute<simfantasy.enums.Attribute>` to integer bonus values.
+    """
     base_main_stat = main_stat_per_level[level - 1]
     base_sub_stat = sub_stat_per_level[level - 1]
 
@@ -358,7 +379,7 @@ def calculate_base_stats(level: int, job: Job, race: Race):
     return base_stats
 
 
-def calculate_action_damage(source, action):
+def calculate_action_damage(source, action) -> int:
     base_stats = get_base_stats_by_job(source.job)
 
     if action.affected_by is Attribute.ATTACK_POWER:
@@ -405,11 +426,11 @@ def calculate_action_damage(source, action):
 
     damage_randomization = numpy.random.uniform(0.95, 1.05)
 
-    damage = floor(
+    damage = int(floor(
         (f_ptc * f_wd * f_atk * f_det * f_tnc) *
         (f_chr if is_critical_hit else 1) *
         (1.25 if is_direct_hit else 1) *
         damage_randomization
-    )
+    ))
 
     return damage

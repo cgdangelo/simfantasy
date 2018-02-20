@@ -2,7 +2,6 @@ import logging
 from abc import abstractmethod
 from datetime import timedelta
 from heapq import heappop, heapify, heappush
-from pprint import pprint, pformat
 from typing import List, Dict, Type, Tuple
 
 from simfantasy.common_math import calculate_base_stats

@@ -1,4 +1,4 @@
-from enum import Flag as Enum, auto
+from enum import Flag, auto, Enum
 
 
 class Attribute(Enum):
@@ -26,7 +26,7 @@ class Attribute(Enum):
     PIETY = auto()
 
 
-class Race(Enum):
+class Race(Flag):
     WILDWOOD = auto()
     DUSKWIGHT = auto()
     ELEZEN = WILDWOOD | DUSKWIGHT
@@ -54,7 +54,7 @@ class Race(Enum):
     ENEMY = auto()
 
 
-class Job(Enum):
+class Job(Flag):
     PALADIN = auto()
     GLADIATOR = auto()
 
@@ -96,7 +96,7 @@ class Job(Enum):
     ENEMY = auto()
 
 
-class Slot(Enum):
+class Slot(Flag):
     WEAPON = auto()
     HEAD = auto()
     BODY = auto()
