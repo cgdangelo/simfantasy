@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import numpy
 
-from simfantasy.enums import Race, Job, Attribute
+from simfantasy.enums import Race, Job, Attribute, Slot
 
 main_stat_per_level: List[int] = [
     20, 21, 22, 24, 26, 27, 29, 31, 33, 35, 36, 38, 41, 44, 46, 49, 52, 54, 57, 60, 63, 67, 71, 74, 78, 81, 85, 89, 92,
@@ -391,7 +391,7 @@ def calculate_action_damage(source, action) -> int:
             job_attribute_modifier = base_stats[Attribute.STRENGTH]
             attack_rating = source.stats[Attribute.STRENGTH]
 
-        weapon_damage = source.physical_damage
+        weapon_damage = source.gear[Slot.WEAPON].physical_damage
     elif action.affected_by is Attribute.ATTACK_MAGIC_POTENCY:
         if source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
             job_attribute_modifier = base_stats[Attribute.MIND]
@@ -400,10 +400,10 @@ def calculate_action_damage(source, action) -> int:
             job_attribute_modifier = base_stats[Attribute.INTELLIGENCE]
             attack_rating = source.stats[Attribute.INTELLIGENCE]
 
-        weapon_damage = source.magic_damage
+        weapon_damage = source.gear[Slot.WEAPON].magic_damage
     elif action.affected_by is Attribute.HEALING_MAGIC_POTENCY:
         job_attribute_modifier = base_stats[Attribute.MIND]
-        weapon_damage = source.magic_damage
+        weapon_damage = source.gear[Slot.WEAPON].magic_damage
         attack_rating = source.stats[Attribute.MIND]
     else:
         raise Exception('Action affected by unexpected attribute.')

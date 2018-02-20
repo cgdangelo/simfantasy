@@ -100,8 +100,6 @@ class Actor:
                  sim: Simulation,
                  race: Race,
                  level: int = None,
-                 physical_damage: int = None,
-                 magic_damage: int = None,
                  target: 'Actor' = None,
                  equipment: Dict[Slot, 'Item'] = None,
                  name: str = None):
@@ -118,12 +116,6 @@ class Actor:
         if level is None:
             level = 70
 
-        if physical_damage is None:
-            physical_damage = 0
-
-        if magic_damage is None:
-            magic_damage = 0
-
         if equipment is None:
             equipment = {}
 
@@ -133,8 +125,6 @@ class Actor:
         self.sim: Simulation = sim
         self.race: Race = race
         self.level: int = level
-        self.physical_damage: int = physical_damage
-        self.magic_damage: int = magic_damage
         self.target: 'Actor' = target
 
         self.animation_unlock_at: timedelta = timedelta()
