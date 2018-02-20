@@ -5,7 +5,7 @@ from simfantasy.enums import Race, Slot, Attribute
 from simfantasy.simulator import Simulation, Actor, Item, Weapon
 
 if __name__ == '__main__':
-    sim = Simulation(combat_length=timedelta(seconds=60))
+    sim = Simulation()
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 

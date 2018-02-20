@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from simfantasy.common_math import calculate_gcd
+from simfantasy.common_math import calculate_gcd, calculate_action_damage
 from simfantasy.enums import Attribute
 from simfantasy.simulator import Actor, Aura, Simulation
 
@@ -78,6 +78,15 @@ class CastEvent(Event):
         self.source.ready = False
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
                              delta=max(self.animation, calculate_gcd(self.source, self)))
+
+        if self.__class__ not in self.source.statistics:
+            self.source.statistics[self.__class__] = {
+                'casts': [],
+                'damage': [],
+            }
+
+        self.source.statistics[self.__class__]['casts'].append(self.sim.current_time)
+        self.source.statistics[self.__class__]['damage'].append((self.sim.current_time, calculate_action_damage(self.source, self)))
 
     def __str__(self):
         return '<{cls} source={source} target={target}>'.format(

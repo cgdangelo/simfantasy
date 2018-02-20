@@ -112,3 +112,9 @@ class Slot(Flag):
     RIGHT_RING = auto()
     RING = LEFT_RING | RIGHT_RING
     MATERIA = auto()
+
+
+class Role(Enum):
+    DPS = auto()
+    HEALER = auto()
+    TANK = auto()

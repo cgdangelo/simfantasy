@@ -5,6 +5,11 @@ from simfantasy.events import CastEvent, ApplyAuraEvent, ExpireAuraEvent
 from simfantasy.simulator import Aura, Actor
 
 
+class BardEvent(CastEvent):
+    affected_by = Attribute.ATTACK_POWER
+    hastened_by = Attribute.SKILL_SPEED
+
+
 class StraightShotBuff(Aura):
     duration = timedelta(seconds=30)
 
@@ -15,9 +20,7 @@ class StraightShotBuff(Aura):
         target.stats[Attribute.CRITICAL_HIT] /= 1.1
 
 
-class StraightShotCast(CastEvent):
-    affected_by = Attribute.ATTACK_POWER
-    hastened_by = Attribute.SKILL_SPEED
+class StraightShotCast(BardEvent):
     potency = 140
 
     def execute(self):
@@ -40,8 +43,10 @@ class WindbiteDebuff(Aura):
         return timedelta(seconds=15) if self.source.level < 64 else timedelta(seconds=30)
 
 
-class WindbiteCast(CastEvent):
-    hastened_by = Attribute.SKILL_SPEED
+class WindbiteCast(BardEvent):
+    @property
+    def potency(self):
+        return 50 if self.source.level < 64 else 55
 
     def execute(self):
         super().execute()

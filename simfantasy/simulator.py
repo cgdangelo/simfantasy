@@ -4,10 +4,11 @@ import string
 from abc import abstractmethod
 from datetime import timedelta, datetime
 from heapq import heappop, heapify, heappush
+from pprint import pformat
 from typing import List, Dict, Type, Tuple
 
 from simfantasy.common_math import calculate_base_stats
-from simfantasy.enums import Race, Job, Attribute, Slot
+from simfantasy.enums import Race, Job, Attribute, Slot, Role
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -100,6 +101,7 @@ class Actor:
     """A participant in an encounter."""
 
     job: Job = None
+    role: Role = None
 
     # TODO Get rid of level?
     def __init__(self,
@@ -138,7 +140,10 @@ class Actor:
         self.ready: bool = True
         self.auras: List[Aura] = []
 
-        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level, self.__class__.job, race)
+        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level,
+                                                                self.__class__.job,
+                                                                race,
+                                                                self.__class__.role)
 
         self.sim.actors.append(self)
 
@@ -146,6 +151,8 @@ class Actor:
         self.equip_gear(equipment)
 
         self.name = name
+
+        self.statistics = {}
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
         """

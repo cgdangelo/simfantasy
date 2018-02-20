@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import numpy
 
-from simfantasy.enums import Race, Job, Attribute, Slot
+from simfantasy.enums import Race, Job, Attribute, Slot, Role
 
 main_stat_per_level: List[int] = [
     20, 21, 22, 24, 26, 27, 29, 31, 33, 35, 36, 38, 41, 44, 46, 49, 52, 54, 57, 60, 63, 67, 71, 74, 78, 81, 85, 89, 92,
@@ -347,7 +347,7 @@ def get_base_stats_by_job(job: Job) -> Dict[Attribute, int]:
         }
 
 
-def calculate_base_stats(level: int, job: Job, race: Race) -> Dict[Attribute, int]:
+def calculate_base_stats(level: int, job: Job, race: Race, role: Role) -> Dict[Attribute, int]:
     """
     Calculate base primary and secondary stats.
 
@@ -369,6 +369,8 @@ def calculate_base_stats(level: int, job: Job, race: Race) -> Dict[Attribute, in
         Attribute.DETERMINATION: base_main_stat,
         Attribute.DIRECT_HIT: base_sub_stat,
         Attribute.SKILL_SPEED: base_sub_stat,
+        Attribute.TENACITY: base_sub_stat,
+        Attribute.PIETY: base_main_stat,
     }
 
     job_stats = get_base_stats_by_job(job)
