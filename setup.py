@@ -12,7 +12,6 @@ setup(
     ],
     extras_require={
         'docs': [
-            'sphinx>=1.8',
             'sphinx-autodoc-typehints',
         ]
     }
