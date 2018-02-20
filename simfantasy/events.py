@@ -14,7 +14,7 @@ class Event:
         return False
 
     def __str__(self):
-        return '<{0}>'.format(self.__class__.__name__)
+        return '<{cls}>'.format(cls=self.__class__.__name__)
 
 
 class CombatEndEvent(Event):
@@ -30,7 +30,9 @@ class AuraEvent(Event):
         self.aura = aura
 
     def __str__(self):
-        return '<{0} aura={1}>'.format(self.__class__.__name__, self.aura.__class__.__name__)
+        return '<{cls} aura={aura} target={target}>'.format(cls=self.__class__.__name__,
+                                                            aura=self.aura.__class__.__name__,
+                                                            target=self.target.name)
 
 
 class ApplyAuraEvent(AuraEvent):
@@ -52,6 +54,10 @@ class PlayerReadyEvent(Event):
     def execute(self):
         self.actor.ready = True
 
+    def __str__(self):
+        return '<{cls} actor={actor}>'.format(cls=self.__class__.__name__,
+                                              actor=self.actor.name)
+
 
 class CastEvent(Event):
     affected_by: Attribute
@@ -69,4 +75,5 @@ class CastEvent(Event):
 
     def execute(self):
         self.source.ready = False
-        self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source), delta=max(self.animation, calculate_gcd(self.source, self)))
+        self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
+                             delta=max(self.animation, calculate_gcd(self.source, self)))

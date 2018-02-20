@@ -1,6 +1,8 @@
 import logging
+import random
+import string
 from abc import abstractmethod
-from datetime import timedelta
+from datetime import timedelta, datetime
 from heapq import heappop, heapify, heappush
 from typing import List, Dict, Type, Tuple
 
@@ -34,7 +36,9 @@ class Simulation:
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
 
-        self.current_time: timedelta = timedelta()
+        self.start_time: datetime = None
+
+        self.current_time: datetime = datetime.now()
         """Current game timestamp."""
 
         self.events = []
@@ -56,20 +60,22 @@ class Simulation:
         heappush(self.events, (self.current_time + delta, event))
 
     def run(self) -> None:
+        self.start_time: datetime = datetime.now()
+
         """Run the simulation and process all events."""
-        logger.info('%s Running!', timedelta())
+        logger.info('%s Running!', timedelta().total_seconds())
 
         from simfantasy.events import CombatEndEvent
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
-        while self.current_time <= self.combat_length and len(self.events) > 0:
+        while self.current_time - self.start_time <= self.combat_length and len(self.events) > 0:
             for actor in self.actors:
                 if actor.ready:
                     actor.decide()
 
             time, event = heappop(self.events)
 
-            logger.debug('%s %s', time, event)
+            logger.debug('%s %s', (time - self.start_time).total_seconds(), event)
 
             event.execute()
 
@@ -96,7 +102,8 @@ class Actor:
                  physical_damage: int = None,
                  magic_damage: int = None,
                  target: 'Actor' = None,
-                 equipment: Dict[Slot, 'Item'] = None):
+                 equipment: Dict[Slot, 'Item'] = None,
+                 name: str = None):
         """
         Create a new actor.
 
@@ -119,6 +126,9 @@ class Actor:
         if equipment is None:
             equipment = {}
 
+        if name is None:
+            name = ''.join(random.choices(string.ascii_letters, k=8))
+
         self.sim: Simulation = sim
         self.race: Race = race
         self.level: int = level
@@ -126,8 +136,8 @@ class Actor:
         self.magic_damage: int = magic_damage
         self.target: 'Actor' = target
 
-        self.animation_lock: timedelta = timedelta()
-        self.gcd_lock: timedelta = timedelta()
+        self.animation_unlock_at: timedelta = timedelta()
+        self.gcd_unlock_at: timedelta = timedelta()
         self.ready: bool = True
         self.auras: List[Aura] = []
 
@@ -137,6 +147,8 @@ class Actor:
 
         self.gear: Dict[Attribute, Item] = {}
         self.equip_gear(equipment)
+
+        self.name = name
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
         """
@@ -191,6 +203,9 @@ class Actor:
             target = self.target
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
+
+    def __str__(self):
+        return '<{cls} name={name}>'.format(cls=self.__class__.__name__, name=self.name)
 
 
 class Item:
