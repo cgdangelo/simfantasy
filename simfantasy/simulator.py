@@ -1,19 +1,23 @@
 import logging
-import random
-import string
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
+from math import floor
+from time import sleep
 from typing import Dict, List, Tuple, Type
 
-from simfantasy.common_math import calculate_base_stats
+import humanfriendly
+from humanfriendly.tables import format_pretty_table
+
+from simfantasy.common_math import get_base_stats_by_job, get_racial_attribute_bonuses, \
+    main_stat_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, Race, Slot
 
 
 class Simulation:
     """A simulated combat encounter."""
 
-    def __init__(self, combat_length: timedelta = None):
+    def __init__(self, combat_length: timedelta = None, log_level: int = None):
         """
         Create a new simulation.
 
@@ -21,6 +25,9 @@ class Simulation:
         """
         if combat_length is None:
             combat_length = timedelta(minutes=5)
+
+        if log_level is None:
+            log_level = logging.INFO
 
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
@@ -38,7 +45,7 @@ class Simulation:
 
         heapify(self.events)
 
-        self.__set_logger()
+        self.__set_logger(log_level)
 
     def schedule_in(self, event, delta: timedelta = None) -> None:
         """
@@ -57,30 +64,53 @@ class Simulation:
         """Run the simulation and process all events."""
         self.start_time: datetime = datetime.now()
 
-        self.logger.info('%s\t<CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
+        self.logger.debug('%s <CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
 
         from simfantasy.events import CombatEndEvent
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
-        while self.current_time - self.start_time <= self.combat_length and len(self.events) > 0:
-            for actor in self.actors:
-                if actor.ready:
-                    actor.decide()
+        with humanfriendly.AutomaticSpinner(label='Simulating'):
+            while self.current_time - self.start_time <= self.combat_length and len(self.events) > 0:
+                for actor in self.actors:
+                    if actor.ready:
+                        actor.decide()
 
-            time, event = heappop(self.events)
+                time, event = heappop(self.events)
 
-            self.logger.debug('%s\t%s', format((time - self.start_time).total_seconds(), '.3f'), event)
+                self.logger.debug('%s %s', format((time - self.start_time).total_seconds(), '.3f'), event)
 
-            event.execute()
+                event.execute()
 
-            self.current_time = time
+                self.current_time = time
 
-    def __set_logger(self):
+        self.logger.info('Analyzing encounter data...')
+
+        for actor in self.actors:
+            if len(actor.statistics) == 0:
+                continue
+
+            ability_statistics = []
+
+            for cls in actor.statistics:
+                total_damage = sum(damage for timestamp, damage in actor.statistics[cls]['damage'])
+
+                ability_statistics.append((
+                    cls.__name__,
+                    len(actor.statistics[cls]['casts']),
+                    total_damage,
+                    format(total_damage / self.combat_length.total_seconds(), '.3f'),
+                ))
+
+            table = format_pretty_table(ability_statistics, ('Name', 'Casts', 'Damage', 'DPS'))
+            self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
+            self.logger.info('Quitting')
+
+    def __set_logger(self, log_level: int):
         logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(log_level)
 
         logstream = logging.StreamHandler()
-        logstream.setFormatter(logging.Formatter('[%(levelname)s]\t%(message)s'))
+        logstream.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
 
         logger.addHandler(logstream)
 
@@ -111,8 +141,8 @@ class Actor:
                  race: Race,
                  level: int = None,
                  target: 'Actor' = None,
-                 equipment: Dict[Slot, 'Item'] = None,
-                 name: str = None):
+                 name: str = None,
+                 equipment: Dict[Slot, 'Item'] = None):
         """
         Create a new actor.
 
@@ -128,28 +158,26 @@ class Actor:
             equipment = {}
 
         if name is None:
-            name = ''.join(random.choices(string.ascii_letters, k=8))
+            name = humanfriendly.text.random_string(length=10)
 
         self.sim: Simulation = sim
         self.race: Race = race
         self.level: int = level
         self.target: 'Actor' = target
+        self.name = name
 
         self.animation_unlock_at: timedelta = timedelta()
         self.gcd_unlock_at: timedelta = timedelta()
         self.ready: bool = True
         self.auras: List[Aura] = []
 
-        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level, self.__class__.job, race)
-
-        self.sim.actors.append(self)
-
-        self.gear: Dict[Attribute, Item] = {}
+        self.__set_base_stats()
+        self.gear: Dict[Slot, Item] = {}
         self.equip_gear(equipment)
 
-        self.name = name
-
         self.statistics = {}
+
+        self.sim.actors.append(self)
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
         """
@@ -204,6 +232,33 @@ class Actor:
             target = self.target
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
+
+    def __set_base_stats(self) -> Dict[Attribute, int]:
+        """Calculate and set base primary and secondary stats."""
+        base_main_stat = main_stat_per_level[self.level]
+        base_sub_stat = sub_stat_per_level[self.level]
+
+        base_stats = {
+            Attribute.STRENGTH: 0,
+            Attribute.DEXTERITY: 0,
+            Attribute.VITALITY: 0,
+            Attribute.INTELLIGENCE: 0,
+            Attribute.MIND: 0,
+            Attribute.CRITICAL_HIT: base_sub_stat,
+            Attribute.DETERMINATION: base_main_stat,
+            Attribute.DIRECT_HIT: base_sub_stat,
+            Attribute.SKILL_SPEED: base_sub_stat,
+            Attribute.TENACITY: base_sub_stat,
+            Attribute.PIETY: base_main_stat,
+        }
+
+        job_stats = get_base_stats_by_job(self.job)
+        race_stats = get_racial_attribute_bonuses(self.race)
+
+        for stat, bonus in job_stats.items():
+            base_stats[stat] += floor(base_main_stat * (bonus / 100)) + race_stats[stat]
+
+        self.stats = base_stats
 
     def __str__(self):
         return '<{cls} name={name}>'.format(cls=self.__class__.__name__, name=self.name)
