@@ -66,15 +66,14 @@ class PlayerReadyEvent(Event):
 
 
 class CastEvent(Event):
-    affected_by: Attribute
-    hastened_by: Attribute
-    potency: int
+    animation = timedelta(seconds=0.75)
+    affected_by: Attribute = None
+    hastened_by: Attribute = None
+    off_gcd: bool = False
+    potency: int = 0
 
-    def __init__(self, sim: Simulation, source: Actor, target: Actor = None, off_gcd: bool = None):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor = None):
         super().__init__(sim=sim)
-
-        self.animation = timedelta(seconds=0.75)
-        self.off_gcd = off_gcd
 
         self.source = source
         self.target = target
