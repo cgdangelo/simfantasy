@@ -1,8 +1,6 @@
-from datetime import timedelta
-
 from simfantasy.bard import Bard
-from simfantasy.enums import Race, Slot, Attribute
-from simfantasy.simulator import Simulation, Actor, Item, Weapon
+from simfantasy.enums import Attribute, Race, Slot
+from simfantasy.simulator import Actor, Item, Simulation, Weapon
 
 if __name__ == '__main__':
     sim = Simulation()

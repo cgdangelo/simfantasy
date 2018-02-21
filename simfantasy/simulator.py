@@ -9,14 +9,6 @@ from typing import Dict, List, Tuple, Type
 from simfantasy.common_math import calculate_base_stats
 from simfantasy.enums import Attribute, Job, Race, Slot
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-logstream = logging.StreamHandler()
-logstream.setFormatter(logging.Formatter('[%(levelname)s]\t%(message)s'))
-
-logger.addHandler(logstream)
-
 
 class Simulation:
     """A simulated combat encounter."""
@@ -46,6 +38,8 @@ class Simulation:
 
         heapify(self.events)
 
+        self.__set_logger()
+
     def schedule_in(self, event, delta: timedelta = None) -> None:
         """
         Schedule an event to occur in the future.
@@ -61,10 +55,9 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-
         self.start_time: datetime = datetime.now()
 
-        logger.info('%s\t<CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
+        self.logger.info('%s\t<CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
 
         from simfantasy.events import CombatEndEvent
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
@@ -76,11 +69,22 @@ class Simulation:
 
             time, event = heappop(self.events)
 
-            logger.debug('%s\t%s', format((time - self.start_time).total_seconds(), '.3f'), event)
+            self.logger.debug('%s\t%s', format((time - self.start_time).total_seconds(), '.3f'), event)
 
             event.execute()
 
             self.current_time = time
+
+    def __set_logger(self):
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+
+        logstream = logging.StreamHandler()
+        logstream.setFormatter(logging.Formatter('[%(levelname)s]\t%(message)s'))
+
+        logger.addHandler(logstream)
+
+        self.logger = logger
 
 
 class Aura:
