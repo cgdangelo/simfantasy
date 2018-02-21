@@ -46,8 +46,9 @@ class ApplyAuraEvent(AuraEvent):
 
 class ExpireAuraEvent(AuraEvent):
     def execute(self):
-        self.target.auras.remove(self.aura)
-        self.aura.expire(target=self.target)
+        if self.aura in self.target.auras:
+            self.target.auras.remove(self.aura)
+            self.aura.expire(target=self.target)
 
 
 class PlayerReadyEvent(Event):
@@ -78,6 +79,9 @@ class CastEvent(Event):
         self.source = source
         self.target = target
 
+        self.__is_critical_hit = None
+        self.__is_direct_hit = None
+
     def execute(self):
         self.source.ready = False
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
@@ -87,10 +91,58 @@ class CastEvent(Event):
             self.source.statistics[self.__class__] = {
                 'casts': [],
                 'damage': [],
+                'critical_hits': [],
+                'direct_hits': [],
+                'critical_direct_hits': [],
             }
 
         self.source.statistics[self.__class__]['casts'].append(self.sim.current_time)
         self.source.statistics[self.__class__]['damage'].append((self.sim.current_time, self.direct_damage))
+
+        if self.is_critical_hit:
+            self.source.statistics[self.__class__]['critical_hits'].append(self.sim.current_time)
+
+        if self.is_direct_hit:
+            self.source.statistics[self.__class__]['direct_hits'].append(self.sim.current_time)
+
+        if self.is_critical_hit and self.is_direct_hit:
+            self.source.statistics[self.__class__]['critical_direct_hits'].append(self.sim.current_time)
+
+    @property
+    def critical_hit_chance(self):
+        sub_stat = sub_stat_per_level[self.source.level]
+        divisor = divisor_per_level[self.source.level]
+        p_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 50) / 1000
+
+        return p_chr
+
+    @property
+    def is_critical_hit(self):
+        if self.__is_critical_hit is None:
+            if self.critical_hit_chance >= 100:
+                self.__is_critical_hit = True
+            else:
+                self.__is_critical_hit = numpy.random.uniform() <= self.critical_hit_chance
+
+        return self.__is_critical_hit
+
+    @property
+    def direct_hit_chance(self):
+        sub_stat = sub_stat_per_level[self.source.level]
+        divisor = divisor_per_level[self.source.level]
+        p_dhr = floor(550 * (self.source.stats[Attribute.DIRECT_HIT] - sub_stat) / divisor) / 1000
+
+        return p_dhr
+
+    @property
+    def is_direct_hit(self):
+        if self.__is_direct_hit is None:
+            if self.direct_hit_chance >= 100:
+                self.__is_direct_hit = True
+            else:
+                self.__is_direct_hit = numpy.random.uniform() <= self.direct_hit_chance
+
+        return self.__is_direct_hit
 
     @property
     def direct_damage(self) -> int:
@@ -132,18 +184,12 @@ class CastEvent(Event):
         f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
         f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
 
-        p_dhr = floor(550 * (self.source.stats[Attribute.DIRECT_HIT] - sub_stat) / divisor) / 10
-        p_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 50) / 10
-
-        is_direct_hit = numpy.random.uniform() > p_dhr
-        is_critical_hit = numpy.random.uniform() > p_chr
-
         damage_randomization = numpy.random.uniform(0.95, 1.05)
 
         damage = int(floor(
             (f_ptc * f_wd * f_atk * f_det * f_tnc) *
-            (f_chr if is_critical_hit else 1) *
-            (1.25 if is_direct_hit else 1) *
+            (f_chr if self.is_critical_hit else 1) *
+            (1.25 if self.is_direct_hit else 1) *
             damage_randomization
         ))
 
@@ -191,8 +237,10 @@ class CastEvent(Event):
         return timedelta(seconds=gcd)
 
     def __str__(self):
-        return '<{cls} source={source} target={target}>'.format(
+        return '<{cls} source={source} target={target} crit={crit} direct={direct}>'.format(
             cls=self.__class__.__name__,
             source=self.source.name,
             target=self.target.name,
+            crit=self.is_critical_hit,
+            direct=self.is_direct_hit,
         )

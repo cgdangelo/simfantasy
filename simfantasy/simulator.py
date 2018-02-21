@@ -3,7 +3,6 @@ from abc import abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from time import sleep
 from typing import Dict, List, Tuple, Type
 
 import humanfriendly
@@ -92,16 +91,27 @@ class Simulation:
             ability_statistics = []
 
             for cls in actor.statistics:
-                total_damage = sum(damage for timestamp, damage in actor.statistics[cls]['damage'])
+                s = actor.statistics[cls]
+                total_damage = sum(damage for timestamp, damage in s['damage'])
+                casts = len(s['casts'])
 
                 ability_statistics.append((
                     cls.__name__,
-                    len(actor.statistics[cls]['casts']),
-                    total_damage,
+                    casts,
+                    format(total_damage, '.0f'),
                     format(total_damage / self.combat_length.total_seconds(), '.3f'),
+                    humanfriendly.terminal.ansi_wrap(color='red',
+                                                     text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
+                    humanfriendly.terminal.ansi_wrap(color='blue',
+                                                     text=format((len(s['direct_hits']) / casts) * 100, '.3f')),
+                    humanfriendly.terminal.ansi_wrap(color='magenta',
+                                                     text=format((len(s['critical_direct_hits']) / casts) * 100, '.3f')),
                 ))
 
-            table = format_pretty_table(ability_statistics, ('Name', 'Casts', 'Damage', 'DPS'))
+            table = format_pretty_table(
+                ability_statistics,
+                ('Name', 'Casts', 'Damage', 'DPS', 'Crit %', 'Direct %', 'D.Crit %')
+            )
             self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
             self.logger.info('Quitting')
 
@@ -171,7 +181,8 @@ class Actor:
         self.ready: bool = True
         self.auras: List[Aura] = []
 
-        self.__set_base_stats()
+        self.stats = self.calculate_base_stats()
+
         self.gear: Dict[Slot, Item] = {}
         self.equip_gear(equipment)
 
@@ -233,7 +244,7 @@ class Actor:
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
 
-    def __set_base_stats(self) -> Dict[Attribute, int]:
+    def calculate_base_stats(self) -> Dict[Attribute, int]:
         """Calculate and set base primary and secondary stats."""
         base_main_stat = main_stat_per_level[self.level]
         base_sub_stat = sub_stat_per_level[self.level]
@@ -258,7 +269,7 @@ class Actor:
         for stat, bonus in job_stats.items():
             base_stats[stat] += floor(base_main_stat * (bonus / 100)) + race_stats[stat]
 
-        self.stats = base_stats
+        return base_stats
 
     def __str__(self):
         return '<{cls} name={name}>'.format(cls=self.__class__.__name__, name=self.name)
