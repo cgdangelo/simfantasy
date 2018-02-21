@@ -19,6 +19,9 @@ class Event:
     def __str__(self):
         return '<{cls}>'.format(cls=self.__class__.__name__)
 
+    def execute(self):
+        pass
+
 
 class CombatEndEvent(Event):
     def execute(self):
@@ -58,7 +61,7 @@ class PlayerReadyEvent(Event):
         self.actor = actor
 
     def execute(self):
-        self.actor.ready = True
+        pass
 
     def __str__(self):
         return '<{cls} actor={actor}>'.format(cls=self.__class__.__name__,
@@ -82,9 +85,11 @@ class CastEvent(Event):
         self.__is_direct_hit = None
 
     def execute(self):
-        self.source.ready = False
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
-                             delta=max(self.animation, self.gcd if not self.off_gcd else timedelta()))
+                             delta=self.animation if self.off_gcd else self.gcd)
+
+        self.source.animation_unlock_at = self.sim.current_time + self.animation
+        self.source.gcd_unlock_at = self.sim.current_time + (self.gcd if not self.off_gcd else timedelta())
 
         if self.__class__ not in self.source.statistics:
             self.source.statistics[self.__class__] = {

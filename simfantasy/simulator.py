@@ -105,7 +105,8 @@ class Simulation:
                     humanfriendly.terminal.ansi_wrap(color='blue',
                                                      text=format((len(s['direct_hits']) / casts) * 100, '.3f')),
                     humanfriendly.terminal.ansi_wrap(color='magenta',
-                                                     text=format((len(s['critical_direct_hits']) / casts) * 100, '.3f')),
+                                                     text=format((len(s['critical_direct_hits']) / casts) * 100,
+                                                                 '.3f')),
                 ))
 
             table = format_pretty_table(
@@ -176,9 +177,8 @@ class Actor:
         self.target: 'Actor' = target
         self.name = name
 
-        self.animation_unlock_at: timedelta = timedelta()
-        self.gcd_unlock_at: timedelta = timedelta()
-        self.ready: bool = True
+        self.animation_unlock_at: datetime = None
+        self.gcd_unlock_at: datetime = None
         self.auras: List[Aura] = []
 
         self.stats = self.calculate_base_stats()
@@ -189,6 +189,11 @@ class Actor:
         self.statistics = {}
 
         self.sim.actors.append(self)
+
+    @property
+    def ready(self):
+        return (self.animation_unlock_at is None and self.gcd_unlock_at is None) or (
+                self.animation_unlock_at <= self.sim.current_time and self.gcd_unlock_at <= self.sim.current_time)
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
         """
@@ -235,12 +240,21 @@ class Actor:
         """
         Cast an ability on the target.
 
-        :type cast_class: type[simfantasy.events.CastEvent]
+        :type cast_class: type[~simfantasy.events.CastEvent]
         :param cast_class: The type of ability.
         :param target: The target to cast on.
         """
         if target is None:
             target = self.target
+
+        if not cast_class.off_gcd and \
+                target.gcd_unlock_at is not None and \
+                target.gcd_unlock_at > self.sim.current_time:
+            return
+        elif cast_class.off_gcd and \
+                target.animation_unlock_at is not None and \
+                target.animation_unlock_at > self.sim.current_time:
+            return
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
 
