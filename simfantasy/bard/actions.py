@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from simfantasy.enums import Attribute
-from simfantasy.events import CastEvent, ApplyAuraEvent, ExpireAuraEvent
-from simfantasy.simulator import Aura, Actor
+from simfantasy.events import ApplyAuraEvent, CastEvent, ExpireAuraEvent
+from simfantasy.simulator import Actor, Aura
 
 
 class BardEvent(CastEvent):

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from simfantasy.common_math import calculate_gcd, calculate_action_damage
+from simfantasy.common_math import calculate_direct_damage, calculate_gcd
 from simfantasy.enums import Attribute
 from simfantasy.simulator import Actor, Aura, Simulation
 
@@ -86,7 +86,8 @@ class CastEvent(Event):
             }
 
         self.source.statistics[self.__class__]['casts'].append(self.sim.current_time)
-        self.source.statistics[self.__class__]['damage'].append((self.sim.current_time, calculate_action_damage(self.source, self)))
+        self.source.statistics[self.__class__]['damage'].append(
+            (self.sim.current_time, calculate_direct_damage(self.source, self)))
 
     def __str__(self):
         return '<{cls} source={source} target={target}>'.format(

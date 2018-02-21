@@ -2,13 +2,12 @@ import logging
 import random
 import string
 from abc import abstractmethod
-from datetime import timedelta, datetime
-from heapq import heappop, heapify, heappush
-from pprint import pformat
-from typing import List, Dict, Type, Tuple
+from datetime import datetime, timedelta
+from heapq import heapify, heappop, heappush
+from typing import Dict, List, Tuple, Type
 
 from simfantasy.common_math import calculate_base_stats
-from simfantasy.enums import Race, Job, Attribute, Slot, Role
+from simfantasy.enums import Attribute, Job, Race, Slot
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -101,7 +100,6 @@ class Actor:
     """A participant in an encounter."""
 
     job: Job = None
-    role: Role = None
 
     # TODO Get rid of level?
     def __init__(self,
@@ -117,8 +115,6 @@ class Actor:
         :param sim: The encounter that the actor will enter.
         :param race: Race and clan.
         :param level: Level. Note that most calculations only work at 70.
-        :param physical_damage: Current weapon's physical damage.
-        :param magic_damage: Current weapon's magic damage.
         :param target: Primary target.
         """
         if level is None:
@@ -140,10 +136,7 @@ class Actor:
         self.ready: bool = True
         self.auras: List[Aura] = []
 
-        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level,
-                                                                self.__class__.job,
-                                                                race,
-                                                                self.__class__.role)
+        self.stats: Dict[Attribute, int] = calculate_base_stats(self.level, self.__class__.job, race)
 
         self.sim.actors.append(self)
 
