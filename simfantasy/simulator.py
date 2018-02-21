@@ -247,16 +247,23 @@ class Actor:
         if target is None:
             target = self.target
 
-        if not cast_class.off_gcd and \
+        if not cast_class.is_off_gcd and \
                 target.gcd_unlock_at is not None and \
                 target.gcd_unlock_at > self.sim.current_time:
             return
-        elif cast_class.off_gcd and \
+
+        if cast_class.is_off_gcd and \
                 target.animation_unlock_at is not None and \
                 target.animation_unlock_at > self.sim.current_time:
             return
 
+        if cast_class.can_recast_at is not None and cast_class.can_recast_at > self.sim.current_time:
+            return
+
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
+
+    def on_cooldown(self, action_class):
+        return action_class.can_recast_at is not None and action_class.can_recast_at > self.sim.current_time
 
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         """Calculate and set base primary and secondary stats."""

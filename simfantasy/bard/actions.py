@@ -1,4 +1,5 @@
 from datetime import timedelta
+from math import floor
 
 import numpy
 
@@ -16,10 +17,13 @@ class BardEvent(CastEvent):
         direct_damage = super().direct_damage
 
         if self.source.level >= 20:
-            direct_damage *= 1.1
+            direct_damage = floor(direct_damage * 1.1)
 
         if self.source.level >= 40:
-            direct_damage *= 1.2
+            direct_damage = floor(direct_damage * 1.2)
+
+        if self.source.has_aura(RagingStrikesBuff):
+            direct_damage = floor(direct_damage * 1.1)
 
         return direct_damage
 
@@ -57,7 +61,6 @@ class StraightShotCast(BardEvent):
 
         if len(straighter_shots) > 0:
             for straighter_shot in straighter_shots:
-                print('Removing %s', straighter_shot)
                 self.source.auras.remove(straighter_shot)
 
 
@@ -122,3 +125,28 @@ class HeavyShotCast(BardEvent):
 
             self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
             self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
+
+
+class RagingStrikesBuff(Aura):
+    duration = timedelta(seconds=20)
+
+
+class RagingStrikesCast(BardEvent):
+    is_off_gcd = True
+    recast_time = timedelta(seconds=80)
+
+    @property
+    def critical_hit_chance(self):
+        return 0.0
+
+    @property
+    def direct_hit_chance(self):
+        return 0.0
+
+    def execute(self):
+        super().execute()
+
+        aura = RagingStrikesBuff()
+
+        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
+        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)

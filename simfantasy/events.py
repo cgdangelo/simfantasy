@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from math import ceil, floor
 
 import numpy
@@ -72,8 +72,11 @@ class CastEvent(Event):
     animation = timedelta(seconds=0.75)
     affected_by: Attribute = None
     hastened_by: Attribute = None
-    off_gcd: bool = False
+    is_off_gcd: bool = False
     potency: int = 0
+
+    recast_time: timedelta = None
+    can_recast_at: datetime = None
 
     def __init__(self, sim: Simulation, source: Actor, target: Actor = None):
         super().__init__(sim=sim)
@@ -86,10 +89,13 @@ class CastEvent(Event):
 
     def execute(self):
         self.sim.schedule_in(PlayerReadyEvent(sim=self.sim, actor=self.source),
-                             delta=self.animation if self.off_gcd else self.gcd)
+                             delta=self.animation if self.is_off_gcd else self.gcd)
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
-        self.source.gcd_unlock_at = self.sim.current_time + (self.gcd if not self.off_gcd else timedelta())
+        self.source.gcd_unlock_at = self.sim.current_time + (self.gcd if not self.is_off_gcd else timedelta())
+
+        if self.recast_time is not None:
+            self.__class__.can_recast_at = self.sim.current_time + self.recast_time
 
         if self.__class__ not in self.source.statistics:
             self.source.statistics[self.__class__] = {
@@ -125,6 +131,8 @@ class CastEvent(Event):
         if self.__is_critical_hit is None:
             if self.critical_hit_chance >= 100:
                 self.__is_critical_hit = True
+            elif self.critical_hit_chance <= 0:
+                self.__is_critical_hit = False
             else:
                 self.__is_critical_hit = numpy.random.uniform() <= self.critical_hit_chance
 
@@ -143,6 +151,8 @@ class CastEvent(Event):
         if self.__is_direct_hit is None:
             if self.direct_hit_chance >= 100:
                 self.__is_direct_hit = True
+            elif self.direct_hit_chance <= 0:
+                self.__is_direct_hit = False
             else:
                 self.__is_direct_hit = numpy.random.uniform() <= self.direct_hit_chance
 

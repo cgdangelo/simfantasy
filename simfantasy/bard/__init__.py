@@ -1,7 +1,7 @@
 from typing import Dict
 
 from simfantasy.bard.actions import HeavyShotCast, StraightShotBuff, StraightShotCast, StraighterShotBuff, \
-    VenomousBiteCast, VenomousBiteDebuff, WindbiteCast, WindbiteDebuff
+    VenomousBiteCast, VenomousBiteDebuff, WindbiteCast, WindbiteDebuff, RagingStrikesCast
 from simfantasy.enums import Attribute, Job
 from simfantasy.simulator import Actor
 
@@ -32,5 +32,8 @@ class Bard(Actor):
 
         if not self.target.has_aura(VenomousBiteDebuff):
             return self.cast(VenomousBiteCast)
+
+        if not self.on_cooldown(RagingStrikesCast):
+            return self.cast(RagingStrikesCast, target=self)
 
         return self.cast(HeavyShotCast)
