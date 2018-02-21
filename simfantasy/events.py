@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from math import ceil, floor
 
 import numpy
@@ -97,8 +97,8 @@ class CastEvent(Event):
         if self.recast_time is not None:
             self.__class__.can_recast_at = self.sim.current_time + self.recast_time
 
-        if self.__class__ not in self.source.statistics:
-            self.source.statistics[self.__class__] = {
+        if self.__class__ not in self.source.statistics['actions']:
+            self.source.statistics['actions'][self.__class__] = {
                 'casts': [],
                 'damage': [],
                 'critical_hits': [],
@@ -106,17 +106,17 @@ class CastEvent(Event):
                 'critical_direct_hits': [],
             }
 
-        self.source.statistics[self.__class__]['casts'].append(self.sim.current_time)
-        self.source.statistics[self.__class__]['damage'].append((self.sim.current_time, self.direct_damage))
+        self.source.statistics['actions'][self.__class__]['casts'].append(self.sim.current_time)
+        self.source.statistics['actions'][self.__class__]['damage'].append((self.sim.current_time, self.direct_damage))
 
         if self.is_critical_hit:
-            self.source.statistics[self.__class__]['critical_hits'].append(self.sim.current_time)
+            self.source.statistics['actions'][self.__class__]['critical_hits'].append(self.sim.current_time)
 
         if self.is_direct_hit:
-            self.source.statistics[self.__class__]['direct_hits'].append(self.sim.current_time)
+            self.source.statistics['actions'][self.__class__]['direct_hits'].append(self.sim.current_time)
 
         if self.is_critical_hit and self.is_direct_hit:
-            self.source.statistics[self.__class__]['critical_direct_hits'].append(self.sim.current_time)
+            self.source.statistics['actions'][self.__class__]['critical_direct_hits'].append(self.sim.current_time)
 
     @property
     def critical_hit_chance(self):

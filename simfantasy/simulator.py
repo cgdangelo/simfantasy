@@ -85,35 +85,34 @@ class Simulation:
         self.logger.info('Analyzing encounter data...')
 
         for actor in self.actors:
-            if len(actor.statistics) == 0:
-                continue
+            if len(actor.statistics['actions']) > 0:
+                ability_statistics = []
 
-            ability_statistics = []
+                for cls in actor.statistics['actions']:
+                    s = actor.statistics['actions'][cls]
+                    total_damage = sum(damage for timestamp, damage in s['damage'])
+                    casts = len(s['casts'])
 
-            for cls in actor.statistics:
-                s = actor.statistics[cls]
-                total_damage = sum(damage for timestamp, damage in s['damage'])
-                casts = len(s['casts'])
+                    ability_statistics.append((
+                        cls.__name__,
+                        casts,
+                        format(total_damage, '.0f'),
+                        format(total_damage / self.combat_length.total_seconds(), '.3f'),
+                        humanfriendly.terminal.ansi_wrap(color='red',
+                                                         text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
+                        humanfriendly.terminal.ansi_wrap(color='blue',
+                                                         text=format((len(s['direct_hits']) / casts) * 100, '.3f')),
+                        humanfriendly.terminal.ansi_wrap(color='magenta',
+                                                         text=format((len(s['critical_direct_hits']) / casts) * 100,
+                                                                     '.3f')),
+                    ))
 
-                ability_statistics.append((
-                    cls.__name__,
-                    casts,
-                    format(total_damage, '.0f'),
-                    format(total_damage / self.combat_length.total_seconds(), '.3f'),
-                    humanfriendly.terminal.ansi_wrap(color='red',
-                                                     text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
-                    humanfriendly.terminal.ansi_wrap(color='blue',
-                                                     text=format((len(s['direct_hits']) / casts) * 100, '.3f')),
-                    humanfriendly.terminal.ansi_wrap(color='magenta',
-                                                     text=format((len(s['critical_direct_hits']) / casts) * 100,
-                                                                 '.3f')),
-                ))
+                table = format_pretty_table(
+                    ability_statistics,
+                    ('Name', 'Casts', 'Damage', 'DPS', 'Crit %', 'Direct %', 'D.Crit %')
+                )
+                self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
 
-            table = format_pretty_table(
-                ability_statistics,
-                ('Name', 'Casts', 'Damage', 'DPS', 'Crit %', 'Direct %', 'D.Crit %')
-            )
-            self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
             self.logger.info('Quitting')
 
     def __set_logger(self, log_level: int):
@@ -186,7 +185,10 @@ class Actor:
         self.gear: Dict[Slot, Item] = {}
         self.equip_gear(equipment)
 
-        self.statistics = {}
+        self.statistics = {
+            'actions': {},
+            'buffs': {},
+        }
 
         self.sim.actors.append(self)
 
