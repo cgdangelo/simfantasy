@@ -1,9 +1,12 @@
+import logging
+from sys import argv
+
 from simfantasy.bard import Bard
 from simfantasy.enums import Attribute, Race, Slot
 from simfantasy.simulator import Actor, Item, Simulation, Weapon
 
 if __name__ == '__main__':
-    sim = Simulation()
+    sim = Simulation(log_level=logging.DEBUG if 'debug=1' in argv else None)
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 
