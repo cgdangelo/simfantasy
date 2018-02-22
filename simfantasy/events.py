@@ -78,6 +78,13 @@ class AuraEvent(Event, metaclass=ABCMeta):
         self.target = target
         self.aura = aura
 
+        if self.aura.__class__ not in self.target.statistics['auras']:
+            self.target.statistics['auras'][self.aura.__class__] = {
+                'applications': [],
+                'expirations': [],
+                'refreshes': [],
+            }
+
     def __str__(self) -> str:
         """String representation of the object."""
         return '<{cls} aura={aura} target={target}>'.format(cls=self.__class__.__name__,
@@ -93,6 +100,8 @@ class ApplyAuraEvent(AuraEvent):
         self.target.auras.append(self.aura)
         self.aura.apply(target=self.target)
 
+        self.target.statistics['auras'][self.aura.__class__]['applications'].append(self.timestamp)
+
 
 class ExpireAuraEvent(AuraEvent):
     """An event indicating that an aura should be removed from an :class:`~simfantasy.simulator.Actor`."""
@@ -102,6 +111,8 @@ class ExpireAuraEvent(AuraEvent):
         if self.aura in self.target.auras:
             self.target.auras.remove(self.aura)
             self.aura.expire(target=self.target)
+
+            self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
 
 
 class ActorReadyEvent(Event):
@@ -397,6 +408,11 @@ class CastEvent(Event):
 
 
 class RefreshAuraEvent(AuraEvent):
+    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+        super().__init__(sim, target, aura)
+
+        self.remains = (self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds()
+
     def execute(self) -> None:
         if self.aura.refresh_behavior is RefreshBehavior.RESET:
             delta = self.aura.duration
@@ -408,11 +424,13 @@ class RefreshAuraEvent(AuraEvent):
         self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
         self.sim.schedule_in(self.aura.expiration_event, delta=delta)
 
+        self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
+
     def __str__(self) -> str:
         return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
             cls=self.__class__.__name__,
             aura=self.aura.__class__.__name__,
             target=self.target.name,
             behavior=self.aura.refresh_behavior,
-            remains=format((self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds(), '.3f')
+            remains=format(self.remains, '.3f')
         )

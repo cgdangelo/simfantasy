@@ -84,18 +84,20 @@ class Simulation:
                     if actor.ready:
                         actor.decide()
 
-        self.logger.info('Analyzing encounter data...')
+        self.logger.info('Analyzing encounter data...\n')
 
         for actor in self.actors:
+            tables = []
+
             if len(actor.statistics['actions']) > 0:
-                ability_statistics = []
+                statistics = []
 
                 for cls in actor.statistics['actions']:
                     s = actor.statistics['actions'][cls]
                     total_damage = sum(damage for timestamp, damage in s['damage'])
                     casts = len(s['casts'])
 
-                    ability_statistics.append((
+                    statistics.append((
                         cls.__name__,
                         casts,
                         format(total_damage, ',.0f'),
@@ -109,13 +111,38 @@ class Simulation:
                                                                      '.3f')),
                     ))
 
-                table = format_pretty_table(
-                    ability_statistics,
+                tables.append(format_pretty_table(
+                    statistics,
                     ('Name', 'Casts', 'Damage', 'DPS', 'Crit %', 'Direct %', 'D.Crit %')
-                )
-                self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
+                ))
 
-        self.logger.info('Quitting')
+            if len(actor.statistics['auras']) > 0:
+                statistics = []
+
+                for cls in actor.statistics['auras']:
+                    s = actor.statistics['auras'][cls]
+
+                    total_overflow = sum(remains for timestamp, remains in s['refreshes'])
+                    average_overflow = total_overflow / len(s['refreshes']) if s['refreshes'] else 0
+
+                    statistics.append((
+                        cls.__name__,
+                        format(len(s['applications']), ',.0f'),
+                        format(len(s['expirations']), ',.0f'),
+                        format(len(s['refreshes']), ',.0f'),
+                        format(total_overflow, ',.3f'),
+                        format(average_overflow, ',.3f'),
+                    ))
+
+                tables.append(format_pretty_table(
+                    statistics,
+                    ('Name', 'Applications', 'Expirations', 'Refreshes', 'Overflow', 'Overflow (Mean)'),
+                ))
+
+            if len(tables) > 0:
+                self.logger.info('Actor: %s\n\n%s\n', actor.name, '\n'.join(tables))
+
+        self.logger.info('Quitting!')
 
     def __set_logger(self, log_level: int):
         logger = logging.getLogger()
@@ -196,7 +223,7 @@ class Actor:
 
         self.statistics = {
             'actions': {},
-            'buffs': {},
+            'auras': {},
         }
 
         self.sim.actors.append(self)
