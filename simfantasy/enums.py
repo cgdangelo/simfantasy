@@ -2,6 +2,8 @@ from enum import Enum, Flag, auto
 
 
 class Attribute(Enum):
+    """Primary and secondary attributes."""
+
     STRENGTH = auto()
     DEXTERITY = auto()
     VITALITY = auto()
@@ -27,6 +29,8 @@ class Attribute(Enum):
 
 
 class Race(Flag):
+    """Races and clans."""
+
     WILDWOOD = auto()
     DUSKWIGHT = auto()
     ELEZEN = WILDWOOD | DUSKWIGHT
@@ -54,7 +58,9 @@ class Race(Flag):
     ENEMY = auto()
 
 
-class Job(Flag):
+class Job(Enum):
+    """Base classes and job specializations."""
+
     PALADIN = auto()
     GLADIATOR = auto()
 
@@ -97,6 +103,8 @@ class Job(Flag):
 
 
 class Slot(Flag):
+    """Slots where an item an be equipped."""
+
     WEAPON = auto()
     HEAD = auto()
     BODY = auto()
@@ -115,6 +123,8 @@ class Slot(Flag):
 
 
 class Role(Enum):
+    """Class archetypes."""
+
     DPS = auto()
     HEALER = auto()
     TANK = auto()

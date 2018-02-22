@@ -3,7 +3,7 @@ from abc import abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Tuple, Type, Union
 
 import humanfriendly
 from humanfriendly.tables import format_pretty_table
@@ -182,7 +182,7 @@ class Actor:
 
         self.stats = self.calculate_base_stats()
 
-        self.gear: Dict[Slot, Item] = {}
+        self.gear: Dict[Slot, Union[Item, Weapon]] = {}
         self.equip_gear(equipment)
 
         self.statistics = {
