@@ -24,6 +24,9 @@ class Bard(Actor):
         self.straighter_shot = StraighterShotBuff()
         self.raging_strikes = RagingStrikesBuff()
 
+        self.windbite = WindbiteDebuff(source=self)
+        self.venomous_bite = VenomousBiteDebuff(source=self)
+
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         base_stats = super().calculate_base_stats()
 
@@ -42,10 +45,10 @@ class Bard(Actor):
         if self.straight_shot not in self.auras or self.straighter_shot in self.auras:
             return self.cast(StraightShotCast)
 
-        if not self.target.has_aura(WindbiteDebuff):
+        if self.windbite not in self.target.auras:
             return self.cast(WindbiteCast)
 
-        if not self.target.has_aura(VenomousBiteDebuff):
+        if self.venomous_bite not in self.target.auras:
             return self.cast(VenomousBiteCast)
 
         if not self.on_cooldown(RagingStrikesCast):
@@ -127,9 +130,7 @@ class WindbiteCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        aura = WindbiteDebuff(source=self.source)
-
-        self.schedule_aura_events(aura=aura, target=self.target)
+        self.schedule_aura_events(aura=self.source.windbite, target=self.target)
 
 
 class VenomousBiteDebuff(Aura):
@@ -151,9 +152,7 @@ class VenomousBiteCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        aura = VenomousBiteDebuff(source=self.source)
-
-        self.schedule_aura_events(aura=aura, target=self.target)
+        self.schedule_aura_events(aura=self.source.venomous_bite, target=self.target)
 
 
 class HeavyShotCast(BardCastEvent):

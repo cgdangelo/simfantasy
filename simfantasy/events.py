@@ -400,7 +400,7 @@ class RefreshAuraEvent(AuraEvent):
     def execute(self) -> None:
         if self.aura.refresh_behavior is RefreshBehavior.RESET:
             delta = self.aura.duration
-        elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_WITH_MAX:
+        elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
             delta = max(self.aura.duration,
                         (self.sim.current_time - self.aura.expiration_event).total_seconds() +
                         self.aura.refresh_extension)
