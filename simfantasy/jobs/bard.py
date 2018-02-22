@@ -4,16 +4,21 @@ from typing import Dict
 
 import numpy
 
-from simfantasy.enums import Attribute, Job
+from simfantasy.enums import Attribute, Job, Race, Slot
 from simfantasy.events import ApplyAuraEvent, CastEvent, ExpireAuraEvent
-from simfantasy.simulator import Actor, Aura
+from simfantasy.simulator import Actor, Aura, Item, Simulation
 
 
 class Bard(Actor):
     job = Job.BARD
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, sim: Simulation,
+                 race: Race,
+                 level: int = None,
+                 target: Actor = None,
+                 name: str = None,
+                 equipment: Dict[Slot, Item] = None):
+        super().__init__(sim, race, level, target, name, equipment)
 
         self.straight_shot = StraightShotBuff()
         self.straighter_shot = StraighterShotBuff()

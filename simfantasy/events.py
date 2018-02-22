@@ -41,8 +41,8 @@ class Event:
 
 
 class CombatStartEvent(Event):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, sim: Simulation):
+        super().__init__(sim)
 
         self.sim.current_time = self.sim.start_time = datetime.now()
 
