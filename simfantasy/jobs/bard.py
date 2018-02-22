@@ -45,9 +45,12 @@ class Bard(Actor):
         if not self.on_cooldown(RagingStrikesCast):
             return self.cast(RagingStrikesCast, target=self)
 
-        if self.target.has_aura(self.windbite) and self.target.has_aura(self.venomous_bite) \
-                and not self.on_cooldown(SidewinderCast):
-            return self.cast(SidewinderCast)
+        if self.target.has_aura(self.windbite) and self.target.has_aura(self.venomous_bite):
+            if self.windbite.remains < timedelta(seconds=3) or self.venomous_bite.remains < timedelta(seconds=3):
+                return self.cast(IronJawsCast)
+
+            if not self.on_cooldown(SidewinderCast):
+                return self.cast(SidewinderCast)
 
         if self.has_aura(self.straighter_shot):
             return self.cast(RefulgentArrowCast)
@@ -197,6 +200,11 @@ class RagingStrikesCast(BardCastEvent):
 class RefulgentArrowCast(BardCastEvent):
     potency = 300
 
+    def execute(self):
+        super().execute()
+
+        self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.straighter_shot))
+
 
 class SidewinderCast(BardCastEvent):
     recast_time = timedelta(seconds=60)
@@ -213,3 +221,27 @@ class SidewinderCast(BardCastEvent):
             return 175
 
         return 100
+
+
+class IronJawsCast(BardCastEvent):
+    @property
+    def potency(self):
+        if self.source.level < 64:
+            return 100
+
+        if self.target.has_aura(self.source.windbite) and self.target.has_aura(self.source.venomous_bite):
+            return 260
+
+        if self.target.has_aura(self.source.windbite) or self.target.has_aura(self.source.venomous_bite):
+            return 175
+
+        return 100
+
+    def execute(self):
+        super().execute()
+
+        if self.target.has_aura(self.source.windbite):
+            self.schedule_aura_events(self.source.windbite)
+
+        if self.target.has_aura(self.source.venomous_bite):
+            self.schedule_aura_events(self.source.venomous_bite)

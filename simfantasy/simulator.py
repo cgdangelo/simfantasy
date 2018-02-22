@@ -186,6 +186,13 @@ class Aura:
     def expire(self, target):
         pass
 
+    @property
+    def remains(self):
+        if self.expiration_event is None:
+            return timedelta()
+
+        return self.expiration_event.timestamp - self.expiration_event.sim.current_time
+
 
 class Actor:
     """A participant in an encounter."""
