@@ -36,7 +36,7 @@ class Simulation:
 
         self.start_time: datetime = None
 
-        self.current_time: datetime = datetime.now()
+        self.current_time: datetime = None
         """Current game timestamp."""
 
         self.events = []
@@ -63,7 +63,7 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        self.start_time: datetime = datetime.now()
+        self.start_time = self.current_time = datetime.now()
 
         self.logger.debug('%s <CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
 
