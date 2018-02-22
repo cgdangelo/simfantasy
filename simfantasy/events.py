@@ -1,13 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
-from heapq import heapify
 from math import ceil, floor
 
 import numpy
 
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Slot
+from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot
 from simfantasy.simulator import Actor, Aura, Simulation
 
 
@@ -377,18 +376,14 @@ class CastEvent(Event):
             target = self.target
 
         if aura.expiration_event is not None and aura.expiration_event in self.sim.events:
-            self.sim.logger.debug('%s has %.3f seconds remaining, refreshing',
-                                  aura.__class__.__name__,
-                                  (aura.expiration_event.timestamp - self.sim.current_time).total_seconds())
+            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim, target=target, aura=aura))
             self.sim.events.remove(aura.expiration_event)
-
-            heapify(self.sim.events)
         else:
             aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
-            self.sim.schedule_in(aura.application_event)
+            aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
 
-        aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
-        self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
+            self.sim.schedule_in(aura.application_event)
+            self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
 
     def __str__(self) -> str:
         """String representation of the object."""
@@ -398,4 +393,26 @@ class CastEvent(Event):
             target=self.target.name,
             crit=self.is_critical_hit,
             direct=self.is_direct_hit,
+        )
+
+
+class RefreshAuraEvent(AuraEvent):
+    def execute(self) -> None:
+        if self.aura.refresh_behavior is RefreshBehavior.RESET:
+            delta = self.aura.duration
+        elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_WITH_MAX:
+            delta = max(self.aura.duration,
+                        (self.sim.current_time - self.aura.expiration_event).total_seconds() +
+                        self.aura.refresh_extension)
+
+        self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
+        self.sim.schedule_in(self.aura.expiration_event, delta=delta)
+
+    def __str__(self) -> str:
+        return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
+            cls=self.__class__.__name__,
+            aura=self.aura.__class__.__name__,
+            target=self.target.name,
+            behavior=self.aura.refresh_behavior,
+            remains=format((self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds(), '.3f')
         )

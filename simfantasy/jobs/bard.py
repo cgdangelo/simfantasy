@@ -4,7 +4,7 @@ from typing import Dict
 
 import numpy
 
-from simfantasy.enums import Attribute, Job, Race, Slot
+from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
 from simfantasy.events import CastEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation
 
@@ -78,10 +78,12 @@ class BardCastEvent(CastEvent):
 
 class StraighterShotBuff(Aura):
     duration = timedelta(seconds=10)
+    refresh_behavior = RefreshBehavior.RESET
 
 
 class StraightShotBuff(Aura):
     duration = timedelta(seconds=30)
+    refresh_behavior = RefreshBehavior.RESET
 
     def apply(self, target: Bard):
         target.stats[Attribute.CRITICAL_HIT] *= 1.1

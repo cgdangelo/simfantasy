@@ -128,3 +128,8 @@ class Role(Enum):
     DPS = auto()
     HEALER = auto()
     TANK = auto()
+
+
+class RefreshBehavior(Enum):
+    EXTEND_TO_MAX = auto()
+    RESET = auto()

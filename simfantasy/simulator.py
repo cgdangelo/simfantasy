@@ -10,7 +10,7 @@ from humanfriendly.tables import format_pretty_table
 
 from simfantasy.common_math import get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Race, Slot
+from simfantasy.enums import Attribute, Job, Race, Slot, RefreshBehavior
 
 
 class Simulation:
@@ -130,8 +130,11 @@ class Simulation:
 class Aura:
     """A buff or debuff that can be applied to a target."""
 
-    duration: timedelta
+    duration: timedelta = None
     """Initial duration of the effect."""
+
+    refresh_behavior: RefreshBehavior = None
+    refresh_extension: timedelta = None
 
     def __init__(self) -> None:
         self.application_event = None
