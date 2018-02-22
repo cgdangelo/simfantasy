@@ -371,6 +371,13 @@ class CastEvent(Event):
 
         return timedelta(seconds=gcd)
 
+    def schedule_aura_events(self, aura: Aura, target: Actor = None):
+        if target is None:
+            target = self.target
+
+        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=target, aura=aura))
+        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=target, aura=aura), delta=aura.duration)
+
     def __str__(self) -> str:
         """String representation of the object."""
         return '<{cls} source={source} target={target} crit={crit} direct={direct}>'.format(

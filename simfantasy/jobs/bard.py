@@ -5,7 +5,7 @@ from typing import Dict
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Slot
-from simfantasy.events import ApplyAuraEvent, CastEvent, ExpireAuraEvent
+from simfantasy.events import CastEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation
 
 
@@ -100,10 +100,7 @@ class StraightShotCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        aura = self.source.straight_shot
-
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
+        self.schedule_aura_events(aura=self.source.straight_shot, target=self.source)
 
         if self.source.straighter_shot in self.source.auras:
             self.source.auras.remove(self.source.straighter_shot)
@@ -130,8 +127,7 @@ class WindbiteCast(BardCastEvent):
 
         aura = WindbiteDebuff(source=self.source)
 
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.target, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.target, aura=aura), delta=aura.duration)
+        self.schedule_aura_events(aura=aura, target=self.target)
 
 
 class VenomousBiteDebuff(Aura):
@@ -155,8 +151,7 @@ class VenomousBiteCast(BardCastEvent):
 
         aura = VenomousBiteDebuff(source=self.source)
 
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.target, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.target, aura=aura), delta=aura.duration)
+        self.schedule_aura_events(aura=aura, target=self.target)
 
 
 class HeavyShotCast(BardCastEvent):
@@ -166,10 +161,7 @@ class HeavyShotCast(BardCastEvent):
         super().execute()
 
         if numpy.random.uniform() <= 0.2:
-            aura = self.source.straighter_shot
-
-            self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
-            self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
+            self.schedule_aura_events(aura=self.source.straighter_shot, target=self.source)
 
 
 class RagingStrikesBuff(Aura):
@@ -191,7 +183,4 @@ class RagingStrikesCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        aura = self.source.raging_strikes
-
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
+        self.schedule_aura_events(aura=self.source.raging_strikes, target=self.source)
