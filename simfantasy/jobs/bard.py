@@ -42,13 +42,13 @@ class Bard(Actor):
         return base_stats
 
     def decide(self):
-        if self.straight_shot not in self.auras or self.straighter_shot in self.auras:
+        if not self.has_aura(self.straight_shot) or self.has_aura(self.straighter_shot):
             return self.cast(StraightShotCast)
 
-        if self.windbite not in self.target.auras:
+        if not self.target.has_aura(self.windbite):
             return self.cast(WindbiteCast)
 
-        if self.venomous_bite not in self.target.auras:
+        if not self.target.has_aura(self.venomous_bite):
             return self.cast(VenomousBiteCast)
 
         if not self.on_cooldown(RagingStrikesCast):

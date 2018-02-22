@@ -238,14 +238,14 @@ class Actor:
     def decide(self) -> None:
         """Given current simulation environment, decide what action should be performed, if any."""
 
-    def has_aura(self, aura_class: Type[Aura]) -> bool:
+    def has_aura(self, aura: Aura) -> bool:
         """
         Determine if the aura exists on the actor.
 
-        :param aura_class: The type of aura.
+        :param aura: The aura to check for.
         :return: True if the aura is presence.
         """
-        return any(isinstance(aura, aura_class) for aura in self.auras)
+        return aura in self.auras
 
     def cast(self, cast_class, target: 'Actor' = None) -> None:
         """
