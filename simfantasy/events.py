@@ -40,6 +40,13 @@ class Event:
         pass
 
 
+class CombatStartEvent(Event):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.sim.current_time = self.sim.start_time = datetime.now()
+
+
 class CombatEndEvent(Event):
     """An event indicating that combat has ceased."""
 

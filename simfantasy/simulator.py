@@ -63,11 +63,9 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        self.start_time = self.current_time = datetime.now()
+        from simfantasy.events import CombatStartEvent, CombatEndEvent
 
-        self.logger.debug('%s <CombatStartEvent combat_length=%s>', '0.000', self.combat_length.total_seconds())
-
-        from simfantasy.events import CombatEndEvent
+        self.schedule_in(CombatStartEvent(sim=self))
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
         with humanfriendly.AutomaticSpinner(label='Simulating'):
