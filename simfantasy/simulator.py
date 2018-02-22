@@ -71,14 +71,14 @@ class Simulation:
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
         with humanfriendly.AutomaticSpinner(label='Simulating'):
-            while self.current_time - self.start_time <= self.combat_length and len(self.events) > 0:
+            while len(self.events) > 0:
                 for actor in self.actors:
                     if actor.ready:
                         actor.decide()
 
                 event = heappop(self.events)
 
-                self.logger.debug('%s %s', format((event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                self.logger.debug('%s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
                 event.execute()
 
