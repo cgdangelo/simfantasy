@@ -70,10 +70,6 @@ class Simulation:
 
         with humanfriendly.AutomaticSpinner(label='Simulating'):
             while len(self.events) > 0:
-                for actor in self.actors:
-                    if actor.ready:
-                        actor.decide()
-
                 event = heappop(self.events)
 
                 self.logger.debug('%s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
@@ -81,6 +77,10 @@ class Simulation:
                 event.execute()
 
                 self.current_time = event.timestamp
+
+                for actor in self.actors:
+                    if actor.ready:
+                        actor.decide()
 
         self.logger.info('Analyzing encounter data...')
 
