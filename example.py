@@ -1,7 +1,7 @@
 import logging
 from sys import argv
 
-from simfantasy.bard import Bard
+from simfantasy.jobs.bard import Bard
 from simfantasy.enums import Attribute, Race, Slot
 from simfantasy.simulator import Actor, Item, Simulation, Weapon
 

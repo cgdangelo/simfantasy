@@ -1,14 +1,48 @@
 from datetime import timedelta
 from math import floor
+from typing import Dict
 
 import numpy
 
-from simfantasy.enums import Attribute
+from simfantasy.enums import Attribute, Job
 from simfantasy.events import ApplyAuraEvent, CastEvent, ExpireAuraEvent
 from simfantasy.simulator import Actor, Aura
 
 
-class BardEvent(CastEvent):
+class Bard(Actor):
+    job = Job.BARD
+
+    def calculate_base_stats(self) -> Dict[Attribute, int]:
+        base_stats = super().calculate_base_stats()
+
+        if self.level >= 20:
+            base_stats[Attribute.DEXTERITY] += 8
+
+        if self.level >= 40:
+            base_stats[Attribute.DEXTERITY] += 16
+
+        if self.level >= 60:
+            base_stats[Attribute.DEXTERITY] += 24
+
+        return base_stats
+
+    def decide(self):
+        if not self.has_aura(StraightShotBuff) or self.has_aura(StraighterShotBuff):
+            return self.cast(StraightShotCast)
+
+        if not self.target.has_aura(WindbiteDebuff):
+            return self.cast(WindbiteCast)
+
+        if not self.target.has_aura(VenomousBiteDebuff):
+            return self.cast(VenomousBiteCast)
+
+        if not self.on_cooldown(RagingStrikesCast):
+            return self.cast(RagingStrikesCast, target=self)
+
+        return self.cast(HeavyShotCast)
+
+
+class BardCastEvent(CastEvent):
     affected_by = Attribute.ATTACK_POWER
     hastened_by = Attribute.SKILL_SPEED
 
@@ -42,7 +76,7 @@ class StraightShotBuff(Aura):
         target.stats[Attribute.CRITICAL_HIT] /= 1.1
 
 
-class StraightShotCast(BardEvent):
+class StraightShotCast(BardCastEvent):
     potency = 140
 
     @property
@@ -75,7 +109,7 @@ class WindbiteDebuff(Aura):
         return timedelta(seconds=15 if self.source.level < 64 else 30)
 
 
-class WindbiteCast(BardEvent):
+class WindbiteCast(BardCastEvent):
     @property
     def potency(self):
         return 60 if self.source.level < 64 else 120
@@ -100,7 +134,7 @@ class VenomousBiteDebuff(Aura):
         return timedelta(seconds=15 if self.source.level < 64 else 30)
 
 
-class VenomousBiteCast(BardEvent):
+class VenomousBiteCast(BardCastEvent):
     @property
     def potency(self):
         return 100 if self.source.level < 64 else 120
@@ -114,7 +148,7 @@ class VenomousBiteCast(BardEvent):
         self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.target, aura=aura), delta=aura.duration)
 
 
-class HeavyShotCast(BardEvent):
+class HeavyShotCast(BardCastEvent):
     potency = 150
 
     def execute(self):
@@ -131,7 +165,7 @@ class RagingStrikesBuff(Aura):
     duration = timedelta(seconds=20)
 
 
-class RagingStrikesCast(BardEvent):
+class RagingStrikesCast(BardCastEvent):
     is_off_gcd = True
     recast_time = timedelta(seconds=80)
 
