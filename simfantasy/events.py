@@ -25,10 +25,9 @@ class Event:
     def __lt__(self, other: 'Event') -> bool:
         """
         Comparison for determining if one Event is less than another. Required for sorting the event heap. Returns
-        False by default to preserve objects in the order that they were added.
 
         :param other: The other event to compare to.
-        :return: False.
+        :return: True if current event occurs before other.
         """
         return self.timestamp < other.timestamp
 
