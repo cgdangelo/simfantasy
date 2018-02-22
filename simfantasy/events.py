@@ -83,6 +83,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
                 'applications': [],
                 'expirations': [],
                 'refreshes': [],
+                'consumptions': [],
             }
 
     def __str__(self) -> str:
@@ -201,6 +202,7 @@ class CastEvent(Event):
         if self.__class__ not in self.source.statistics['actions']:
             self.source.statistics['actions'][self.__class__] = {
                 'casts': [],
+                'execute_time': [],
                 'damage': [],
                 'critical_hits': [],
                 'direct_hits': [],
@@ -208,6 +210,9 @@ class CastEvent(Event):
             }
 
         self.source.statistics['actions'][self.__class__]['casts'].append(self.sim.current_time)
+        self.source.statistics['actions'][self.__class__]['execute_time'].append(
+            (self.sim.current_time, max(self.animation, self.gcd if not self.is_off_gcd else timedelta()))
+        )
         self.source.statistics['actions'][self.__class__]['damage'].append((self.sim.current_time, self.direct_damage))
 
         if self.is_critical_hit:
@@ -414,7 +419,7 @@ class RefreshAuraEvent(AuraEvent):
         self.remains = (self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds()
 
     def execute(self) -> None:
-        if self.aura.refresh_behavior is RefreshBehavior.RESET:
+        if self.aura.refresh_behavior is RefreshBehavior.RESET or self.aura.refresh_behavior is None:
             delta = self.aura.duration
         elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
             delta = max(self.aura.duration,
@@ -434,3 +439,16 @@ class RefreshAuraEvent(AuraEvent):
             behavior=self.aura.refresh_behavior,
             remains=format(self.remains, '.3f')
         )
+
+
+class ConsumeAuraEvent(AuraEvent):
+    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+        super().__init__(sim, target, aura)
+
+        self.remains = (self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds()
+
+    def execute(self) -> None:
+        self.sim.events.remove(self.aura.expiration_event)
+        self.target.auras.remove(self.aura)
+
+        self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))

@@ -5,7 +5,7 @@ from typing import Dict
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
-from simfantasy.events import CastEvent
+from simfantasy.events import CastEvent, ConsumeAuraEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation
 
 
@@ -108,7 +108,7 @@ class StraightShotCast(BardCastEvent):
         self.schedule_aura_events(aura=self.source.straight_shot, target=self.source)
 
         if self.source.straighter_shot in self.source.auras:
-            self.source.auras.remove(self.source.straighter_shot)
+            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.straighter_shot))
 
 
 class WindbiteDebuff(Aura):

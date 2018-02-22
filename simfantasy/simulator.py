@@ -3,20 +3,20 @@ from abc import abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import Dict, List, Tuple, Type, Union
+from typing import Dict, List, Tuple, Union
 
 import humanfriendly
-from humanfriendly.tables import format_pretty_table
+from humanfriendly.tables import format_pretty_table, format_robust_table
 
 from simfantasy.common_math import get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Race, Slot, RefreshBehavior
+from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
 
 
 class Simulation:
     """A simulated combat encounter."""
 
-    def __init__(self, combat_length: timedelta = None, log_level: int = None):
+    def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None):
         """
         Create a new simulation.
 
@@ -28,8 +28,13 @@ class Simulation:
         if log_level is None:
             log_level = logging.INFO
 
+        if vertical_output is None:
+            vertical_output = False
+
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
+
+        self.vertical_output = vertical_output
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
@@ -74,7 +79,8 @@ class Simulation:
             while len(self.events) > 0:
                 event = heappop(self.events)
 
-                self.logger.debug('<= %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                self.logger.debug('<= %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                                  event)
 
                 event.execute()
 
@@ -89,6 +95,8 @@ class Simulation:
         for actor in self.actors:
             tables = []
 
+            format_table = format_robust_table if self.vertical_output else format_pretty_table
+
             if len(actor.statistics['actions']) > 0:
                 statistics = []
 
@@ -96,12 +104,14 @@ class Simulation:
                     s = actor.statistics['actions'][cls]
                     total_damage = sum(damage for timestamp, damage in s['damage'])
                     casts = len(s['casts'])
+                    execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
 
                     statistics.append((
                         cls.__name__,
                         casts,
                         format(total_damage, ',.0f'),
                         format(total_damage / self.combat_length.total_seconds(), ',.3f'),
+                        format(total_damage / execute_time, ',.3f'),
                         humanfriendly.terminal.ansi_wrap(color='red',
                                                          text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
                         humanfriendly.terminal.ansi_wrap(color='blue',
@@ -111,9 +121,9 @@ class Simulation:
                                                                      '.3f')),
                     ))
 
-                tables.append(format_pretty_table(
+                tables.append(format_table(
                     statistics,
-                    ('Name', 'Casts', 'Damage', 'DPS', 'Crit %', 'Direct %', 'D.Crit %')
+                    ('Name', 'Casts', 'Damage', 'DPS', 'DPET', 'Crit %', 'Direct %', 'D.Crit %')
                 ))
 
             if len(actor.statistics['auras']) > 0:
@@ -130,13 +140,14 @@ class Simulation:
                         format(len(s['applications']), ',.0f'),
                         format(len(s['expirations']), ',.0f'),
                         format(len(s['refreshes']), ',.0f'),
+                        format(len(s['consumptions']), ',.0f'),
                         format(total_overflow, ',.3f'),
                         format(average_overflow, ',.3f'),
                     ))
 
-                tables.append(format_pretty_table(
+                tables.append(format_table(
                     statistics,
-                    ('Name', 'Applications', 'Expirations', 'Refreshes', 'Overflow', 'Overflow (Mean)'),
+                    ('Name', 'Applications', 'Expirations', 'Refreshes', 'Consumptions', 'Overflow', 'Overflow (Mean)'),
                 ))
 
             if len(tables) > 0:
