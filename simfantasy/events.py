@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
+from heapq import heapify
 from math import ceil, floor
 
 import numpy
@@ -375,8 +376,19 @@ class CastEvent(Event):
         if target is None:
             target = self.target
 
-        self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=target, aura=aura))
-        self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=target, aura=aura), delta=aura.duration)
+        if aura.expiration_event is not None and aura.expiration_event in self.sim.events:
+            self.sim.logger.debug('%s has %.3f seconds remaining, refreshing',
+                                  aura.__class__.__name__,
+                                  (aura.expiration_event.timestamp - self.sim.current_time).total_seconds())
+            self.sim.events.remove(aura.expiration_event)
+
+            heapify(self.sim.events)
+        else:
+            aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
+            self.sim.schedule_in(aura.application_event)
+
+        aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
+        self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
 
     def __str__(self) -> str:
         """String representation of the object."""

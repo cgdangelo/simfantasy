@@ -133,6 +133,10 @@ class Aura:
     duration: timedelta
     """Initial duration of the effect."""
 
+    def __init__(self) -> None:
+        self.application_event = None
+        self.expiration_event = None
+
     def apply(self, target):
         pass
 
