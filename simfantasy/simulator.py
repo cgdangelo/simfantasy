@@ -98,8 +98,8 @@ class Simulation:
                     ability_statistics.append((
                         cls.__name__,
                         casts,
-                        format(total_damage, '.0f'),
-                        format(total_damage / self.combat_length.total_seconds(), '.3f'),
+                        format(total_damage, ',.0f'),
+                        format(total_damage / self.combat_length.total_seconds(), ',.3f'),
                         humanfriendly.terminal.ansi_wrap(color='red',
                                                          text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
                         humanfriendly.terminal.ansi_wrap(color='blue',
