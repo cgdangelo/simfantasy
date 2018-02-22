@@ -324,7 +324,7 @@ class CastEvent(Event):
         divisor = divisor_per_level[self.source.level]
 
         f_ptc = self.potency / 100
-        f_wd = floor((main_stat * job_attribute_modifier / 100) + weapon_damage)
+        f_wd = floor((main_stat * job_attribute_modifier / 1000) + weapon_damage)
         f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
         f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
         f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
