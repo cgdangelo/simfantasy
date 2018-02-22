@@ -132,7 +132,7 @@ class Simulation:
                 for cls in actor.statistics['auras']:
                     s = actor.statistics['auras'][cls]
 
-                    total_overflow = sum(remains for timestamp, remains in s['refreshes'])
+                    total_overflow = sum(remains.total_seconds() for timestamp, remains in s['refreshes'])
                     average_overflow = total_overflow / len(s['refreshes']) if s['refreshes'] else 0
 
                     statistics.append((

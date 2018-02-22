@@ -416,7 +416,7 @@ class RefreshAuraEvent(AuraEvent):
     def __init__(self, sim: Simulation, target: Actor, aura: Aura):
         super().__init__(sim, target, aura)
 
-        self.remains = (self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds()
+        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
         if self.aura.refresh_behavior is RefreshBehavior.RESET or self.aura.refresh_behavior is None:
@@ -437,7 +437,7 @@ class RefreshAuraEvent(AuraEvent):
             aura=self.aura.__class__.__name__,
             target=self.target.name,
             behavior=self.aura.refresh_behavior,
-            remains=format(self.remains, '.3f')
+            remains=format(self.remains.total_seconds(), '.3f')
         )
 
 
@@ -445,7 +445,7 @@ class ConsumeAuraEvent(AuraEvent):
     def __init__(self, sim: Simulation, target: Actor, aura: Aura):
         super().__init__(sim, target, aura)
 
-        self.remains = (self.aura.expiration_event.timestamp - self.sim.current_time).total_seconds()
+        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
         self.sim.events.remove(self.aura.expiration_event)
