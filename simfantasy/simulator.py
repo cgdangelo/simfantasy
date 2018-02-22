@@ -115,7 +115,7 @@ class Simulation:
                 )
                 self.logger.info('Actor: %s\n\n%s\n', actor.name, table)
 
-            self.logger.info('Quitting')
+        self.logger.info('Quitting')
 
     def __set_logger(self, log_level: int):
         logger = logging.getLogger()
