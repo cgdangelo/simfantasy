@@ -110,6 +110,7 @@ class Simulation:
                         cls.__name__,
                         casts,
                         format(total_damage, ',.0f'),
+                        format(total_damage / casts, ',.3f'),
                         format(total_damage / self.combat_length.total_seconds(), ',.3f'),
                         format(total_damage / execute_time, ',.3f'),
                         humanfriendly.terminal.ansi_wrap(color='red',
@@ -123,7 +124,17 @@ class Simulation:
 
                 tables.append(format_table(
                     statistics,
-                    ('Name', 'Casts', 'Damage', 'DPS', 'DPET', 'Crit %', 'Direct %', 'D.Crit %')
+                    (
+                        'Name',
+                        'Casts',
+                        'Damage',
+                        'Damage (Mean)',
+                        'DPS',
+                        'DPET',
+                        'Crit %',
+                        'Direct %',
+                        'D.Crit %'
+                    )
                 ))
 
             if len(actor.statistics['auras']) > 0:
