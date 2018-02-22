@@ -57,7 +57,9 @@ class Simulation:
         if delta is None:
             delta = timedelta()
 
-        heappush(self.events, (self.current_time + delta, event))
+        event.timestamp = self.current_time + delta
+
+        heappush(self.events, event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
@@ -74,13 +76,13 @@ class Simulation:
                     if actor.ready:
                         actor.decide()
 
-                time, event = heappop(self.events)
+                event = heappop(self.events)
 
-                self.logger.debug('%s %s', format((time - self.start_time).total_seconds(), '.3f'), event)
+                self.logger.debug('%s %s', format((event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
                 event.execute()
 
-                self.current_time = time
+                self.current_time = event.timestamp
 
         self.logger.info('Analyzing encounter data...')
 

@@ -20,6 +20,8 @@ class Event:
         """
         self.sim = sim
 
+        self.timestamp: datetime = None
+
     def __lt__(self, other: 'Event') -> bool:
         """
         Comparison for determining if one Event is less than another. Required for sorting the event heap. Returns
@@ -28,7 +30,7 @@ class Event:
         :param other: The other event to compare to.
         :return: False.
         """
-        return False
+        return self.timestamp < other.timestamp
 
     def __str__(self) -> str:
         """String representation of the object."""
