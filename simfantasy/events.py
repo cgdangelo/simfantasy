@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from math import ceil, floor
 
@@ -9,7 +10,7 @@ from simfantasy.enums import Attribute, Job, Slot
 from simfantasy.simulator import Actor, Aura, Simulation
 
 
-class Event:
+class Event(metaclass=ABCMeta):
     """Emitted objects corresponding to in-game occurrences."""
 
     def __init__(self, sim: Simulation):
@@ -35,9 +36,9 @@ class Event:
         """String representation of the object."""
         return '<{cls}>'.format(cls=self.__class__.__name__)
 
+    @abstractmethod
     def execute(self) -> None:
         """Handle the event appropriately when popped off the heap queue."""
-        pass
 
 
 class CombatStartEvent(Event):
@@ -45,6 +46,9 @@ class CombatStartEvent(Event):
         super().__init__(sim)
 
         self.sim.current_time = self.sim.start_time = datetime.now()
+
+    def execute(self) -> None:
+        pass
 
 
 class CombatEndEvent(Event):
@@ -55,7 +59,7 @@ class CombatEndEvent(Event):
         self.sim.events.clear()
 
 
-class AuraEvent(Event):
+class AuraEvent(Event, metaclass=ABCMeta):
     """
     An event that deals with an "aura", i.e., a buff or debuff that can be applied to an
     :class:`~simfantasy.simulator.Actor`.
@@ -113,6 +117,9 @@ class ActorReadyEvent(Event):
         super().__init__(sim=sim)
 
         self.actor = actor
+
+    def execute(self) -> None:
+        pass
 
     def __str__(self):
         """String representation of the object."""

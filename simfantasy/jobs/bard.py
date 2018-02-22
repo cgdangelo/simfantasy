@@ -83,10 +83,10 @@ class StraighterShotBuff(Aura):
 class StraightShotBuff(Aura):
     duration = timedelta(seconds=30)
 
-    def apply(self, target: Actor):
+    def apply(self, target: Bard):
         target.stats[Attribute.CRITICAL_HIT] *= 1.1
 
-    def expire(self, target: Actor):
+    def expire(self, target: Bard):
         target.stats[Attribute.CRITICAL_HIT] /= 1.1
 
 
@@ -110,7 +110,7 @@ class StraightShotCast(BardCastEvent):
 
 
 class WindbiteDebuff(Aura):
-    def __init__(self, source: Actor):
+    def __init__(self, source: Bard):
         super().__init__()
 
         self.source = source
@@ -135,7 +135,7 @@ class WindbiteCast(BardCastEvent):
 
 
 class VenomousBiteDebuff(Aura):
-    def __init__(self, source: Actor):
+    def __init__(self, source: Bard):
         super().__init__()
 
         self.source = source
