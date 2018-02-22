@@ -12,6 +12,13 @@ from simfantasy.simulator import Actor, Aura
 class Bard(Actor):
     job = Job.BARD
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.straight_shot = StraightShotBuff()
+        self.straighter_shot = StraighterShotBuff()
+        self.raging_strikes = RagingStrikesBuff()
+
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         base_stats = super().calculate_base_stats()
 
@@ -27,7 +34,7 @@ class Bard(Actor):
         return base_stats
 
     def decide(self):
-        if not self.has_aura(StraightShotBuff) or self.has_aura(StraighterShotBuff):
+        if self.straight_shot not in self.auras or self.straighter_shot in self.auras:
             return self.cast(StraightShotCast)
 
         if not self.target.has_aura(WindbiteDebuff):
@@ -43,6 +50,8 @@ class Bard(Actor):
 
 
 class BardCastEvent(CastEvent):
+    source: Bard
+
     affected_by = Attribute.ATTACK_POWER
     hastened_by = Attribute.SKILL_SPEED
 
@@ -56,7 +65,7 @@ class BardCastEvent(CastEvent):
         if self.source.level >= 40:
             direct_damage = floor(direct_damage * 1.2)
 
-        if self.source.has_aura(RagingStrikesBuff):
+        if self.source.raging_strikes in self.source.auras:
             direct_damage = floor(direct_damage * 1.1)
 
         return direct_damage
@@ -81,21 +90,18 @@ class StraightShotCast(BardCastEvent):
 
     @property
     def critical_hit_chance(self):
-        return 100.0 if self.source.has_aura(StraighterShotBuff) else super().critical_hit_chance
+        return 100.0 if self.source.straighter_shot in self.source.auras else super().critical_hit_chance
 
     def execute(self):
         super().execute()
 
-        aura = StraightShotBuff()
+        aura = self.source.straight_shot
 
         self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
         self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
 
-        straighter_shots = [aura for aura in self.source.auras if isinstance(aura, StraighterShotBuff)]
-
-        if len(straighter_shots) > 0:
-            for straighter_shot in straighter_shots:
-                self.source.auras.remove(straighter_shot)
+        if self.source.straighter_shot in self.source.auras:
+            self.source.auras.remove(self.source.straighter_shot)
 
 
 class WindbiteDebuff(Aura):
@@ -155,7 +161,7 @@ class HeavyShotCast(BardCastEvent):
         super().execute()
 
         if numpy.random.uniform() <= 0.2:
-            aura = StraighterShotBuff()
+            aura = self.source.straighter_shot
 
             self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
             self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
@@ -180,7 +186,7 @@ class RagingStrikesCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        aura = RagingStrikesBuff()
+        aura = self.source.raging_strikes
 
         self.sim.schedule_in(ApplyAuraEvent(sim=self.sim, target=self.source, aura=aura))
         self.sim.schedule_in(ExpireAuraEvent(sim=self.sim, target=self.source, aura=aura), delta=aura.duration)
