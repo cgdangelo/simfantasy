@@ -131,7 +131,7 @@ class ActorReadyEvent(Event):
         self.actor = actor
 
     def execute(self) -> None:
-        pass
+        self.actor.decide()
 
     def __str__(self):
         """String representation of the object."""

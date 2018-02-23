@@ -70,25 +70,23 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        from simfantasy.events import CombatStartEvent, CombatEndEvent
+        from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent
 
         self.schedule_in(CombatStartEvent(sim=self))
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
+        for actor in self.actors:
+            self.schedule_in(ActorReadyEvent(sim=self, actor=actor))
+
         with humanfriendly.AutomaticSpinner(label='Simulating'):
             while len(self.events) > 0:
                 event = heappop(self.events)
-
-                self.logger.debug('<= %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
-                                  event)
-
                 event.execute()
 
-                self.current_time = event.timestamp
+                self.logger.debug('<= %s %s',
+                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
-                for actor in self.actors:
-                    if actor.ready:
-                        actor.decide()
+                self.current_time = event.timestamp
 
         self.logger.info('Analyzing encounter data...\n')
 
@@ -256,6 +254,8 @@ class Actor:
         }
 
         self.sim.actors.append(self)
+
+        self.sim.logger.debug('Initialized: %s', self)
 
     @property
     def ready(self):
