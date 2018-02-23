@@ -445,6 +445,7 @@ class ConsumeAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         self.sim.events.remove(self.aura.expiration_event)
+        self.aura.expiration_event = None
         self.target.auras.remove(self.aura)
 
         self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))

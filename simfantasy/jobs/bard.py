@@ -18,9 +18,10 @@ class Buffs:
 
 class Actions:
     def __init__(self, source: Actor):
-        self.straight_shot = CastFactory(source=source, cast_class=StraightShotCast)
-        self.raging_strikes = CastFactory(source=source, cast_class=RagingStrikesCast)
         self.heavy_shot = CastFactory(source=source, cast_class=HeavyShotCast)
+        self.raging_strikes = CastFactory(source=source, cast_class=RagingStrikesCast)
+        self.refulgent_arrow = CastFactory(source=source, cast_class=RefulgentArrowCast)
+        self.straight_shot = CastFactory(source=source, cast_class=StraightShotCast)
 
 
 class Bard(Actor):
@@ -55,7 +56,10 @@ class Bard(Actor):
         return base_stats
 
     def decide(self):
-        if not self.buffs.straight_shot.up:
+        if self.buffs.straighter_shot.up:
+            return self.actions.refulgent_arrow.cast()
+
+        if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.cast()
 
         if not self.actions.raging_strikes.on_cooldown:
