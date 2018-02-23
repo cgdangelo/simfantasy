@@ -220,8 +220,7 @@ class Actor:
                  level: int = None,
                  target: 'Actor' = None,
                  name: str = None,
-                 equipment: Dict[Slot, 'Item'] = None,
-                 target_data_class = None):
+                 equipment: Dict[Slot, 'Item'] = None):
         """
         Create a new actor.
 

@@ -19,12 +19,14 @@ class Buffs:
 class Actions:
     def __init__(self, source: 'Bard'):
         self.heavy_shot = CastFactory(source=source, cast_class=HeavyShotCast)
+        self.iron_jaws = CastFactory(source=source, cast_class=IronJawsCast)
         self.raging_strikes = CastFactory(source=source, cast_class=RagingStrikesCast)
         self.refulgent_arrow = CastFactory(source=source, cast_class=RefulgentArrowCast)
+        self.sidewinder = CastFactory(source=source, cast_class=SidewinderCast)
         self.straight_shot = CastFactory(source=source, cast_class=StraightShotCast)
 
-        self.windbite = CastFactory(source=source, cast_class=WindbiteCast)
         self.venomous_bite = CastFactory(source=source, cast_class=VenomousBiteCast)
+        self.windbite = CastFactory(source=source, cast_class=WindbiteCast)
 
 
 class TargetData:
@@ -72,6 +74,13 @@ class Bard(Actor):
 
         if not self.actions.raging_strikes.on_cooldown:
             return self.actions.raging_strikes.cast()
+
+        if self.target_data.windbite.up and self.target_data.venomous_bite.up:
+            if self.target_data.windbite.remains < timedelta(seconds=3) or \
+                    self.target_data.venomous_bite.remains < timedelta(seconds=3):
+                return self.actions.iron_jaws.cast()
+
+            return self.actions.sidewinder.cast()
 
         if not self.target_data.windbite.up:
             return self.actions.windbite.cast()
@@ -231,34 +240,21 @@ class SidewinderCast(BardCastEvent):
         if self.source.level < 64:
             return 100
 
-        if self.target.has_aura(self.source.windbite) and self.target.has_aura(self.source.venomous_bite):
+        if self.source.target_data.windbite.up and self.source.target_data.venomous_bite.up:
             return 260
 
-        if self.target.has_aura(self.source.windbite) or self.target.has_aura(self.source.venomous_bite):
+        if self.source.target_data.windbite.up or self.source.target_data.venomous_bite.up:
             return 175
 
         return 100
 
 
 class IronJawsCast(BardCastEvent):
-    @property
-    def potency(self):
-        if self.source.level < 64:
-            return 100
-
-        if self.target.has_aura(self.source.windbite) and self.target.has_aura(self.source.venomous_bite):
-            return 260
-
-        if self.target.has_aura(self.source.windbite) or self.target.has_aura(self.source.venomous_bite):
-            return 175
-
-        return 100
-
     def execute(self):
         super().execute()
 
-        if self.target.has_aura(self.source.windbite):
-            self.schedule_aura_events(self.source.windbite)
+        if self.source.target_data.windbite.up:
+            self.schedule_aura_events(self.source.target_data.windbite)
 
-        if self.target.has_aura(self.source.venomous_bite):
-            self.schedule_aura_events(self.source.venomous_bite)
+        if self.source.target_data.venomous_bite.up:
+            self.schedule_aura_events(self.source.target_data.venomous_bite)
