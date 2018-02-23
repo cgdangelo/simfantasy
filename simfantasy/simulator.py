@@ -81,12 +81,13 @@ class Simulation:
         with humanfriendly.AutomaticSpinner(label='Simulating'):
             while len(self.events) > 0:
                 event = heappop(self.events)
-                event.execute()
+
+                self.current_time = event.timestamp
 
                 self.logger.debug('<= %s %s',
                                   format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
-                self.current_time = event.timestamp
+                event.execute()
 
         self.logger.info('Analyzing encounter data...\n')
 
@@ -313,19 +314,6 @@ class Actor:
         """
         if target is None:
             target = self.target
-
-        if not cast_class.is_off_gcd and \
-                target.gcd_unlock_at is not None and \
-                target.gcd_unlock_at > self.sim.current_time:
-            return
-
-        if cast_class.is_off_gcd and \
-                target.animation_unlock_at is not None and \
-                target.animation_unlock_at > self.sim.current_time:
-            return
-
-        if cast_class.can_recast_at is not None and cast_class.can_recast_at > self.sim.current_time:
-            return
 
         self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
 
