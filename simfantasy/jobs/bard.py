@@ -11,9 +11,9 @@ from simfantasy.simulator import Actor, Aura, CastFactory, Item, Simulation
 
 class Buffs:
     def __init__(self):
+        self.raging_strikes = RagingStrikesBuff()
         self.straight_shot = StraightShotBuff()
         self.straighter_shot = StraighterShotBuff()
-        self.raging_strikes = RagingStrikesBuff()
 
 
 class Actions:
