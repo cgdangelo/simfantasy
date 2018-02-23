@@ -9,6 +9,13 @@ from simfantasy.events import CastEvent, ConsumeAuraEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation
 
 
+class Buffs:
+    def __init__(self):
+        self.straight_shot = StraightShotBuff()
+        self.straighter_shot = StraighterShotBuff()
+        self.raging_strikes = RagingStrikesBuff()
+
+
 class Bard(Actor):
     job = Job.BARD
 
@@ -20,9 +27,7 @@ class Bard(Actor):
                  equipment: Dict[Slot, Item] = None):
         super().__init__(sim, race, level, target, name, equipment)
 
-        self.straight_shot = StraightShotBuff()
-        self.straighter_shot = StraighterShotBuff()
-        self.raging_strikes = RagingStrikesBuff()
+        self.buffs = Buffs()
 
         self.windbite = WindbiteDebuff(source=self)
         self.venomous_bite = VenomousBiteDebuff(source=self)
@@ -52,10 +57,10 @@ class Bard(Actor):
             if not self.on_cooldown(SidewinderCast):
                 return self.cast(SidewinderCast)
 
-        if self.has_aura(self.straighter_shot):
+        if self.has_aura(self.buffs.straighter_shot):
             return self.cast(RefulgentArrowCast)
 
-        if not self.has_aura(self.straight_shot):
+        if not self.has_aura(self.buffs.straight_shot):
             return self.cast(StraightShotCast)
 
         if not self.target.has_aura(self.windbite):
@@ -83,7 +88,7 @@ class BardCastEvent(CastEvent):
         if self.source.level >= 40:
             direct_damage = floor(direct_damage * 1.2)
 
-        if self.source.raging_strikes in self.source.auras:
+        if self.source.buffs.raging_strikes in self.source.auras:
             direct_damage = floor(direct_damage * 1.1)
 
         return direct_damage
@@ -110,15 +115,17 @@ class StraightShotCast(BardCastEvent):
 
     @property
     def critical_hit_chance(self):
-        return 100.0 if self.source.straighter_shot in self.source.auras else super().critical_hit_chance
+        return 100.0 if self.source.buffs.straighter_shot in self.source.auras else super().critical_hit_chance
 
     def execute(self):
         super().execute()
 
-        self.schedule_aura_events(aura=self.source.straight_shot, target=self.source)
+        self.schedule_aura_events(aura=self.source.buffs.straight_shot, target=self.source)
 
-        if self.source.straighter_shot in self.source.auras:
-            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.straighter_shot))
+        if self.source.buffs.straighter_shot in self.source.auras:
+            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
+                                                  target=self.source,
+                                                  aura=self.source.buffs.straighter_shot))
 
 
 class WindbiteDebuff(Aura):
@@ -172,7 +179,7 @@ class HeavyShotCast(BardCastEvent):
         super().execute()
 
         if numpy.random.uniform() <= 0.2:
-            self.schedule_aura_events(aura=self.source.straighter_shot, target=self.source)
+            self.schedule_aura_events(aura=self.source.buffs.straighter_shot, target=self.source)
 
 
 class RagingStrikesBuff(Aura):
@@ -194,7 +201,7 @@ class RagingStrikesCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        self.schedule_aura_events(aura=self.source.raging_strikes, target=self.source)
+        self.schedule_aura_events(aura=self.source.buffs.raging_strikes, target=self.source)
 
 
 class RefulgentArrowCast(BardCastEvent):
@@ -203,7 +210,7 @@ class RefulgentArrowCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.straighter_shot))
+        self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.straighter_shot))
 
 
 class SidewinderCast(BardCastEvent):
