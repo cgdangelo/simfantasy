@@ -6,7 +6,7 @@ import numpy
 
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
 from simfantasy.events import CastEvent, ConsumeAuraEvent
-from simfantasy.simulator import Actor, Aura, Item, Simulation
+from simfantasy.simulator import Actor, Aura, CastFactory, Item, Simulation
 
 
 class Buffs:
@@ -14,6 +14,13 @@ class Buffs:
         self.straight_shot = StraightShotBuff()
         self.straighter_shot = StraighterShotBuff()
         self.raging_strikes = RagingStrikesBuff()
+
+
+class Actions:
+    def __init__(self, source: Actor):
+        self.straight_shot = CastFactory(source=source, cast_class=StraightShotCast)
+        self.raging_strikes = CastFactory(source=source, cast_class=RagingStrikesCast)
+        self.heavy_shot = CastFactory(source=source, cast_class=HeavyShotCast)
 
 
 class Bard(Actor):
@@ -28,6 +35,7 @@ class Bard(Actor):
         super().__init__(sim, race, level, target, name, equipment)
 
         self.buffs = Buffs()
+        self.actions = Actions(source=self)
 
         self.windbite = WindbiteDebuff(source=self)
         self.venomous_bite = VenomousBiteDebuff(source=self)
@@ -47,29 +55,13 @@ class Bard(Actor):
         return base_stats
 
     def decide(self):
-        if not self.on_cooldown(RagingStrikesCast):
-            return self.cast(RagingStrikesCast, target=self)
+        if not self.buffs.straight_shot.up:
+            return self.actions.straight_shot.cast()
 
-        if self.target.has_aura(self.windbite) and self.target.has_aura(self.venomous_bite):
-            if self.windbite.remains < timedelta(seconds=3) or self.venomous_bite.remains < timedelta(seconds=3):
-                return self.cast(IronJawsCast)
+        if not self.actions.raging_strikes.on_cooldown:
+            return self.actions.raging_strikes.cast()
 
-            if not self.on_cooldown(SidewinderCast):
-                return self.cast(SidewinderCast)
-
-        if self.has_aura(self.buffs.straighter_shot):
-            return self.cast(RefulgentArrowCast)
-
-        if not self.has_aura(self.buffs.straight_shot):
-            return self.cast(StraightShotCast)
-
-        if not self.target.has_aura(self.windbite):
-            return self.cast(WindbiteCast)
-
-        if not self.target.has_aura(self.venomous_bite):
-            return self.cast(VenomousBiteCast)
-
-        return self.cast(HeavyShotCast)
+        self.actions.heavy_shot.cast()
 
 
 class BardCastEvent(CastEvent):

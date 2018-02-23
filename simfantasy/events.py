@@ -157,11 +157,10 @@ class CastEvent(Event):
     potency: int = 0
     """Potency for damage-dealing abilities."""
 
-    recast_time: timedelta = None
+    recast_time: timedelta = timedelta()
     """Length of recast (cooldown) time."""
 
-    can_recast_at: datetime = None
-    """Timestamp when the ability will be available for use again."""
+    cast_time: timedelta = timedelta()
 
     def __init__(self, sim: Simulation, source: Actor, target: Actor = None):
         """
@@ -195,9 +194,6 @@ class CastEvent(Event):
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.source.gcd_unlock_at = self.sim.current_time + (self.gcd if not self.is_off_gcd else timedelta())
-
-        if self.recast_time is not None:
-            self.__class__.can_recast_at = self.sim.current_time + self.recast_time
 
         if self.__class__ not in self.source.statistics['actions']:
             self.source.statistics['actions'][self.__class__] = {

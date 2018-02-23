@@ -197,6 +197,10 @@ class Aura:
         pass
 
     @property
+    def up(self):
+        return self.remains > timedelta()
+
+    @property
     def remains(self):
         if self.expiration_event is None:
             return timedelta()
@@ -304,22 +308,6 @@ class Actor:
         """
         return aura in self.auras
 
-    def cast(self, cast_class, target: 'Actor' = None) -> None:
-        """
-        Cast an ability on the target.
-
-        :type cast_class: type[~simfantasy.events.CastEvent]
-        :param cast_class: The type of ability.
-        :param target: The target to cast on.
-        """
-        if target is None:
-            target = self.target
-
-        self.sim.schedule_in(cast_class(sim=self.sim, source=self, target=target))
-
-    def on_cooldown(self, action_class):
-        return action_class.can_recast_at is not None and action_class.can_recast_at > self.sim.current_time
-
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         """Calculate and set base primary and secondary stats."""
         base_main_stat = main_stat_per_level[self.level]
@@ -377,3 +365,26 @@ class Weapon(Item):
 
         self.physical_damage = physical_damage
         self.magic_damage = magic_damage
+
+
+class CastFactory:
+    def __init__(self, source: Actor, cast_class):
+        self.source = source
+        self.can_recast_at = None
+        self.__cast_class = cast_class
+
+    @property
+    def on_cooldown(self):
+        return self.can_recast_at is not None and \
+               self.can_recast_at > self.source.sim.current_time
+
+    def cast(self, target: Actor = None):
+        if target is None:
+            target = self.source.target
+
+        self.can_recast_at = self.source.sim.current_time + self.__cast_class.cast_time + self.__cast_class.recast_time
+
+        self.source.sim.schedule_in(event=self.__cast_class(sim=self.source.sim,
+                                                            source=self.source,
+                                                            target=target),
+                                    delta=self.__cast_class.cast_time)
