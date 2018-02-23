@@ -7,7 +7,7 @@ import numpy
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot
-from simfantasy.simulator import Actor, Aura, Simulation
+from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
 
 
 class Event(metaclass=ABCMeta):
@@ -111,6 +111,7 @@ class ExpireAuraEvent(AuraEvent):
         """Remove the aura if still present on the target and fire any post-expiration hooks from the aura itself."""
         self.target.auras.remove(self.aura)
         self.aura.expire(target=self.target)
+        self.aura.expiration_event = None
 
         self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
 
@@ -386,9 +387,9 @@ class CastEvent(Event):
         if target is None:
             target = self.target
 
-        if aura.expiration_event is not None and aura.expiration_event in self.sim.events:
+        if aura.expiration_event is not None:
             self.sim.schedule_in(RefreshAuraEvent(sim=self.sim, target=target, aura=aura))
-            self.sim.events.remove(aura.expiration_event)
+            self.sim.unschedule(aura.expiration_event)
         else:
             aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
             aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
@@ -422,7 +423,10 @@ class RefreshAuraEvent(AuraEvent):
         else:
             delta = self.aura.duration
 
+        self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
         self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
+
+        self.sim.schedule_in(self.aura.application_event)
         self.sim.schedule_in(self.aura.expiration_event, delta=delta)
 
         self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
@@ -449,3 +453,27 @@ class ConsumeAuraEvent(AuraEvent):
         self.target.auras.remove(self.aura)
 
         self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))
+
+
+class DotTickEvent(Event):
+    def __init__(self, sim: Simulation, aura: TickingAura, ticks_remain: int = None):
+        super().__init__(sim=sim)
+
+        if ticks_remain is None:
+            ticks_remain = aura.ticks
+
+        self.aura = aura
+        self.ticks_remain = ticks_remain
+
+    def execute(self) -> None:
+        if self.ticks_remain > 0:
+            tick_event = DotTickEvent(sim=self.sim, aura=self.aura, ticks_remain=self.ticks_remain - 1)
+            self.aura.tick_event = tick_event
+            self.sim.schedule_in(tick_event, timedelta(seconds=3))
+
+    def __str__(self):
+        return '<{cls} aura={aura} ticks_remain={ticks_remain}>'.format(
+            cls=self.__class__.__name__,
+            aura=self.aura.__class__.__name__,
+            ticks_remain=self.ticks_remain
+        )

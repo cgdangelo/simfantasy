@@ -5,8 +5,8 @@ from typing import Dict
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
-from simfantasy.events import CastEvent, ConsumeAuraEvent
-from simfantasy.simulator import Actor, Aura, CastFactory, Item, Simulation
+from simfantasy.events import CastEvent, ConsumeAuraEvent, DotTickEvent
+from simfantasy.simulator import Actor, Aura, CastFactory, DotAura, Item, Simulation
 
 
 class Buffs:
@@ -80,7 +80,8 @@ class Bard(Actor):
                     self.target_data.venomous_bite.remains < timedelta(seconds=3):
                 return self.actions.iron_jaws.cast()
 
-            return self.actions.sidewinder.cast()
+            if not self.actions.sidewinder.on_cooldown:
+                return self.actions.sidewinder.cast()
 
         if not self.target_data.windbite.up:
             return self.actions.windbite.cast()
@@ -147,11 +148,15 @@ class StraightShotCast(BardCastEvent):
                                                   aura=self.source.buffs.straighter_shot))
 
 
-class WindbiteDebuff(Aura):
+class WindbiteDebuff(DotAura):
     def __init__(self, source: Bard):
         super().__init__()
 
         self.source = source
+
+    @property
+    def potency(self):
+        return 50 if self.source.level < 64 else 55
 
     @property
     def duration(self):
@@ -167,13 +172,18 @@ class WindbiteCast(BardCastEvent):
         super().execute()
 
         self.schedule_aura_events(aura=self.source.target_data.windbite, target=self.source.target)
+        self.sim.schedule_in(DotTickEvent(sim=self.sim, aura=self.source.target_data.windbite))
 
 
-class VenomousBiteDebuff(Aura):
+class VenomousBiteDebuff(DotAura):
     def __init__(self, source: Bard):
         super().__init__()
 
         self.source = source
+
+    @property
+    def potency(self):
+        return 40 if self.source.level < 64 else 45
 
     @property
     def duration(self):

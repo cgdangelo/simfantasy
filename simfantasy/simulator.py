@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
@@ -50,6 +50,13 @@ class Simulation:
         heapify(self.events)
 
         self.__set_logger(log_level)
+
+    def unschedule(self, event):
+        if event is None or event not in self.events or event.timestamp < self.current_time:
+            return
+
+        self.logger.debug('X %s', event)
+        self.events.remove(event)
 
     def schedule_in(self, event, delta: timedelta = None) -> None:
         """
@@ -177,7 +184,7 @@ class Simulation:
         self.logger = logger
 
 
-class Aura:
+class Aura(ABC):
     """A buff or debuff that can be applied to a target."""
 
     duration: timedelta = None
@@ -206,6 +213,30 @@ class Aura:
             return timedelta()
 
         return self.expiration_event.timestamp - self.expiration_event.sim.current_time
+
+
+class TickingAura(Aura):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.tick_event = None
+
+    def apply(self, target):
+        if self.tick_event is not None:
+            self.tick_event.sim.unschedule(self.tick_event)
+
+        super().apply(target)
+
+    @property
+    def ticks(self) -> int:
+        return int(floor(self.duration.total_seconds() / 3))
+
+
+class DotAura(TickingAura):
+    @property
+    @abstractmethod
+    def potency(self):
+        pass
 
 
 class Actor:
