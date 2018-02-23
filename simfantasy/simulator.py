@@ -34,7 +34,7 @@ class Simulation:
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
 
-        self.vertical_output = vertical_output
+        self.vertical_output: bool = vertical_output
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""

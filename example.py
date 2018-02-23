@@ -156,6 +156,7 @@ if __name__ == '__main__':
 
     bard = Bard(sim=sim,
                 race=Race.HIGHLANDER,
+                name='Dikembe',
                 target=enemy,
                 equipment={
                     Slot.WEAPON: kujakuo,

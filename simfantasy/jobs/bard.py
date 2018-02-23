@@ -42,8 +42,8 @@ class Bard(Actor):
         return base_stats
 
     def decide(self):
-        if not self.on_cooldown(RagingStrikesCast):
-            return self.cast(RagingStrikesCast, target=self)
+        # if not self.on_cooldown(RagingStrikesCast):
+        #     return self.cast(RagingStrikesCast, target=self)
 
         if self.target.has_aura(self.windbite) and self.target.has_aura(self.venomous_bite):
             if self.windbite.remains < timedelta(seconds=3) or self.venomous_bite.remains < timedelta(seconds=3):
