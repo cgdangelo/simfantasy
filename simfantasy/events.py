@@ -98,7 +98,6 @@ class ApplyAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         """Add the aura to the target and fire any post-application hooks from the aura itself."""
-        self.target.auras.append(self.aura)
         self.aura.apply(target=self.target)
 
         self.target.statistics['auras'][self.aura.__class__]['applications'].append(self.timestamp)
@@ -109,7 +108,6 @@ class ExpireAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         """Remove the aura if still present on the target and fire any post-expiration hooks from the aura itself."""
-        self.target.auras.remove(self.aura)
         self.aura.expire(target=self.target)
         self.aura.expiration_event = None
 
@@ -448,9 +446,9 @@ class ConsumeAuraEvent(AuraEvent):
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
-        self.sim.events.remove(self.aura.expiration_event)
+        self.aura.expire(target=self.target)
+        self.sim.unschedule(self.aura.expiration_event)
         self.aura.expiration_event = None
-        self.target.auras.remove(self.aura)
 
         self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))
 

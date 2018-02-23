@@ -198,10 +198,10 @@ class Aura(ABC):
         self.expiration_event = None
 
     def apply(self, target):
-        pass
+        target.auras.append(self)
 
     def expire(self, target):
-        pass
+        target.auras.remove(self)
 
     @property
     def up(self):
@@ -225,7 +225,7 @@ class TickingAura(Aura):
         if self.tick_event is not None:
             self.tick_event.sim.unschedule(self.tick_event)
 
-        super().apply(target)
+        super().apply(target=target)
 
     @property
     def ticks(self) -> int:
