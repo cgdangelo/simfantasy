@@ -27,13 +27,14 @@ class Actions:
 class Bard(Actor):
     job = Job.BARD
 
-    def __init__(self, sim: Simulation,
+    def __init__(self,
+                 sim: Simulation,
                  race: Race,
                  level: int = None,
                  target: Actor = None,
                  name: str = None,
                  equipment: Dict[Slot, Item] = None):
-        super().__init__(sim, race, level, target, name, equipment)
+        super().__init__(sim=sim, race=race, level=level, target=target, name=name, equipment=equipment)
 
         self.buffs = Buffs()
         self.actions = Actions(source=self)
@@ -84,7 +85,7 @@ class BardCastEvent(CastEvent):
         if self.source.level >= 40:
             direct_damage = floor(direct_damage * 1.2)
 
-        if self.source.buffs.raging_strikes in self.source.auras:
+        if self.source.buffs.raging_strikes.up:
             direct_damage = floor(direct_damage * 1.1)
 
         return direct_damage
@@ -111,14 +112,14 @@ class StraightShotCast(BardCastEvent):
 
     @property
     def critical_hit_chance(self):
-        return 100.0 if self.source.buffs.straighter_shot in self.source.auras else super().critical_hit_chance
+        return 100.0 if self.source.buffs.straighter_shot.up else super().critical_hit_chance
 
     def execute(self):
         super().execute()
 
         self.schedule_aura_events(aura=self.source.buffs.straight_shot, target=self.source)
 
-        if self.source.buffs.straighter_shot in self.source.auras:
+        if self.source.buffs.straighter_shot.up:
             self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
                                                   target=self.source,
                                                   aura=self.source.buffs.straighter_shot))

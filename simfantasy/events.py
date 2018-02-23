@@ -109,11 +109,10 @@ class ExpireAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         """Remove the aura if still present on the target and fire any post-expiration hooks from the aura itself."""
-        if self.aura in self.target.auras:
-            self.target.auras.remove(self.aura)
-            self.aura.expire(target=self.target)
+        self.target.auras.remove(self.aura)
+        self.aura.expire(target=self.target)
 
-            self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
+        self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
 
 
 class ActorReadyEvent(Event):
