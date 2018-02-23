@@ -220,7 +220,8 @@ class Actor:
                  level: int = None,
                  target: 'Actor' = None,
                  name: str = None,
-                 equipment: Dict[Slot, 'Item'] = None):
+                 equipment: Dict[Slot, 'Item'] = None,
+                 target_data_class = None):
         """
         Create a new actor.
 
@@ -244,6 +245,9 @@ class Actor:
         self.target: 'Actor' = target
         self.name = name
 
+        self._target_data_class = None
+        self.__target_data = {}
+
         self.animation_unlock_at: datetime = None
         self.gcd_unlock_at: datetime = None
         self.auras: List[Aura] = []
@@ -261,6 +265,13 @@ class Actor:
         self.sim.actors.append(self)
 
         self.sim.logger.debug('Initialized: %s', self)
+
+    @property
+    def target_data(self):
+        if self.target not in self.__target_data:
+            self.__target_data[self.target] = self._target_data_class(source=self)
+
+        return self.__target_data[self.target]
 
     @property
     def ready(self):
@@ -378,13 +389,10 @@ class CastFactory:
         return self.can_recast_at is not None and \
                self.can_recast_at > self.source.sim.current_time
 
-    def cast(self, target: Actor = None):
-        if target is None:
-            target = self.source.target
-
+    def cast(self):
         self.can_recast_at = self.source.sim.current_time + self.__cast_class.cast_time + self.__cast_class.recast_time
 
         self.source.sim.schedule_in(event=self.__cast_class(sim=self.source.sim,
                                                             source=self.source,
-                                                            target=target),
+                                                            target=self.source.target),
                                     delta=self.__cast_class.cast_time)

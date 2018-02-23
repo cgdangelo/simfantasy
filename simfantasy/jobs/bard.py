@@ -17,11 +17,20 @@ class Buffs:
 
 
 class Actions:
-    def __init__(self, source: Actor):
+    def __init__(self, source: 'Bard'):
         self.heavy_shot = CastFactory(source=source, cast_class=HeavyShotCast)
         self.raging_strikes = CastFactory(source=source, cast_class=RagingStrikesCast)
         self.refulgent_arrow = CastFactory(source=source, cast_class=RefulgentArrowCast)
         self.straight_shot = CastFactory(source=source, cast_class=StraightShotCast)
+
+        self.windbite = CastFactory(source=source, cast_class=WindbiteCast)
+        self.venomous_bite = CastFactory(source=source, cast_class=VenomousBiteCast)
+
+
+class TargetData:
+    def __init__(self, source: 'Bard'):
+        self.windbite = WindbiteDebuff(source=source)
+        self.venomous_bite = VenomousBiteDebuff(source=source)
 
 
 class Bard(Actor):
@@ -36,11 +45,9 @@ class Bard(Actor):
                  equipment: Dict[Slot, Item] = None):
         super().__init__(sim=sim, race=race, level=level, target=target, name=name, equipment=equipment)
 
+        self._target_data_class = TargetData
         self.buffs = Buffs()
         self.actions = Actions(source=self)
-
-        self.windbite = WindbiteDebuff(source=self)
-        self.venomous_bite = VenomousBiteDebuff(source=self)
 
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         base_stats = super().calculate_base_stats()
@@ -65,6 +72,12 @@ class Bard(Actor):
 
         if not self.actions.raging_strikes.on_cooldown:
             return self.actions.raging_strikes.cast()
+
+        if not self.target_data.windbite.up:
+            return self.actions.windbite.cast()
+
+        if not self.target_data.venomous_bite.up:
+            return self.actions.venomous_bite.cast()
 
         self.actions.heavy_shot.cast()
 
@@ -144,7 +157,7 @@ class WindbiteCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        self.schedule_aura_events(aura=self.source.windbite, target=self.target)
+        self.schedule_aura_events(aura=self.source.target_data.windbite, target=self.source.target)
 
 
 class VenomousBiteDebuff(Aura):
@@ -166,7 +179,7 @@ class VenomousBiteCast(BardCastEvent):
     def execute(self):
         super().execute()
 
-        self.schedule_aura_events(aura=self.source.venomous_bite, target=self.target)
+        self.schedule_aura_events(aura=self.source.target_data.venomous_bite, target=self.target)
 
 
 class HeavyShotCast(BardCastEvent):
