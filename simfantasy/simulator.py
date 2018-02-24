@@ -103,17 +103,17 @@ class Simulation:
 
             format_table = format_robust_table if self.vertical_output else format_pretty_table
 
-            if len(actor.statistics['actions']) > 0:
+            if len(actor.statistics['damage']) > 0:
                 statistics = []
 
-                for cls in actor.statistics['actions']:
-                    s = actor.statistics['actions'][cls]
+                for cls in actor.statistics['damage']:
+                    s = actor.statistics['damage'][cls]
                     total_damage = sum(damage for timestamp, damage in s['damage'])
                     casts = len(s['casts'])
                     execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
 
                     statistics.append((
-                        cls.__name__,
+                        cls.__class__.__name__,
                         casts,
                         format(total_damage, ',.0f'),
                         format(total_damage / casts, ',.3f'),
@@ -275,7 +275,6 @@ class Actor:
         self.target: 'Actor' = target
         self.name = name
 
-        self._target_data_class = None
         self.__target_data = {}
 
         self.animation_unlock_at: datetime = None
@@ -290,6 +289,7 @@ class Actor:
         self.statistics = {
             'actions': {},
             'auras': {},
+            'damage': {},
         }
 
         self.sim.actors.append(self)

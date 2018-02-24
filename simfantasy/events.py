@@ -137,41 +137,61 @@ class ActorReadyEvent(Event):
                                               actor=self.actor.name)
 
 
-class CastEvent(Event):
-    """An event indicating that an :class:`~simfantasy.simulator.Actor` has performed an action on a target."""
+class RefreshAuraEvent(AuraEvent):
+    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+        super().__init__(sim, target, aura)
 
-    animation = timedelta(seconds=0.75)
-    """Length of the ability's animation."""
+        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
-    affected_by: Attribute = None
-    """The attribute that will contribute to the damage dealt formula."""
+    def execute(self) -> None:
+        if self.aura.refresh_behavior is RefreshBehavior.RESET:
+            delta = self.aura.duration
+        elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
+            delta = max(self.aura.duration,
+                        self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension)
+        else:
+            delta = self.aura.duration
 
-    hastened_by: Attribute = None
-    """The attribute that will contribute to the reduction of recast (GCD) time."""
+        self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
+        self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
 
-    is_off_gcd: bool = False
-    """True if ability can be cast off of the GCD."""
+        self.sim.schedule_in(self.aura.application_event)
+        self.sim.schedule_in(self.aura.expiration_event, delta=delta)
 
-    potency: int = 0
-    """Potency for damage-dealing abilities."""
+        self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
 
-    recast_time: timedelta = timedelta()
-    """Length of recast (cooldown) time."""
+    def __str__(self) -> str:
+        return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
+            cls=self.__class__.__name__,
+            aura=self.aura.__class__.__name__,
+            target=self.target.name,
+            behavior=self.aura.refresh_behavior,
+            remains=format(self.remains.total_seconds(), '.3f')
+        )
 
-    cast_time: timedelta = timedelta()
 
-    def __init__(self, sim: Simulation, source: Actor, target: Actor = None):
-        """
-        Create a new event.
+class ConsumeAuraEvent(AuraEvent):
+    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+        super().__init__(sim, target, aura)
 
-        :param sim: The simulation that the event is fired within.
-        :param source: The :class:`~simfantasy.simulator.Actor` context that spawned the event.
-        :param target: The :class:`~simfantasy.simulator.Actor` context the event focuses on.
-        """
-        super().__init__(sim=sim)
+        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
+
+    def execute(self) -> None:
+        self.aura.expire(target=self.target)
+        self.sim.unschedule(self.aura.expiration_event)
+        self.aura.expiration_event = None
+
+        self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))
+
+
+class DamageEvent(Event):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int):
+        super().__init__(sim)
 
         self.source = source
         self.target = target
+        self.action = action
+        self.potency = potency
 
         self.__is_critical_hit = None
         """
@@ -185,16 +205,9 @@ class CastEvent(Event):
         direct hit.
         """
 
-    def execute(self) -> None:
-        """Handle GCD and recast scheduling and store ability statistical data."""
-        self.sim.schedule_in(ActorReadyEvent(sim=self.sim, actor=self.source),
-                             delta=self.animation if self.is_off_gcd else self.gcd)
-
-        self.source.animation_unlock_at = self.sim.current_time + self.animation
-        self.source.gcd_unlock_at = self.sim.current_time + (self.gcd if not self.is_off_gcd else timedelta())
-
-        if self.__class__ not in self.source.statistics['actions']:
-            self.source.statistics['actions'][self.__class__] = {
+    def execute(self):
+        if self.action not in self.source.statistics['damage']:
+            self.source.statistics['damage'][self.action] = {
                 'casts': [],
                 'execute_time': [],
                 'damage': [],
@@ -203,20 +216,23 @@ class CastEvent(Event):
                 'critical_direct_hits': [],
             }
 
-        self.source.statistics['actions'][self.__class__]['casts'].append(self.sim.current_time)
-        self.source.statistics['actions'][self.__class__]['execute_time'].append(
-            (self.sim.current_time, max(self.animation, self.gcd if not self.is_off_gcd else timedelta()))
+        s = self.source.statistics['damage'][self.action]
+
+        s['casts'].append(self.sim.current_time)
+        s['execute_time'].append(
+            (self.sim.current_time,
+             max(self.action.animation, self.action.gcd if not self.action.is_off_gcd else timedelta()))
         )
-        self.source.statistics['actions'][self.__class__]['damage'].append((self.sim.current_time, self.direct_damage))
+        s['damage'].append((self.sim.current_time, self.damage))
 
         if self.is_critical_hit:
-            self.source.statistics['actions'][self.__class__]['critical_hits'].append(self.sim.current_time)
+            s['critical_hits'].append(self.sim.current_time)
 
         if self.is_direct_hit:
-            self.source.statistics['actions'][self.__class__]['direct_hits'].append(self.sim.current_time)
+            s['direct_hits'].append(self.sim.current_time)
 
         if self.is_critical_hit and self.is_direct_hit:
-            self.source.statistics['actions'][self.__class__]['critical_direct_hits'].append(self.sim.current_time)
+            s['critical_direct_hits'].append(self.sim.current_time)
 
     @property
     def critical_hit_chance(self) -> float:
@@ -279,7 +295,7 @@ class CastEvent(Event):
         return self.__is_direct_hit
 
     @property
-    def direct_damage(self) -> int:
+    def damage(self) -> int:
         """
         Calculate the damage dealt directly to the target by the ability. Accounts for criticals, directs, and
         randomization.
@@ -288,7 +304,7 @@ class CastEvent(Event):
         """
         base_stats = get_base_stats_by_job(self.source.job)
 
-        if self.affected_by is Attribute.ATTACK_POWER:
+        if self.action.powered_by is Attribute.ATTACK_POWER:
             if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
                 job_attribute_modifier = base_stats[Attribute.DEXTERITY]
                 attack_rating = self.source.stats[Attribute.DEXTERITY]
@@ -297,7 +313,7 @@ class CastEvent(Event):
                 attack_rating = self.source.stats[Attribute.STRENGTH]
 
             weapon_damage = self.source.gear[Slot.WEAPON].physical_damage
-        elif self.affected_by is Attribute.ATTACK_MAGIC_POTENCY:
+        elif self.action.powered_by is Attribute.ATTACK_MAGIC_POTENCY:
             if self.source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
                 job_attribute_modifier = base_stats[Attribute.MIND]
                 attack_rating = self.source.stats[Attribute.MIND]
@@ -306,7 +322,7 @@ class CastEvent(Event):
                 attack_rating = self.source.stats[Attribute.INTELLIGENCE]
 
             weapon_damage = self.source.gear[Slot.WEAPON].magic_damage
-        elif self.affected_by is Attribute.HEALING_MAGIC_POTENCY:
+        elif self.action.powered_by is Attribute.HEALING_MAGIC_POTENCY:
             job_attribute_modifier = base_stats[Attribute.MIND]
             weapon_damage = self.source.gear[Slot.WEAPON].magic_damage
             attack_rating = self.source.stats[Attribute.MIND]
@@ -335,13 +351,103 @@ class CastEvent(Event):
 
         return damage
 
-    @property
-    def gcd(self) -> timedelta:
-        """
-        Calculate the GCD lock time of the ability.
+    def __str__(self) -> str:
+        """String representation of the object."""
+        return '<{cls} source={source} target={target} crit={crit} direct={direct} damage={damage}>'.format(
+            cls=self.__class__.__name__,
+            source=self.source.name,
+            target=self.target.name,
+            crit=self.is_critical_hit,
+            direct=self.is_direct_hit,
+            damage=self.damage,
+        )
 
-        :return: A timedelta that can be used to schedule an :class:`ActorReadyEvent`.
-        """
+
+class DotTickEvent(Event):
+    def __init__(self, sim: Simulation, aura: TickingAura, ticks_remain: int = None):
+        super().__init__(sim=sim)
+
+        if ticks_remain is None:
+            ticks_remain = aura.ticks
+
+        self.aura = aura
+        self.ticks_remain = ticks_remain
+
+    def execute(self) -> None:
+        if self.ticks_remain > 0:
+            tick_event = DotTickEvent(sim=self.sim, aura=self.aura, ticks_remain=self.ticks_remain - 1)
+            self.aura.tick_event = tick_event
+            self.sim.schedule_in(tick_event, timedelta(seconds=3))
+
+    def __str__(self):
+        return '<{cls} aura={aura} ticks_remain={ticks_remain}>'.format(
+            cls=self.__class__.__name__,
+            aura=self.aura.__class__.__name__,
+            ticks_remain=self.ticks_remain
+        )
+
+
+class Action:
+    hastened_by: Attribute = None
+    powered_by: Attribute = None
+
+    animation = timedelta(seconds=0.75)
+    is_off_gcd: bool = False
+    base_cast_time: timedelta = timedelta()
+    base_recast_time: timedelta = timedelta(seconds=2.5)
+    potency: int = 0
+
+    def __init__(self, sim: Simulation, source: Actor):
+        self.sim = sim
+        self.source = source
+        self.can_recast_at = None
+
+    def perform(self):
+        self.can_recast_at = self.sim.current_time + self.recast_time
+        self.source.animation_unlock_at = self.sim.current_time + self.animation
+        self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
+        self.sim.schedule_in(ActorReadyEvent(sim=self.sim, actor=self.source),
+                             delta=max(self.source.animation_unlock_at,
+                                       self.source.gcd_unlock_at) - self.sim.current_time)
+
+        if self.potency > 0:
+            self.sim.schedule_in(
+                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
+                            potency=self.potency),
+                delta=self.cast_time
+            )
+
+    def schedule_aura_events(self, target: Actor, aura: Aura):
+        if aura.expiration_event is not None:
+            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim, target=target, aura=aura))
+            self.sim.unschedule(aura.expiration_event)
+        else:
+            aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
+            aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
+
+            self.sim.schedule_in(aura.application_event)
+            self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
+
+    @property
+    def on_cooldown(self):
+        return self.can_recast_at is not None and self.can_recast_at > self.sim.current_time
+
+    @property
+    def cast_time(self):
+        return self._speed(self.base_cast_time)
+
+    @property
+    def recast_time(self):
+        if self.base_recast_time > timedelta(seconds=2.5):
+            return self._speed(self.base_recast_time)
+
+        return self.gcd
+
+    @property
+    def gcd(self):
+        return self._speed(timedelta(seconds=2.5))
+
+    def _speed(self, action_delay: timedelta) -> timedelta:
         speed = self.source.stats[self.hastened_by]
 
         sub_stat = sub_stat_per_level[self.source.level]
@@ -367,7 +473,7 @@ class CastEvent(Event):
         type_1_mod = 0
         type_2_mod = 0
 
-        gcd_m = floor((1000 - floor(130 * (speed - sub_stat) / divisor)) * 2.5)
+        gcd_m = floor((1000 - floor(130 * (speed - sub_stat) / divisor)) * action_delay.total_seconds())
 
         gcd_c_a = floor(
             floor(floor((100 - arrow_mod) * (100 - type_1_mod) / 100) * (100 - haste_mod) / 100) - fey_wind_mod
@@ -380,98 +486,3 @@ class CastEvent(Event):
         gcd = gcd_c / 100
 
         return timedelta(seconds=gcd)
-
-    def schedule_aura_events(self, aura: Aura, target: Actor = None):
-        if target is None:
-            target = self.target
-
-        if aura.expiration_event is not None:
-            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim, target=target, aura=aura))
-            self.sim.unschedule(aura.expiration_event)
-        else:
-            aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
-            aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
-
-            self.sim.schedule_in(aura.application_event)
-            self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
-
-    def __str__(self) -> str:
-        """String representation of the object."""
-        return '<{cls} source={source} target={target} crit={crit} direct={direct}>'.format(
-            cls=self.__class__.__name__,
-            source=self.source.name,
-            target=self.target.name,
-            crit=self.is_critical_hit,
-            direct=self.is_direct_hit,
-        )
-
-
-class RefreshAuraEvent(AuraEvent):
-    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
-        super().__init__(sim, target, aura)
-
-        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
-
-    def execute(self) -> None:
-        if self.aura.refresh_behavior is RefreshBehavior.RESET:
-            delta = self.aura.duration
-        elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
-            delta = max(self.aura.duration,
-                        self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension)
-        else:
-            delta = self.aura.duration
-
-        self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
-        self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
-
-        self.sim.schedule_in(self.aura.application_event)
-        self.sim.schedule_in(self.aura.expiration_event, delta=delta)
-
-        self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
-
-    def __str__(self) -> str:
-        return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
-            cls=self.__class__.__name__,
-            aura=self.aura.__class__.__name__,
-            target=self.target.name,
-            behavior=self.aura.refresh_behavior,
-            remains=format(self.remains.total_seconds(), '.3f')
-        )
-
-
-class ConsumeAuraEvent(AuraEvent):
-    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
-        super().__init__(sim, target, aura)
-
-        self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
-
-    def execute(self) -> None:
-        self.aura.expire(target=self.target)
-        self.sim.unschedule(self.aura.expiration_event)
-        self.aura.expiration_event = None
-
-        self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))
-
-
-class DotTickEvent(Event):
-    def __init__(self, sim: Simulation, aura: TickingAura, ticks_remain: int = None):
-        super().__init__(sim=sim)
-
-        if ticks_remain is None:
-            ticks_remain = aura.ticks
-
-        self.aura = aura
-        self.ticks_remain = ticks_remain
-
-    def execute(self) -> None:
-        if self.ticks_remain > 0:
-            tick_event = DotTickEvent(sim=self.sim, aura=self.aura, ticks_remain=self.ticks_remain - 1)
-            self.aura.tick_event = tick_event
-            self.sim.schedule_in(tick_event, timedelta(seconds=3))
-
-    def __str__(self):
-        return '<{cls} aura={aura} ticks_remain={ticks_remain}>'.format(
-            cls=self.__class__.__name__,
-            aura=self.aura.__class__.__name__,
-            ticks_remain=self.ticks_remain
-        )
