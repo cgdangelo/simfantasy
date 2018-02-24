@@ -8,7 +8,7 @@ import numpy
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot
-from simfantasy.simulator import Actor, Aura, Simulation
+from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
 
 
 class Event(metaclass=ABCMeta):
@@ -387,7 +387,7 @@ class DotTickEvent(DamageEvent):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
         if ticks_remain is None:
-            ticks_remain = int(floor(aura.duration.total_seconds() / 3))
+            ticks_remain = int(floor(aura.duration.total_seconds() / 3)) - 1
 
         self.aura = aura
         self.action = action
@@ -515,6 +515,23 @@ class Action:
 
             self.sim.schedule_in(aura.application_event)
             self.sim.schedule_in(aura.expiration_event, delta=aura.duration)
+
+    def schedule_dot(self, dot: TickingAura):
+        if dot.tick_event is not None:
+            self.sim.unschedule(dot.tick_event)
+
+        tick_event = DotTickEvent(
+            sim=self.sim,
+            source=self.source,
+            target=self.source.target,
+            action=self,
+            potency=dot.potency,
+            aura=dot,
+        )
+
+        dot.tick_event = tick_event
+
+        self.sim.schedule_in(tick_event)
 
     @property
     def on_cooldown(self):

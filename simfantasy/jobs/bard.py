@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Dict, List
 
 from simfantasy.enums import Attribute, Job, Race, Slot
-from simfantasy.events import Action, DotTickEvent
+from simfantasy.events import Action
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -147,15 +147,7 @@ class VenomousBiteAction(BardAction):
         super().perform()
 
         self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
-
-        self.sim.schedule_in(DotTickEvent(
-            sim=self.sim,
-            source=self.source,
-            target=self.source.target,
-            action=self,
-            potency=self.source.target_data.venomous_bite.potency,
-            aura=self.source.target_data.venomous_bite,
-        ))
+        self.schedule_dot(self.source.target_data.venomous_bite)
 
 
 class SidewinderAction(BardAction):

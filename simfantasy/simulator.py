@@ -60,7 +60,7 @@ class Simulation:
             return
 
         if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-            self.logger.debug('X %s', event)
+            self.logger.debug('XX %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
         self.events.remove(event)
 
@@ -220,16 +220,15 @@ class Aura(ABC):
 
 
 class TickingAura(Aura):
+    @property
+    @abstractmethod
+    def potency(self):
+        pass
+
     def __init__(self) -> None:
         super().__init__()
 
         self.tick_event = None
-
-    def apply(self, target):
-        if self.tick_event is not None:
-            self.tick_event.sim.unschedule(self.tick_event)
-
-        super().apply(target=target)
 
 
 class Actor:
