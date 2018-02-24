@@ -18,7 +18,7 @@ class Simulation:
     """A simulated combat encounter."""
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
-                 log_event_filter: str = None, execute_time: timedelta = timedelta(seconds=60)):
+                 log_event_filter: str = None, execute_time: timedelta = None):
         """
         Create a new simulation.
 
@@ -32,6 +32,9 @@ class Simulation:
 
         if vertical_output is None:
             vertical_output = False
+
+        if execute_time is None:
+            execute_time = timedelta(seconds=60)
 
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
