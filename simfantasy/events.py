@@ -8,7 +8,7 @@ import numpy
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot
-from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
+from simfantasy.simulator import Actor, Aura, Simulation
 
 
 class Event(metaclass=ABCMeta):
@@ -371,37 +371,49 @@ class DamageEvent(Event):
 
     def __str__(self) -> str:
         """String representation of the object."""
-        return '<{cls} source={source} target={target} crit={crit} direct={direct} damage={damage}>'.format(
+        return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage}>'.format(
             cls=self.__class__.__name__,
             source=self.source.name,
             target=self.target.name,
+            action=self.action.__class__.__name__,
             crit=self.is_critical_hit,
             direct=self.is_direct_hit,
             damage=self.damage,
         )
 
 
-class DotTickEvent(Event):
-    def __init__(self, sim: Simulation, aura: TickingAura, ticks_remain: int = None):
-        super().__init__(sim=sim)
+class DotTickEvent(DamageEvent):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int,
+                 aura: Aura, ticks_remain: int = None,
+                 trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
+        super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
         if ticks_remain is None:
-            ticks_remain = aura.ticks
+            ticks_remain = int(floor(aura.duration.total_seconds() / 3))
 
         self.aura = aura
+        self.action = action
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
         if self.ticks_remain > 0:
-            tick_event = DotTickEvent(sim=self.sim, aura=self.aura, ticks_remain=self.ticks_remain - 1)
+            tick_event = DotTickEvent(sim=self.sim, source=self.source, target=self.target, action=self.action,
+                                      potency=self.potency, trait_multipliers=self.trait_multipliers,
+                                      buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
+                                      aura=self.aura)
             self.aura.tick_event = tick_event
             self.sim.schedule_in(tick_event, timedelta(seconds=3))
 
     def __str__(self):
-        return '<{cls} aura={aura} ticks_remain={ticks_remain}>'.format(
+        return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage} ticks_remain={ticks_remain}>'.format(
             cls=self.__class__.__name__,
-            aura=self.aura.__class__.__name__,
-            ticks_remain=self.ticks_remain
+            source=self.source.name,
+            target=self.target.name,
+            action=self.action.__class__.__name__,
+            crit=self.is_critical_hit,
+            direct=self.is_direct_hit,
+            damage=self.damage,
+            ticks_remain=self.ticks_remain,
         )
 
 

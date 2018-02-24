@@ -1,9 +1,10 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import Dict, List, Tuple, Union, ClassVar
+from typing import ClassVar, Dict, List, Tuple, Union
 
 import humanfriendly
 from humanfriendly.tables import format_pretty_table, format_robust_table
@@ -16,7 +17,8 @@ from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
 class Simulation:
     """A simulated combat encounter."""
 
-    def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None):
+    def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
+                 log_event_filter: str = None):
         """
         Create a new simulation.
 
@@ -35,6 +37,8 @@ class Simulation:
         """Total length of encounter. Not in real time."""
 
         self.vertical_output: bool = vertical_output
+
+        self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
@@ -55,7 +59,9 @@ class Simulation:
         if event is None or event not in self.events or event.timestamp < self.current_time:
             return
 
-        self.logger.debug('X %s', event)
+        if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+            self.logger.debug('X %s', event)
+
         self.events.remove(event)
 
     def schedule_in(self, event, delta: timedelta = None) -> None:
@@ -73,7 +79,8 @@ class Simulation:
 
         heappush(self.events, event)
 
-        self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+        if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+            self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
@@ -91,8 +98,9 @@ class Simulation:
 
                 self.current_time = event.timestamp
 
-                self.logger.debug('<= %s %s',
-                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+                    self.logger.debug('<= %s %s',
+                                      format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
                 event.execute()
 
@@ -119,13 +127,9 @@ class Simulation:
                         format(total_damage / casts, ',.3f'),
                         format(total_damage / self.combat_length.total_seconds(), ',.3f'),
                         format(total_damage / execute_time, ',.3f'),
-                        humanfriendly.terminal.ansi_wrap(color='red',
-                                                         text=format((len(s['critical_hits']) / casts) * 100, '.3f')),
-                        humanfriendly.terminal.ansi_wrap(color='blue',
-                                                         text=format((len(s['direct_hits']) / casts) * 100, '.3f')),
-                        humanfriendly.terminal.ansi_wrap(color='magenta',
-                                                         text=format((len(s['critical_direct_hits']) / casts) * 100,
-                                                                     '.3f')),
+                        format(len(s['critical_hits']) / casts * 100, '.3f'),
+                        format(len(s['direct_hits']) / casts * 100, '.3f'),
+                        format(len(s['critical_direct_hits']) / casts * 100, '.3f'),
                     ))
 
                 tables.append(format_table(
@@ -226,17 +230,6 @@ class TickingAura(Aura):
             self.tick_event.sim.unschedule(self.tick_event)
 
         super().apply(target=target)
-
-    @property
-    def ticks(self) -> int:
-        return int(floor(self.duration.total_seconds() / 3))
-
-
-class DotAura(TickingAura):
-    @property
-    @abstractmethod
-    def potency(self):
-        pass
 
 
 class Actor:
@@ -407,23 +400,3 @@ class Weapon(Item):
 
         self.physical_damage = physical_damage
         self.magic_damage = magic_damage
-
-
-class CastFactory:
-    def __init__(self, source: Actor, cast_class):
-        self.source = source
-        self.can_recast_at = None
-        self.__cast_class = cast_class
-
-    @property
-    def on_cooldown(self):
-        return self.can_recast_at is not None and \
-               self.can_recast_at > self.source.sim.current_time
-
-    def cast(self):
-        self.can_recast_at = self.source.sim.current_time + self.__cast_class.cast_time + self.__cast_class.recast_time
-
-        self.source.sim.schedule_in(event=self.__cast_class(sim=self.source.sim,
-                                                            source=self.source,
-                                                            target=self.source.target),
-                                    delta=self.__cast_class.cast_time)

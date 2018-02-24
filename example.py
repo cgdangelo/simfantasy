@@ -1,13 +1,21 @@
 import logging
+from argparse import ArgumentParser
 from sys import argv
 
-from simfantasy.jobs.bard import Bard
 from simfantasy.enums import Attribute, Race, Slot
+from simfantasy.jobs.bard import Bard
 from simfantasy.simulator import Actor, Item, Simulation, Weapon
 
 if __name__ == '__main__':
-    sim = Simulation(log_level=logging.DEBUG if 'debug=1' in argv else None,
-                     vertical_output='vertical=1' in argv)
+    parser = ArgumentParser()
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--vertical', action='store_true', default=False)
+    parser.add_argument('--log-event-filter', action='store')
+    args = parser.parse_args(argv[1:])
+
+    sim = Simulation(log_level=logging.DEBUG if args.debug else None,
+                     vertical_output=args.vertical,
+                     log_event_filter=args.log_event_filter)
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 

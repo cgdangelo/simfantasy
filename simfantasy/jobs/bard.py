@@ -2,8 +2,8 @@ from datetime import timedelta
 from typing import Dict, List
 
 from simfantasy.enums import Attribute, Job, Race, Slot
-from simfantasy.events import Action
-from simfantasy.simulator import Actor, Aura, Item, Simulation
+from simfantasy.events import Action, DotTickEvent
+from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
 class Bard(Actor):
@@ -28,6 +28,9 @@ class Bard(Actor):
 
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
+
+        if not self.target_data.venomous_bite.up or self.target_data.venomous_bite.remains < timedelta(seconds=3):
+            return self.actions.venomous_bite.perform()
 
         if not self.actions.sidewinder.on_cooldown:
             return self.actions.sidewinder.perform()
@@ -64,6 +67,7 @@ class Actions:
         self.raging_strikes = RagingStrikesAction(sim, source)
         self.sidewinder = SidewinderAction(sim, source)
         self.straight_shot = StraightShotAction(sim, source)
+        self.venomous_bite = VenomousBiteAction(sim, source)
 
 
 class Buffs:
@@ -116,6 +120,41 @@ class RagingStrikesAction(BardAction):
         super().perform()
 
         self.schedule_aura_events(self.source, self.source.buffs.raging_strikes)
+
+
+class VenomousBiteDebuff(TickingAura):
+    def __init__(self, source: Bard):
+        super().__init__()
+
+        self.source = source
+
+    @property
+    def potency(self):
+        return 40 if self.source.level < 64 else 45
+
+    @property
+    def duration(self):
+        return timedelta(seconds=15 if self.source.level < 64 else 30)
+
+
+class VenomousBiteAction(BardAction):
+    @property
+    def potency(self):
+        return 100 if self.source.level < 64 else 120
+
+    def perform(self):
+        super().perform()
+
+        self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
+
+        self.sim.schedule_in(DotTickEvent(
+            sim=self.sim,
+            source=self.source,
+            target=self.source.target,
+            action=self,
+            potency=self.source.target_data.venomous_bite.potency,
+            aura=self.source.target_data.venomous_bite,
+        ))
 
 
 class SidewinderAction(BardAction):
@@ -300,7 +339,6 @@ class WindbiteDebuff(Aura):
     def duration(self):
         return timedelta(seconds=15 if self.source.level < 64 else 30)
 
-
 #
 #
 # class WindbiteCast(BardCastEvent):
@@ -315,19 +353,6 @@ class WindbiteDebuff(Aura):
 #         self.sim.schedule_in(DotTickEvent(sim=self.sim, aura=self.source.target_data.windbite))
 #
 #
-class VenomousBiteDebuff(Aura):
-    def __init__(self, source: Bard):
-        super().__init__()
-
-        self.source = source
-
-    @property
-    def potency(self):
-        return 40 if self.source.level < 64 else 45
-
-    @property
-    def duration(self):
-        return timedelta(seconds=15 if self.source.level < 64 else 30)
 #
 #
 # class VenomousBiteCast(BardCastEvent):
