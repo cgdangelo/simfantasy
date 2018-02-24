@@ -440,7 +440,7 @@ class DotTickEvent(DamageEvent):
         f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
         f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
         f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
-        f_ss = floor(130 * (self.source.stats[self.action.hastened_by] - sub_stat) / divisor)
+        f_ss = floor(130 * (self.source.stats[self.action.hastened_by] - sub_stat) / divisor + 1000) / 1000
         f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
 
         damage_randomization = numpy.random.uniform(0.95, 1.05)
