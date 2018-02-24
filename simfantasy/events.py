@@ -357,12 +357,10 @@ class DamageEvent(Event):
         for m in self.trait_multipliers:
             damage *= m
 
-        damage = floor(
-            damage *
-            (f_chr if self.is_critical_hit else 1) *
-            (1.25 if self.is_direct_hit else 1) *
-            damage_randomization
-        )
+        damage = floor(damage)
+        damage = floor(damage * (f_chr if self.is_critical_hit else 1))
+        damage = floor(damage * (1.25 if self.is_direct_hit else 1))
+        damage = floor(damage * damage_randomization)
 
         for m in self.buff_multipliers:
             damage = floor(damage * m)
@@ -403,6 +401,65 @@ class DotTickEvent(DamageEvent):
                                       aura=self.aura)
             self.aura.tick_event = tick_event
             self.sim.schedule_in(tick_event, timedelta(seconds=3))
+
+    @property
+    def damage(self) -> int:
+        base_stats = get_base_stats_by_job(self.source.job)
+
+        if self.action.powered_by is Attribute.ATTACK_POWER:
+            if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+                job_attribute_modifier = base_stats[Attribute.DEXTERITY]
+                attack_rating = self.source.stats[Attribute.DEXTERITY]
+            else:
+                job_attribute_modifier = base_stats[Attribute.STRENGTH]
+                attack_rating = self.source.stats[Attribute.STRENGTH]
+
+            weapon_damage = self.source.gear[Slot.WEAPON].physical_damage
+        elif self.action.powered_by is Attribute.ATTACK_MAGIC_POTENCY:
+            if self.source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
+                job_attribute_modifier = base_stats[Attribute.MIND]
+                attack_rating = self.source.stats[Attribute.MIND]
+            else:
+                job_attribute_modifier = base_stats[Attribute.INTELLIGENCE]
+                attack_rating = self.source.stats[Attribute.INTELLIGENCE]
+
+            weapon_damage = self.source.gear[Slot.WEAPON].magic_damage
+        elif self.action.powered_by is Attribute.HEALING_MAGIC_POTENCY:
+            job_attribute_modifier = base_stats[Attribute.MIND]
+            weapon_damage = self.source.gear[Slot.WEAPON].magic_damage
+            attack_rating = self.source.stats[Attribute.MIND]
+        else:
+            raise Exception('Action affected by unexpected attribute.')
+
+        main_stat = main_stat_per_level[self.source.level]
+        sub_stat = sub_stat_per_level[self.source.level]
+        divisor = divisor_per_level[self.source.level]
+
+        f_ptc = self.potency / 100
+        f_wd = floor((main_stat * job_attribute_modifier / 1000) + weapon_damage)
+        f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
+        f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+        f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+        f_ss = floor(130 * (self.source.stats[self.action.hastened_by] - sub_stat) / divisor)
+        f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+
+        damage_randomization = numpy.random.uniform(0.95, 1.05)
+
+        damage = f_ptc * f_wd * f_atk * f_det * f_tnc
+
+        for m in self.trait_multipliers:
+            damage *= m
+
+        damage = floor(damage)
+        damage = floor(damage * f_ss)
+        damage = floor(damage * (f_chr if self.is_critical_hit else 1))
+        damage = floor(damage * (1.25 if self.is_direct_hit else 1))
+        damage = floor(damage * damage_randomization)
+
+        for m in self.buff_multipliers:
+            damage = floor(damage * m)
+
+        return int(damage)
 
     def __str__(self):
         return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage} ticks_remain={ticks_remain}>'.format(

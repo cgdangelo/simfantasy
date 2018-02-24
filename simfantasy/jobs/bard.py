@@ -115,6 +115,7 @@ class RagingStrikesBuff(Aura):
 
 class RagingStrikesAction(BardAction):
     base_recast_time = timedelta(seconds=90)
+    is_off_gcd = True
 
     def perform(self):
         super().perform()
