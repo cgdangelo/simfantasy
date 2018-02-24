@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, ClassVar
 
 import humanfriendly
 from humanfriendly.tables import format_pretty_table, format_robust_table
@@ -243,6 +243,7 @@ class Actor:
     """A participant in an encounter."""
 
     job: Job = None
+    _target_data_class: ClassVar = None
 
     # TODO Get rid of level?
     def __init__(self,

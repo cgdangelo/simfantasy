@@ -1,37 +1,85 @@
 from datetime import timedelta
-from typing import Dict
+from typing import Dict, List
 
-from simfantasy.enums import Attribute, Race, Slot, Job
+from simfantasy.enums import Attribute, Job, Race, Slot
 from simfantasy.events import Action
 from simfantasy.simulator import Actor, Aura, Item, Simulation
 
 
+class Bard(Actor):
+    job = Job.BARD
+
+    def __init__(self,
+                 sim: Simulation,
+                 race: Race,
+                 level: int = None,
+                 target: Actor = None,
+                 name: str = None,
+                 equipment: Dict[Slot, Item] = None):
+        super().__init__(sim=sim, race=race, level=level, target=target, name=name, equipment=equipment)
+
+        self._target_data_class = TargetData
+        self.actions = Actions(sim, self)
+        self.buffs = Buffs()
+
+    def decide(self):
+        if not self.buffs.raging_strikes.up and not self.actions.raging_strikes.on_cooldown:
+            return self.actions.raging_strikes.perform()
+
+        if self.buffs.straight_shot.remains < timedelta(seconds=3):
+            return self.actions.straight_shot.perform()
+
+        if not self.actions.sidewinder.on_cooldown:
+            return self.actions.sidewinder.perform()
+
+        self.actions.heavy_shot.perform()
+
+
 class BardAction(Action):
-    source: 'Bard'
+    source: Bard
     hastened_by = Attribute.SKILL_SPEED
     powered_by = Attribute.ATTACK_POWER
+
+    @property
+    def _trait_multipliers(self) -> List[float]:
+        yield from super()._trait_multipliers
+
+        if self.source.level >= 20:
+            yield 1.1
+
+        if self.source.level >= 40:
+            yield 1.2
+
+    @property
+    def _buff_multipliers(self) -> List[float]:
+        yield from super()._buff_multipliers
+
+        if self.source.buffs.raging_strikes.up:
+            yield 1.1
+
+
+class Actions:
+    def __init__(self, sim: Simulation, source: Bard):
+        self.heavy_shot = HeavyShotAction(sim, source)
+        self.raging_strikes = RagingStrikesAction(sim, source)
+        self.sidewinder = SidewinderAction(sim, source)
+        self.straight_shot = StraightShotAction(sim, source)
+
+
+class Buffs:
+    def __init__(self):
+        self.straight_shot = StraightShotBuff()
+        self.raging_strikes = RagingStrikesBuff()
+
+
+class TargetData:
+    def __init__(self, source: Bard):
+        self.windbite = WindbiteDebuff(source=source)
+        self.venomous_bite = VenomousBiteDebuff(source=source)
 
 
 class HeavyShotAction(BardAction):
     potency = 150
-
-
-class SidewinderAction(BardAction):
-    base_recast_time = timedelta(seconds=60)
-    is_off_gcd = True
-
-    @property
-    def potency(self):
-        if self.source.level < 64:
-            return 100
-
-        if self.source.target_data.windbite.up and self.source.target_data.venomous_bite.up:
-            return 260
-
-        if self.source.target_data.windbite.up or self.source.target_data.venomous_bite.up:
-            return 175
-
-        return 100
 
 
 class StraightShotBuff(Aura):
@@ -52,53 +100,40 @@ class StraightShotAction(BardAction):
     potency = 140
 
     def perform(self):
-        super().perform()
-
         self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
 
-
-class Actions:
-    def __init__(self, sim: Simulation, source: 'Bard'):
-        self.heavy_shot = HeavyShotAction(sim, source)
-        self.sidewinder = SidewinderAction(sim, source)
-        self.straight_shot = StraightShotAction(sim, source)
+        super().perform()
 
 
-class Buffs:
-    def __init__(self):
-        self.straight_shot = StraightShotBuff()
+class RagingStrikesBuff(Aura):
+    duration = timedelta(seconds=20)
 
 
-class TargetData:
-    def __init__(self, source: 'Bard'):
-        self.windbite = WindbiteDebuff(source=source)
-        self.venomous_bite = VenomousBiteDebuff(source=source)
+class RagingStrikesAction(BardAction):
+    base_recast_time = timedelta(seconds=90)
+
+    def perform(self):
+        super().perform()
+
+        self.schedule_aura_events(self.source, self.source.buffs.raging_strikes)
 
 
-class Bard(Actor):
-    job = Job.BARD
-    _target_data_class = TargetData
+class SidewinderAction(BardAction):
+    base_recast_time = timedelta(seconds=60)
+    is_off_gcd = True
 
-    def __init__(self,
-                 sim: Simulation,
-                 race: Race,
-                 level: int = None,
-                 target: Actor = None,
-                 name: str = None,
-                 equipment: Dict[Slot, Item] = None):
-        super().__init__(sim=sim, race=race, level=level, target=target, name=name, equipment=equipment)
+    @property
+    def potency(self):
+        if self.source.level < 64:
+            return 100
 
-        self.actions = Actions(sim, self)
-        self.buffs = Buffs()
+        if self.source.target_data.windbite.up and self.source.target_data.venomous_bite.up:
+            return 260
 
-    def decide(self):
-        if self.buffs.straight_shot.remains < timedelta(seconds=3):
-            return self.actions.straight_shot.perform()
+        if self.source.target_data.windbite.up or self.source.target_data.venomous_bite.up:
+            return 175
 
-        if not self.actions.sidewinder.on_cooldown:
-            return self.actions.sidewinder.perform()
-
-        self.actions.heavy_shot.perform()
+        return 100
 
 
 # from datetime import timedelta

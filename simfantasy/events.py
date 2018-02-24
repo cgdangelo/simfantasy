@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from math import ceil, floor
+from typing import List
 
 import numpy
 
@@ -185,13 +186,22 @@ class ConsumeAuraEvent(AuraEvent):
 
 
 class DamageEvent(Event):
-    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int,
+                 trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
         super().__init__(sim)
+
+        if trait_multipliers is None:
+            trait_multipliers = []
+
+        if buff_multipliers is None:
+            buff_multipliers = []
 
         self.source = source
         self.target = target
         self.action = action
         self.potency = potency
+        self.trait_multipliers = trait_multipliers
+        self.buff_multipliers = buff_multipliers
 
         self.__is_critical_hit = None
         """
@@ -342,14 +352,22 @@ class DamageEvent(Event):
 
         damage_randomization = numpy.random.uniform(0.95, 1.05)
 
-        damage = int(floor(
-            (f_ptc * f_wd * f_atk * f_det * f_tnc) *
+        damage = f_ptc * f_wd * f_atk * f_det * f_tnc
+
+        for m in self.trait_multipliers:
+            damage *= m
+
+        damage = floor(
+            damage *
             (f_chr if self.is_critical_hit else 1) *
             (1.25 if self.is_direct_hit else 1) *
             damage_randomization
-        ))
+        )
 
-        return damage
+        for m in self.buff_multipliers:
+            damage = floor(damage * m)
+
+        return int(damage)
 
     def __str__(self) -> str:
         """String representation of the object."""
@@ -413,7 +431,8 @@ class Action:
         if self.potency > 0:
             self.sim.schedule_in(
                 DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
-                            potency=self.potency),
+                            potency=self.potency, trait_multipliers=self._trait_multipliers,
+                            buff_multipliers=self._buff_multipliers),
                 delta=self.cast_time
             )
 
@@ -486,3 +505,11 @@ class Action:
         gcd = gcd_c / 100
 
         return timedelta(seconds=gcd)
+
+    @property
+    def _buff_multipliers(self) -> List[float]:
+        yield 1.0
+
+    @property
+    def _trait_multipliers(self) -> List[float]:
+        yield 1.0
