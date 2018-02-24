@@ -483,6 +483,7 @@ class Action:
     base_cast_time: timedelta = timedelta()
     base_recast_time: timedelta = timedelta(seconds=2.5)
     potency: int = 0
+    shares_recast_with: 'Action' = None
 
     def __init__(self, sim: Simulation, source: Actor):
         self.sim = sim
@@ -496,6 +497,9 @@ class Action:
         self.sim.schedule_in(ActorReadyEvent(sim=self.sim, actor=self.source),
                              delta=max(self.source.animation_unlock_at,
                                        self.source.gcd_unlock_at) - self.sim.current_time)
+
+        if self.shares_recast_with is not None:
+            self.shares_recast_with.can_recast_at = self.can_recast_at
 
         if self.potency > 0:
             self.sim.schedule_in(

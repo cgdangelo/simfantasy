@@ -18,7 +18,7 @@ class Simulation:
     """A simulated combat encounter."""
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
-                 log_event_filter: str = None):
+                 log_event_filter: str = None, execute_time: timedelta = timedelta(seconds=60)):
         """
         Create a new simulation.
 
@@ -40,6 +40,8 @@ class Simulation:
 
         self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
 
+        self.execute_time = execute_time
+
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
 
@@ -54,6 +56,10 @@ class Simulation:
         heapify(self.events)
 
         self.__set_logger(log_level)
+
+    @property
+    def in_execute(self):
+        return self.current_time + self.execute_time >= self.start_time + self.combat_length
 
     def unschedule(self, event):
         if event is None or event not in self.events or event.timestamp < self.current_time:

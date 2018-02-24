@@ -32,6 +32,12 @@ class Bard(Actor):
         if not self.target_data.venomous_bite.up or self.target_data.venomous_bite.remains < timedelta(seconds=3):
             return self.actions.venomous_bite.perform()
 
+        if not self.actions.bloodletter.on_cooldown:
+            return self.actions.bloodletter.perform()
+
+        if self.sim.in_execute and not self.actions.miserys_end.on_cooldown:
+            return self.actions.miserys_end.perform()
+
         if not self.actions.sidewinder.on_cooldown:
             return self.actions.sidewinder.perform()
 
@@ -63,8 +69,11 @@ class BardAction(Action):
 
 class Actions:
     def __init__(self, sim: Simulation, source: Bard):
+        self.bloodletter = BloodletterAction(sim, source)
         self.heavy_shot = HeavyShotAction(sim, source)
+        self.miserys_end = MiserysEndAction(sim, source)
         self.raging_strikes = RagingStrikesAction(sim, source)
+        self.rain_of_death = RainOfDeathAction(sim, source)
         self.sidewinder = SidewinderAction(sim, source)
         self.straight_shot = StraightShotAction(sim, source)
         self.venomous_bite = VenomousBiteAction(sim, source)
@@ -148,6 +157,32 @@ class VenomousBiteAction(BardAction):
 
         self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
         self.schedule_dot(self.source.target_data.venomous_bite)
+
+
+class MiserysEndAction(BardAction):
+    base_recast_time = timedelta(seconds=12)
+    potency = 190
+
+
+class BloodletterAction(BardAction):
+    is_off_gcd = True
+    potency = 130
+
+    def __init__(self, sim: Simulation, source: Actor):
+        super().__init__(sim, source)
+
+    @property
+    def shares_recast_with(self):
+        return self.source.actions.rain_of_death
+
+
+class RainOfDeathAction(BardAction):
+    is_off_gcd = True
+    potency = 100
+
+    @property
+    def shares_recast_with(self):
+        return self.source.actions.bloodletter
 
 
 class SidewinderAction(BardAction):
