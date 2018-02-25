@@ -9,9 +9,9 @@ from typing import ClassVar, Dict, List, Tuple, Union
 import humanfriendly
 from humanfriendly.tables import format_pretty_table, format_robust_table
 
-from simfantasy.common_math import get_base_stats_by_job, get_racial_attribute_bonuses, \
-    main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Slot
+from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
+    main_stat_per_level, piety_per_level, sub_stat_per_level
+from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Slot, Role
 
 
 class Simulation:
@@ -244,6 +244,7 @@ class Actor:
     """A participant in an encounter."""
 
     job: Job = None
+    role: Role = None
     _target_data_class: ClassVar = None
 
     # TODO Get rid of level?
@@ -288,6 +289,9 @@ class Actor:
         self.gear: Dict[Slot, Union[Item, Weapon]] = {}
         self.equip_gear(equipment)
 
+        self.resources = self.calculate_resources()
+        self.sim.logger.info('%s', self.resources)
+
         self.statistics = {
             'actions': {},
             'auras': {},
@@ -297,6 +301,23 @@ class Actor:
         self.sim.actors.append(self)
 
         self.sim.logger.debug('Initialized: %s', self)
+
+    def calculate_resources(self):
+        main_stat = main_stat_per_level[self.level]
+        job_resources = get_base_resources_by_job(self.job)
+
+        # FIXME It's broken.
+        hp = floor(3600 * (job_resources[Resource.HEALTH] / 100)) + \
+             floor((self.stats[Attribute.VITALITY] - main_stat) * 21.5)
+        mp = floor(
+            (job_resources[Resource.MANA] / 100) *
+            ((6000 * (self.stats[Attribute.PIETY] - 292) / 2170) + 12000)
+        )
+
+        return {
+            Resource.HEALTH: hp,
+            Resource.MANA: mp,
+        }
 
     @property
     def target_data(self):
@@ -375,6 +396,9 @@ class Actor:
 
         for stat, bonus in job_stats.items():
             base_stats[stat] += floor(base_main_stat * (bonus / 100)) + race_stats[stat]
+
+        if self.role is Role.HEALER:
+            base_stats[Attribute.PIETY] += piety_per_level[self.level]
 
         return base_stats
 

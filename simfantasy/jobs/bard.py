@@ -1,13 +1,14 @@
 from datetime import timedelta
 from typing import Dict, List
 
-from simfantasy.enums import Attribute, Job, Race, Slot
+from simfantasy.enums import Attribute, Job, Race, Slot, Role
 from simfantasy.events import Action, DotTickEvent, Event
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
 class Bard(Actor):
     job = Job.BARD
+    role = Role.DPS
 
     def __init__(self,
                  sim: Simulation,
