@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from simfantasy.enums import Attribute, Job, Race
+from simfantasy.enums import Attribute, Job, Race, Resource
 
 main_stat_per_level: List[int] = [
     None, 20, 21, 22, 24, 26, 27, 29, 31, 33, 35, 36, 38, 41, 44, 46, 49, 52, 54, 57, 60, 63, 67, 71, 74, 78, 81, 85,
@@ -23,6 +23,19 @@ divisor_per_level: List[int] = [
     2170,
 ]
 """Divisor for multiple calculations per level."""
+
+piety_per_level: List[int] = [
+    None, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165,
+    170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280,
+    285, 290, 300, 315, 330, 360, 390, 420, 450, 480, 510, 540, 620, 650, 680, 710, 740, 770, 800, 830, 860, 890, 890
+]
+
+mp_per_level: List[int] = [
+    None, 104, 114, 123, 133, 142, 152, 161, 171, 180, 190, 209, 228, 247, 266, 285, 304, 323, 342, 361, 380, 418, 456,
+    494, 532, 570, 608, 646, 684, 722, 760, 826, 893, 959, 1026, 1092, 1159, 1225, 1292, 1358, 1425, 1548, 1672, 1795,
+    1919, 2042, 2166, 2289, 2413, 2536, 2660, 3000, 3380, 3810, 4300, 4850, 5470, 6170, 6950, 7840, 8840, 8980, 9150,
+    9350, 9590, 9870, 10190, 10560, 10980, 11450, 12000
+]
 
 
 def get_racial_attribute_bonuses(race: Race) -> Dict[Attribute, int]:
@@ -344,4 +357,138 @@ def get_base_stats_by_job(job: Job) -> Dict[Attribute, int]:
             Attribute.VITALITY: 0,
             Attribute.INTELLIGENCE: 0,
             Attribute.MIND: 0
+        }
+
+
+def get_base_resources_by_job(job: Job) -> Dict[Resource, int]:
+    """
+    Get base main stats by job.
+
+    :param job: Job.
+    :return: Dictionary mapping :class:`~simfantasy.enums.Attribute` to integer bonus values.
+    """
+    if job is Job.GLADIATOR:
+        return {
+            Resource.HEALTH: 110,
+            Resource.MANA: 49,
+        }
+    elif job is Job.PUGILIST:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 34,
+        }
+    elif job is Job.MARAUDER:
+        return {
+            Resource.HEALTH: 115,
+            Resource.MANA: 28,
+        }
+    elif job is Job.LANCER:
+        return {
+            Resource.HEALTH: 110,
+            Resource.MANA: 39,
+        }
+    elif job is Job.ARCHER:
+        return {
+            Resource.HEALTH: 100,
+            Resource.MANA: 69,
+        }
+    elif job is Job.CONJURER:
+        return {
+            Resource.HEALTH: 100,
+            Resource.MANA: 117,
+        }
+    elif job is Job.THAUMATURGE:
+        return {
+            Resource.HEALTH: 100,
+            Resource.MANA: 123,
+        }
+    elif job is Job.PALADIN:
+        return {
+            Resource.HEALTH: 120,
+            Resource.MANA: 59,
+        }
+    elif job is Job.MONK:
+        return {
+            Resource.HEALTH: 110,
+            Resource.MANA: 43,
+        }
+    elif job is Job.WARRIOR:
+        return {
+            Resource.HEALTH: 125,
+            Resource.MANA: 38,
+        }
+    elif job is Job.DRAGOON:
+        return {
+            Resource.HEALTH: 115,
+            Resource.MANA: 49,
+        }
+    elif job is Job.BARD:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 79,
+        }
+    elif job is Job.WHITE_MAGE:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 124,
+        }
+    elif job is Job.BLACK_MAGE:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 129,
+        }
+    elif job is Job.ARCANIST:
+        return {
+            Resource.HEALTH: 100,
+            Resource.MANA: 110,
+        }
+    elif job is Job.SUMMONER:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 111,
+        }
+    elif job is Job.SCHOLAR:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 119,
+        }
+    elif job is Job.ROGUE:
+        return {
+            Resource.HEALTH: 103,
+            Resource.MANA: 38,
+        }
+    elif job is Job.NINJA:
+        return {
+            Resource.HEALTH: 108,
+            Resource.MANA: 48,
+        }
+    elif job is Job.MACHINIST:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 79,
+        }
+    elif job is Job.DARK_KNIGHT:
+        return {
+            Resource.HEALTH: 120,
+            Resource.MANA: 79,
+        }
+    elif job is Job.ASTROLOGIAN:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 124,
+        }
+    elif job is Job.SAMURAI:
+        return {
+            Resource.HEALTH: 109,
+            Resource.MANA: 40,
+        }
+    elif job is Job.RED_MAGE:
+        return {
+            Resource.HEALTH: 105,
+            Resource.MANA: 120,
+        }
+    else:
+        return {
+            Resource.HEALTH: 0,
+            Resource.MANA: 0,
         }

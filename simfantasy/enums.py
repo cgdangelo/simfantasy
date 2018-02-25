@@ -133,3 +133,8 @@ class Role(Enum):
 class RefreshBehavior(Enum):
     EXTEND_TO_MAX = auto()
     RESET = auto()
+
+
+class Resource(Enum):
+    HEALTH = auto()
+    MANA = auto()
