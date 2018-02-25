@@ -3,8 +3,8 @@ from typing import Dict, List
 
 import numpy
 
-from simfantasy.enums import Attribute, Job, Race, Slot, Role
-from simfantasy.events import Action, DotTickEvent, Event, RefreshAuraEvent, ConsumeAuraEvent
+from simfantasy.enums import Attribute, Job, Race, Role, Slot
+from simfantasy.events import Action, ConsumeAuraEvent, DamageEvent, DotTickEvent, Event
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -41,6 +41,9 @@ class Bard(Actor):
                 return self.actions.iron_jaws.perform()
 
         if self.buffs.straighter_shot.up:
+            if not self.actions.barrage.on_cooldown:
+                return self.actions.barrage.perform()
+
             return self.actions.refulgent_arrow.perform()
 
         if not self.target_data.windbite.up:
@@ -69,9 +72,28 @@ class Bard(Actor):
 
 
 class BardAction(Action):
-    source: Bard
+    affected_by_barrage: bool = False
     hastened_by = Attribute.SKILL_SPEED
     powered_by = Attribute.ATTACK_POWER
+    source: Bard
+
+    def perform(self):
+        super().perform()
+
+        if self.affected_by_barrage:
+            self.sim.schedule_in(
+                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
+                            potency=self.potency, trait_multipliers=self._trait_multipliers,
+                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
+                delta=self.cast_time
+            )
+
+            self.sim.schedule_in(
+                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
+                            potency=self.potency, trait_multipliers=self._trait_multipliers,
+                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
+                delta=self.cast_time
+            )
 
     @property
     def _trait_multipliers(self) -> List[float]:
@@ -123,6 +145,7 @@ class BardDotTickEvent(DotTickEvent):
 
 class Actions:
     def __init__(self, sim: Simulation, source: Bard):
+        self.barrage = BarrageAction(sim, source)
         self.bloodletter = BloodletterAction(sim, source)
         self.heavy_shot = HeavyShotAction(sim, source)
         self.iron_jaws = IronJawsAction(sim, source)
@@ -139,6 +162,7 @@ class Actions:
 
 class Buffs:
     def __init__(self):
+        self.barrage = BarrageBuff()
         self.mages_ballad = MagesBalladBuff()
         self.raging_strikes = RagingStrikesBuff()
         self.straight_shot = StraightShotBuff()
@@ -156,6 +180,7 @@ class StraighterShotBuff(Aura):
 
 
 class HeavyShotAction(BardAction):
+    affected_by_barrage = True
     potency = 150
 
     def perform(self):
@@ -180,6 +205,7 @@ class StraightShotBuff(Aura):
 
 
 class StraightShotAction(BardAction):
+    affected_by_barrage = True
     potency = 140
 
     @property
@@ -228,6 +254,8 @@ class VenomousBiteDebuff(TickingAura):
 
 
 class VenomousBiteAction(BardAction):
+    affected_by_barrage = True
+
     @property
     def potency(self):
         return 100 if self.source.level < 64 else 120
@@ -290,6 +318,8 @@ class WindbiteDebuff(TickingAura):
 
 
 class WindbiteAction(BardAction):
+    affected_by_barrage = True
+
     @property
     def potency(self):
         return 60 if self.source.level < 64 else 120
@@ -356,6 +386,7 @@ class RainOfDeathAction(BardAction):
 
 
 class IronJawsAction(BardAction):
+    affected_by_barrage = True
     potency = 100
 
     def perform(self):
@@ -387,6 +418,7 @@ class SidewinderAction(BardAction):
 
 
 class RefulgentArrowAction(BardAction):
+    affected_by_barrage = True
     potency = 300
 
     def perform(self):
@@ -396,3 +428,16 @@ class RefulgentArrowAction(BardAction):
             self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
                                                   target=self.source,
                                                   aura=self.source.buffs.straighter_shot))
+
+
+class BarrageBuff(Aura):
+    duration = timedelta(seconds=10)
+
+
+class BarrageAction(BardAction):
+    base_recast_time = timedelta(seconds=80)
+
+    def perform(self):
+        super().perform()
+
+        self.schedule_aura_events(self.source, self.source.buffs.barrage)
