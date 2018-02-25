@@ -31,7 +31,7 @@ class Event(metaclass=ABCMeta):
         :param other: The other event to compare to.
         :return: True if current event occurs before other.
         """
-        return self.timestamp < other.timestamp
+        return self.timestamp <= other.timestamp
 
     def __str__(self) -> str:
         """String representation of the object."""
@@ -152,6 +152,8 @@ class RefreshAuraEvent(AuraEvent):
                         self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension)
         else:
             delta = self.aura.duration
+
+        self.aura.expire(self.target)
 
         self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
         self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)

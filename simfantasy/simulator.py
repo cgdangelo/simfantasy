@@ -214,10 +214,17 @@ class Aura(ABC):
         self.expiration_event = None
 
     def apply(self, target):
+        if self in target.auras:
+            target.sim.logger.critical('%s Adding duplicate buff %s into %s',
+                                       (target.sim.current_time - target.sim.start_time).total_seconds(), self, target)
         target.auras.append(self)
 
     def expire(self, target):
-        target.auras.remove(self)
+        try:
+            target.auras.remove(self)
+        except ValueError:
+            target.sim.logger.critical('%s Failed removing %s from %s',
+                                       (target.sim.current_time - target.sim.start_time).total_seconds(), self, target)
 
     @property
     def up(self):
@@ -229,6 +236,9 @@ class Aura(ABC):
             return timedelta()
 
         return self.expiration_event.timestamp - self.expiration_event.sim.current_time
+
+    def __str__(self):
+        return '<{cls}>'.format(cls=self.__class__.__name__)
 
 
 class TickingAura(Aura):

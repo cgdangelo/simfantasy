@@ -362,14 +362,10 @@ class IronJawsAction(BardAction):
         super().perform()
 
         if self.source.target_data.windbite.up:
-            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim,
-                                                  target=self.source.target,
-                                                  aura=self.source.target_data.windbite))
+            self.schedule_aura_events(target=self.source.target, aura=self.source.target_data.windbite)
 
         if self.source.target_data.venomous_bite.up:
-            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim,
-                                                  target=self.source.target,
-                                                  aura=self.source.target_data.venomous_bite))
+            self.schedule_aura_events(target=self.source.target, aura=self.source.target_data.venomous_bite)
 
 
 class SidewinderAction(BardAction):
