@@ -1,8 +1,10 @@
 from datetime import timedelta
 from typing import Dict, List
 
+import numpy
+
 from simfantasy.enums import Attribute, Job, Race, Slot, Role
-from simfantasy.events import Action, DotTickEvent, Event, RefreshAuraEvent
+from simfantasy.events import Action, DotTickEvent, Event, RefreshAuraEvent, ConsumeAuraEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -29,6 +31,9 @@ class Bard(Actor):
 
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
+
+        if self.buffs.straighter_shot.up:
+            return self.actions.refulgent_arrow.perform()
 
         if not self.actions.mages_ballad.on_cooldown:
             return self.actions.mages_ballad.perform()
@@ -125,6 +130,7 @@ class Actions:
         self.miserys_end = MiserysEndAction(sim, source)
         self.raging_strikes = RagingStrikesAction(sim, source)
         self.rain_of_death = RainOfDeathAction(sim, source)
+        self.refulgent_arrow = RefulgentArrowAction(sim, source)
         self.sidewinder = SidewinderAction(sim, source)
         self.straight_shot = StraightShotAction(sim, source)
         self.venomous_bite = VenomousBiteAction(sim, source)
@@ -136,6 +142,7 @@ class Buffs:
         self.mages_ballad = MagesBalladBuff()
         self.raging_strikes = RagingStrikesBuff()
         self.straight_shot = StraightShotBuff()
+        self.straighter_shot = StraighterShotBuff()
 
 
 class TargetData:
@@ -144,8 +151,18 @@ class TargetData:
         self.windbite = WindbiteDebuff(source=source)
 
 
+class StraighterShotBuff(Aura):
+    duration = timedelta(seconds=10)
+
+
 class HeavyShotAction(BardAction):
     potency = 150
+
+    def perform(self):
+        super().perform()
+
+        if numpy.random.uniform() < 0.2:
+            self.schedule_aura_events(self.source, self.source.buffs.straighter_shot)
 
 
 class StraightShotBuff(Aura):
@@ -165,10 +182,20 @@ class StraightShotBuff(Aura):
 class StraightShotAction(BardAction):
     potency = 140
 
-    def perform(self):
-        self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
+    @property
+    def guarantee_crit(self):
+        if self.source.buffs.straighter_shot.up:
+            return True
 
+    def perform(self):
         super().perform()
+
+        if self.source.buffs.straighter_shot.up:
+            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
+                                                  target=self.source,
+                                                  aura=self.source.buffs.straighter_shot))
+
+        self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
 
 
 class RagingStrikesBuff(Aura):
@@ -361,3 +388,15 @@ class SidewinderAction(BardAction):
             return 175
 
         return 100
+
+
+class RefulgentArrowAction(BardAction):
+    potency = 300
+
+    def perform(self):
+        super().perform()
+
+        if self.source.buffs.straighter_shot.up:
+            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
+                                                  target=self.source,
+                                                  aura=self.source.buffs.straighter_shot))

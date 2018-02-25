@@ -187,7 +187,8 @@ class ConsumeAuraEvent(AuraEvent):
 
 class DamageEvent(Event):
     def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int,
-                 trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
+                 trait_multipliers: List[float] = None, buff_multipliers: List[float] = None,
+                 guarantee_crit: bool = None):
         super().__init__(sim)
 
         if trait_multipliers is None:
@@ -205,7 +206,7 @@ class DamageEvent(Event):
 
         self._damage = None
 
-        self._is_critical_hit = None
+        self._is_critical_hit = guarantee_crit
         """
         Deferred attribute. Set once unless cached value is invalidated. True if the ability was determined to be a
         critical hit.
@@ -496,6 +497,7 @@ class Action:
     base_recast_time: timedelta = timedelta(seconds=2.5)
     potency: int = 0
     shares_recast_with: 'Action' = None
+    guarantee_crit: bool = None
 
     def __init__(self, sim: Simulation, source: Actor):
         self.sim = sim
@@ -517,7 +519,7 @@ class Action:
             self.sim.schedule_in(
                 DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
                             potency=self.potency, trait_multipliers=self._trait_multipliers,
-                            buff_multipliers=self._buff_multipliers),
+                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
                 delta=self.cast_time
             )
 
