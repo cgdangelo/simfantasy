@@ -402,10 +402,10 @@ class DotTickEvent(DamageEvent):
 
     def execute(self) -> None:
         if self.ticks_remain > 0:
-            tick_event = DotTickEvent(sim=self.sim, source=self.source, target=self.target, action=self.action,
-                                      potency=self.potency, trait_multipliers=self.trait_multipliers,
-                                      buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
-                                      aura=self.aura)
+            tick_event = self.__class__(sim=self.sim, source=self.source, target=self.target, action=self.action,
+                                        potency=self.potency, trait_multipliers=self.trait_multipliers,
+                                        buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
+                                        aura=self.aura)
             self.aura.tick_event = tick_event
             self.sim.schedule_in(tick_event, timedelta(seconds=3))
 
