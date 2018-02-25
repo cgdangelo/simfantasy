@@ -32,9 +32,6 @@ class Bard(Actor):
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
 
-        if self.buffs.straighter_shot.up:
-            return self.actions.refulgent_arrow.perform()
-
         if not self.actions.mages_ballad.on_cooldown:
             return self.actions.mages_ballad.perform()
 
@@ -42,6 +39,9 @@ class Bard(Actor):
             if self.target_data.windbite.remains <= timedelta(seconds=3) or \
                     self.target_data.venomous_bite.remains <= timedelta(seconds=3):
                 return self.actions.iron_jaws.perform()
+
+        if self.buffs.straighter_shot.up:
+            return self.actions.refulgent_arrow.perform()
 
         if not self.target_data.windbite.up:
             return self.actions.windbite.perform()
