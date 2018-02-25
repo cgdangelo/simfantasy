@@ -203,13 +203,15 @@ class DamageEvent(Event):
         self.trait_multipliers = trait_multipliers
         self.buff_multipliers = buff_multipliers
 
-        self.__is_critical_hit = None
+        self._damage = None
+
+        self._is_critical_hit = None
         """
         Deferred attribute. Set once unless cached value is invalidated. True if the ability was determined to be a
         critical hit.
         """
 
-        self.__is_direct_hit = None
+        self._is_direct_hit = None
         """
         Deferred attribute. Set once unless cached value is invalidated. True if the ability was determined to be a
         direct hit.
@@ -264,15 +266,15 @@ class DamageEvent(Event):
 
         :return: True if the ability is a critical hit.
         """
-        if self.__is_critical_hit is None:
+        if self._is_critical_hit is None:
             if self.critical_hit_chance >= 100:
-                self.__is_critical_hit = True
+                self._is_critical_hit = True
             elif self.critical_hit_chance <= 0:
-                self.__is_critical_hit = False
+                self._is_critical_hit = False
             else:
-                self.__is_critical_hit = numpy.random.uniform() <= self.critical_hit_chance
+                self._is_critical_hit = numpy.random.uniform() <= self.critical_hit_chance
 
-        return self.__is_critical_hit
+        return self._is_critical_hit
 
     @property
     def direct_hit_chance(self):
@@ -294,15 +296,15 @@ class DamageEvent(Event):
 
         :return: True if the ability is a direct hit.
         """
-        if self.__is_direct_hit is None:
+        if self._is_direct_hit is None:
             if self.direct_hit_chance >= 100:
-                self.__is_direct_hit = True
+                self._is_direct_hit = True
             elif self.direct_hit_chance <= 0:
-                self.__is_direct_hit = False
+                self._is_direct_hit = False
             else:
-                self.__is_direct_hit = numpy.random.uniform() <= self.direct_hit_chance
+                self._is_direct_hit = numpy.random.uniform() <= self.direct_hit_chance
 
-        return self.__is_direct_hit
+        return self._is_direct_hit
 
     @property
     def damage(self) -> int:
@@ -312,6 +314,9 @@ class DamageEvent(Event):
 
         :return: The damage inflicted as an integer value.
         """
+        if self._damage is not None:
+            return self._damage
+
         base_stats = get_base_stats_by_job(self.source.job)
 
         if self.action.powered_by is Attribute.ATTACK_POWER:
@@ -365,7 +370,9 @@ class DamageEvent(Event):
         for m in self.buff_multipliers:
             damage = floor(damage * m)
 
-        return int(damage)
+        self._damage = int(damage)
+
+        return self._damage
 
     def __str__(self) -> str:
         """String representation of the object."""
@@ -404,6 +411,9 @@ class DotTickEvent(DamageEvent):
 
     @property
     def damage(self) -> int:
+        if self._damage is not None:
+            return self._damage
+
         base_stats = get_base_stats_by_job(self.source.job)
 
         if self.action.powered_by is Attribute.ATTACK_POWER:
@@ -459,7 +469,9 @@ class DotTickEvent(DamageEvent):
         for m in self.buff_multipliers:
             damage = floor(damage * m)
 
-        return int(damage)
+        self._damage = int(damage)
+
+        return self._damage
 
     def __str__(self):
         return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage} ticks_remain={ticks_remain}>'.format(
