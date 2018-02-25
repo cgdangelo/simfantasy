@@ -7,7 +7,7 @@ import numpy
 
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot
+from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot, Resource
 from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
 
 
@@ -615,3 +615,15 @@ class Action:
     @property
     def _trait_multipliers(self) -> List[float]:
         yield 1.0
+
+
+class ServerTickEvent(Event):
+    def execute(self) -> None:
+        super().execute()
+
+        for actor in self.sim.actors:
+            current_mp, max_mp = actor.resources[Resource.MANA]
+
+            mp_tick = floor(0.02 * max_mp)
+
+            actor.resources[Resource.MANA] = (min(current_mp + mp_tick, max_mp), max_mp)

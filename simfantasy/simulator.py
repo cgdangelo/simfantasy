@@ -93,10 +93,13 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent
+        from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
         self.schedule_in(CombatStartEvent(sim=self))
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
+
+        for delta in range(1, int(self.combat_length.total_seconds()), 3):
+            self.schedule_in(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
         for actor in self.actors:
             self.schedule_in(ActorReadyEvent(sim=self, actor=actor))
@@ -289,8 +292,7 @@ class Actor:
         self.gear: Dict[Slot, Union[Item, Weapon]] = {}
         self.equip_gear(equipment)
 
-        self.resources = self.calculate_resources()
-        self.sim.logger.info('%s', self.resources)
+        self.resources: Dict[Resource, Tuple[int, int]] = self.calculate_resources()
 
         self.statistics = {
             'actions': {},
@@ -315,8 +317,8 @@ class Actor:
         )
 
         return {
-            Resource.HEALTH: hp,
-            Resource.MANA: mp,
+            Resource.HEALTH: (hp, hp),
+            Resource.MANA: (mp, mp),
         }
 
     @property
