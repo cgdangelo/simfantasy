@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Dict, List
 
 from simfantasy.enums import Attribute, Job, Race, Slot, Role
-from simfantasy.events import Action, DotTickEvent, Event
+from simfantasy.events import Action, DotTickEvent, Event, RefreshAuraEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -33,10 +33,15 @@ class Bard(Actor):
         if not self.actions.mages_ballad.on_cooldown:
             return self.actions.mages_ballad.perform()
 
-        if not self.target_data.windbite.up or self.target_data.windbite.remains < timedelta(seconds=3):
+        if self.target_data.windbite.up and self.target_data.venomous_bite.up:
+            if self.target_data.windbite.remains <= timedelta(seconds=3) or \
+                    self.target_data.venomous_bite.remains <= timedelta(seconds=3):
+                return self.actions.iron_jaws.perform()
+
+        if not self.target_data.windbite.up:
             return self.actions.windbite.perform()
 
-        if not self.target_data.venomous_bite.up or self.target_data.venomous_bite.remains < timedelta(seconds=3):
+        if not self.target_data.venomous_bite.up:
             return self.actions.venomous_bite.perform()
 
         if not self.actions.bloodletter.on_cooldown:
@@ -115,6 +120,7 @@ class Actions:
     def __init__(self, sim: Simulation, source: Bard):
         self.bloodletter = BloodletterAction(sim, source)
         self.heavy_shot = HeavyShotAction(sim, source)
+        self.iron_jaws = IronJawsAction(sim, source)
         self.mages_ballad = MagesBalladAction(sim, source)
         self.miserys_end = MiserysEndAction(sim, source)
         self.raging_strikes = RagingStrikesAction(sim, source)
@@ -320,6 +326,23 @@ class RainOfDeathAction(BardAction):
     @property
     def shares_recast_with(self):
         return self.source.actions.bloodletter
+
+
+class IronJawsAction(BardAction):
+    potency = 100
+
+    def perform(self):
+        super().perform()
+
+        if self.source.target_data.windbite.up:
+            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim,
+                                                  target=self.source.target,
+                                                  aura=self.source.target_data.windbite))
+
+        if self.source.target_data.venomous_bite.up:
+            self.sim.schedule_in(RefreshAuraEvent(sim=self.sim,
+                                                  target=self.source.target,
+                                                  aura=self.source.target_data.venomous_bite))
 
 
 class SidewinderAction(BardAction):
