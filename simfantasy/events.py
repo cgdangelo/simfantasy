@@ -671,6 +671,7 @@ class ServerTickEvent(Event):
         for actor in self.sim.actors:
             current_mp, max_mp = actor.resources[Resource.MANA]
 
-            mp_tick = int(floor(0.02 * max_mp))
+            if current_mp != max_mp:
+                mp_tick = int(floor(0.02 * max_mp))
 
-            self.sim.schedule(ResourceEvent(sim=self.sim, target=actor, resource=Resource.MANA, amount=mp_tick))
+                self.sim.schedule(ResourceEvent(sim=self.sim, target=actor, resource=Resource.MANA, amount=mp_tick))
