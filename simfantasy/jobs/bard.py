@@ -29,12 +29,13 @@ class Bard(Actor):
     def calculate_resources(self):
         resources = super().calculate_resources()
 
-        resources[Resource.REPERTOIRE] = (0, 4)
+        resources[Resource.REPERTOIRE] = (0, 0)
 
         return resources
 
     def decide(self):
         current_mp, max_mp = self.resources[Resource.MANA]
+        current_rep, max_rep = self.resources[Resource.REPERTOIRE]
 
         if not self.buffs.foe_requiem.up and current_mp == max_mp:
             return self.actions.foe_requiem.perform()
@@ -44,6 +45,13 @@ class Bard(Actor):
 
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
+
+        if not self.actions.wanderers_minuet.on_cooldown:
+            return self.actions.wanderers_minuet.perform()
+
+        if self.song is self.buffs.wanderers_minuet and current_rep > 0 and \
+                (current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)):
+            return self.actions.pitch_perfect.perform()
 
         if not self.song:
             if not self.actions.mages_ballad.on_cooldown:
@@ -85,6 +93,8 @@ class Bard(Actor):
             return self.buffs.mages_ballad
         elif self.buffs.armys_paeon.up:
             return self.buffs.armys_paeon
+        elif self.buffs.wanderers_minuet.up:
+            return self.buffs.wanderers_minuet
 
         return None
 
@@ -186,12 +196,14 @@ class Actions:
         self.iron_jaws = IronJawsAction(sim, source)
         self.mages_ballad = MagesBalladAction(sim, source)
         self.miserys_end = MiserysEndAction(sim, source)
+        self.pitch_perfect = PitchPerfectAction(sim, source)
         self.raging_strikes = RagingStrikesAction(sim, source)
         self.rain_of_death = RainOfDeathAction(sim, source)
         self.refulgent_arrow = RefulgentArrowAction(sim, source)
         self.sidewinder = SidewinderAction(sim, source)
         self.straight_shot = StraightShotAction(sim, source)
         self.venomous_bite = VenomousBiteAction(sim, source)
+        self.wanderers_minuet = WanderersMinuetAction(sim, source)
         self.windbite = WindbiteAction(sim, source)
 
 
@@ -204,6 +216,7 @@ class Buffs:
         self.raging_strikes = RagingStrikesBuff()
         self.straight_shot = StraightShotBuff()
         self.straighter_shot = StraighterShotBuff()
+        self.wanderers_minuet = WanderersMinuetBuff()
 
 
 class TargetData:
@@ -389,6 +402,11 @@ class WindbiteAction(BardAction):
 class BardSongBuff(Aura):
     duration = timedelta(seconds=30)
 
+    def expire(self, target: Actor):
+        super().expire(target)
+
+        target.resources[Resource.REPERTOIRE] = (0, 0)
+
 
 class BardSongAction(BardAction):
     base_recast_time = timedelta(seconds=80)
@@ -557,7 +575,10 @@ class FoeRequiemAction(BardAction):
 
 
 class ArmysPaeonBuff(BardSongBuff):
-    pass
+    def apply(self, target):
+        super().apply(target)
+
+        target.resources[Resource.REPERTOIRE] = (0, 4)
 
 
 class ArmysPaeonAction(BardSongAction):
@@ -568,8 +589,39 @@ class ArmysPaeonAction(BardSongAction):
 
 
 class WanderersMinuetBuff(BardSongBuff):
-    pass
+    def apply(self, target):
+        super().apply(target)
+
+        target.resources[Resource.REPERTOIRE] = (0, 3)
 
 
 class WanderersMinuetAction(BardSongAction):
-    pass
+    def perform(self):
+        super().perform()
+
+        self.schedule_aura_events(aura=self.source.buffs.wanderers_minuet, target=self.source)
+
+
+class PitchPerfectAction(BardAction):
+    def perform(self):
+        super().perform()
+
+        self.sim.schedule(ResourceEvent(sim=self.sim, target=self.source, resource=Resource.REPERTOIRE, amount=-3))
+        # self.source.resources[Resource.REPERTOIRE] = (0, 3)
+
+    @property
+    def potency(self):
+        repertoire = self.source.resources[Resource.REPERTOIRE]
+
+        if repertoire == 1:
+            return 100
+        elif repertoire == 2:
+            return 240
+        else:
+            return 420
+
+    def __str__(self):
+        return '<{cls} repertoire={repertoire}>'.format(
+            cls=self.__class__.__name__,
+            repertoire=self.source.resources[Resource.REPERTOIRE],
+        )
