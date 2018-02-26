@@ -528,7 +528,7 @@ class Action:
         self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
         self.sim.schedule(ActorReadyEvent(sim=self.sim, actor=self.source),
                           delta=max(self.source.animation_unlock_at,
-                                       self.source.gcd_unlock_at) - self.sim.current_time)
+                                    self.source.gcd_unlock_at) - self.sim.current_time)
 
         if self.shares_recast_with is not None:
             self.shares_recast_with.can_recast_at = self.can_recast_at
@@ -640,6 +640,30 @@ class Action:
         return '<{cls}>'.format(cls=self.__class__.__name__)
 
 
+class ResourceEvent(Event):
+    def __init__(self, sim: Simulation, target: Actor, resource: Resource, amount: int):
+        super().__init__(sim)
+
+        self.target = target
+        self.resource = resource
+        self.amount = amount
+
+    def execute(self) -> None:
+        current, maximum = self.target.resources[self.resource]
+
+        final_resource = max(min(current + self.amount, maximum), 0)
+
+        self.target.resources[self.resource] = (final_resource, maximum)
+
+    def __str__(self):
+        return '<{cls} target={target} resource={resource} amount={amount}>'.format(
+            cls=self.__class__.__name__,
+            target=self.target.name,
+            resource=self.resource,
+            amount=self.amount,
+        )
+
+
 class ServerTickEvent(Event):
     def execute(self) -> None:
         super().execute()
@@ -647,6 +671,6 @@ class ServerTickEvent(Event):
         for actor in self.sim.actors:
             current_mp, max_mp = actor.resources[Resource.MANA]
 
-            mp_tick = floor(0.02 * max_mp)
+            mp_tick = int(floor(0.02 * max_mp))
 
-            actor.resources[Resource.MANA] = (min(current_mp + mp_tick, max_mp), max_mp)
+            self.sim.schedule(ResourceEvent(sim=self.sim, target=actor, resource=Resource.MANA, amount=mp_tick))

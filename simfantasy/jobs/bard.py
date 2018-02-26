@@ -3,8 +3,9 @@ from typing import Dict, List
 
 import numpy
 
-from simfantasy.enums import Attribute, Job, Race, Role, Slot
-from simfantasy.events import Action, ConsumeAuraEvent, DamageEvent, DotTickEvent, Event
+from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
+from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, Event, \
+    ExpireAuraEvent, ResourceEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -23,9 +24,14 @@ class Bard(Actor):
 
         self._target_data_class = TargetData
         self.actions = Actions(sim, self)
-        self.buffs = Buffs()
+        self.buffs = Buffs(sim, self)
 
     def decide(self):
+        current_mp, max_mp = self.resources[Resource.MANA]
+
+        if not self.buffs.foe_requiem.up and current_mp == max_mp:
+            return self.actions.foe_requiem.perform()
+
         if not self.buffs.raging_strikes.up and not self.actions.raging_strikes.on_cooldown:
             return self.actions.raging_strikes.perform()
 
@@ -109,6 +115,13 @@ class BardAction(Action):
     def _buff_multipliers(self) -> List[float]:
         yield from super()._buff_multipliers
 
+        # TODO Make this possible.
+        # if self.source.target_data.foe_requiem.up:
+        #     yield 1.1
+
+        if self.source.target_data.foe_requiem in self.source.target.auras:
+            yield 1.1
+
         if self.source.buffs.raging_strikes.up:
             yield 1.1
 
@@ -147,6 +160,7 @@ class Actions:
     def __init__(self, sim: Simulation, source: Bard):
         self.barrage = BarrageAction(sim, source)
         self.bloodletter = BloodletterAction(sim, source)
+        self.foe_requiem = FoeRequiemAction(sim, source)
         self.heavy_shot = HeavyShotAction(sim, source)
         self.iron_jaws = IronJawsAction(sim, source)
         self.mages_ballad = MagesBalladAction(sim, source)
@@ -161,8 +175,9 @@ class Actions:
 
 
 class Buffs:
-    def __init__(self):
+    def __init__(self, sim: Simulation, source: Bard):
         self.barrage = BarrageBuff()
+        self.foe_requiem = FoeRequiemBuff(source)
         self.mages_ballad = MagesBalladBuff()
         self.raging_strikes = RagingStrikesBuff()
         self.straight_shot = StraightShotBuff()
@@ -171,6 +186,7 @@ class Buffs:
 
 class TargetData:
     def __init__(self, source: Bard):
+        self.foe_requiem = FoeRequiemDebuff()
         self.venomous_bite = VenomousBiteDebuff(source=source)
         self.windbite = WindbiteDebuff(source=source)
 
@@ -441,3 +457,78 @@ class BarrageAction(BardAction):
         super().perform()
 
         self.schedule_aura_events(self.source, self.source.buffs.barrage)
+
+
+class FoeTickEvent(ResourceEvent):
+    def __init__(self, sim: Simulation, target: Actor):
+        super().__init__(sim=sim, target=target, resource=Resource.MANA, amount=-1680)
+
+    def execute(self) -> None:
+        super().execute()
+
+        current_mp, max_mp = self.target.resources[Resource.MANA]
+
+        if current_mp > 0:
+            self.sim.schedule(FoeTickEvent(sim=self.sim, target=self.target), delta=timedelta(seconds=3))
+        else:
+            original_target = self.target.target
+
+            for actor in self.sim.actors:
+                if actor.race is Race.ENEMY:
+                    self.target.target = actor
+
+                    self.sim.schedule(
+                        event=ExpireAuraEvent(sim=self.sim, target=actor, aura=self.target.target_data.foe_requiem),
+                        delta=timedelta(seconds=6)
+                    )
+
+            self.target.target = original_target
+
+            self.sim.schedule(
+                event=ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.target.buffs.foe_requiem),
+            )
+
+
+class FoeRequiemDebuff(Aura):
+    pass
+
+
+class FoeRequiemBuff(Aura):
+    def __init__(self, source: Bard) -> None:
+        super().__init__()
+
+        self.source = source
+
+    @property
+    def up(self):
+        return self in self.source.auras
+
+
+class FoeRequiemAction(BardAction):
+    base_cast_time = timedelta(seconds=1.5)
+
+    def perform(self):
+        super().perform()
+
+        original_target = self.source.target
+
+        for actor in self.sim.actors:
+            if actor.race is Race.ENEMY:
+                self.source.target = actor
+                self.sim.schedule(
+                    event=ApplyAuraEvent(sim=self.sim, target=actor, aura=self.source.target_data.foe_requiem),
+                    delta=self.cast_time,
+                )
+
+        self.source.target = original_target
+
+        delta = self.cast_time + timedelta(seconds=3)
+
+        self.sim.schedule(
+            event=FoeTickEvent(sim=self.sim, target=self.source),
+            delta=delta
+        )
+
+        self.sim.schedule(
+            event=ApplyAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.foe_requiem),
+        )
