@@ -162,6 +162,8 @@ class RefreshAuraEvent(AuraEvent):
 
         self.aura.expire(self.target)
 
+        self.sim.unschedule(self.aura.expiration_event)
+
         self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
         self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
 
