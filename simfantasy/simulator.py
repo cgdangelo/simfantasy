@@ -72,6 +72,7 @@ class Simulation:
             self.logger.debug('XX %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
         self.events.remove(event)
+        self.events.sort()
 
     def schedule_in(self, event, delta: timedelta = None) -> None:
         """
