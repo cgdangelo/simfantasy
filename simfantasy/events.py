@@ -238,6 +238,7 @@ class DamageEvent(Event):
                 'critical_hits': [],
                 'direct_hits': [],
                 'critical_direct_hits': [],
+                'ticks': [],
             }
 
         s = self.source.statistics['damage'][self.action]
@@ -401,7 +402,7 @@ class DamageEvent(Event):
 
 class DotTickEvent(DamageEvent):
     def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int,
-                 aura: Aura, ticks_remain: int = None,
+                 aura: TickingAura, ticks_remain: int = None,
                  trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
@@ -414,6 +415,8 @@ class DotTickEvent(DamageEvent):
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
+        self.source.statistics['damage'][self.action]['ticks'].append((self.sim.current_time, self.damage))
+
         if self.ticks_remain > 0:
             tick_event = self.__class__(sim=self.sim, source=self.source, target=self.target, action=self.action,
                                         potency=self.potency, trait_multipliers=self.trait_multipliers,

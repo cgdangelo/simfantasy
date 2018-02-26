@@ -136,15 +136,29 @@ class Simulation:
 
             if len(actor.statistics['damage']) > 0:
                 statistics = []
+                dot_statistics = []
 
                 actor_damage = 0
 
                 for cls in actor.statistics['damage']:
                     s = actor.statistics['damage'][cls]
+
                     total_damage = sum(damage for timestamp, damage in s['damage'])
-                    actor_damage += total_damage
                     casts = len(s['casts'])
                     execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
+
+                    actor_damage += total_damage
+
+                    if len(s['ticks']) > 0:
+                        tick_dmg = sum(damage for timestamp, damage in s['ticks'])
+
+                        actor_damage += tick_dmg
+
+                        dot_statistics.append((
+                            cls.__class__.__name__,
+                            len(s['ticks']),
+                            format(tick_dmg, ',.0f')
+                        ))
 
                     statistics.append((
                         cls.__class__.__name__,
@@ -157,6 +171,9 @@ class Simulation:
                         format(len(s['direct_hits']) / casts * 100, '.3f'),
                         format(len(s['critical_direct_hits']) / casts * 100, '.3f'),
                     ))
+
+                if len(dot_statistics) > 0:
+                    tables.append(format_table(dot_statistics, ('Name', 'Ticks', 'Damage')))
 
                 tables.append(format_table(
                     statistics,
@@ -344,6 +361,7 @@ class Actor:
             'actions': {},
             'auras': {},
             'damage': {},
+            'dots': {},
             'resources': {},
         }
 
