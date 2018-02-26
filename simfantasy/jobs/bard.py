@@ -40,8 +40,21 @@ class Bard(Actor):
         if not self.buffs.foe_requiem.up and current_mp == max_mp:
             return self.actions.foe_requiem.perform()
 
+        if self.actions.raging_strikes.on_cooldown \
+                and self.actions.raging_strikes.can_recast_at - self.sim.current_time < timedelta(seconds=5):
+            if self.target_data.windbite.up and self.target_data.venomous_bite.up:
+                if self.target_data.windbite.remains <= self.buffs.raging_strikes.duration \
+                        or self.target_data.venomous_bite.remains <= self.buffs.raging_strikes.duration:
+                    return self.actions.iron_jaws.perform()
+
         if not self.buffs.raging_strikes.up and not self.actions.raging_strikes.on_cooldown:
             return self.actions.raging_strikes.perform()
+
+        if self.buffs.raging_strikes.up \
+                and self.buffs.raging_strikes.remains < timedelta(seconds=3) \
+                and not self.actions.barrage.on_cooldown \
+                and not self.actions.empyreal_arrow.on_cooldown:
+            return self.actions.barrage.perform()
 
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
@@ -49,8 +62,8 @@ class Bard(Actor):
         if not self.actions.wanderers_minuet.on_cooldown:
             return self.actions.wanderers_minuet.perform()
 
-        if self.song is self.buffs.wanderers_minuet and current_rep > 0 and \
-                (current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)):
+        if self.song is self.buffs.wanderers_minuet and current_rep > 0 \
+                and (current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)):
             return self.actions.pitch_perfect.perform()
 
         if not self.song:
@@ -60,15 +73,24 @@ class Bard(Actor):
                 return self.actions.armys_paeon.perform()
 
         if self.target_data.windbite.up and self.target_data.venomous_bite.up:
-            if self.target_data.windbite.remains <= timedelta(seconds=3) or \
-                    self.target_data.venomous_bite.remains <= timedelta(seconds=3):
+            if self.target_data.windbite.remains <= timedelta(seconds=3) \
+                    or self.target_data.venomous_bite.remains <= timedelta(seconds=3):
                 return self.actions.iron_jaws.perform()
 
-        if self.buffs.straighter_shot.up:
+        if self.buffs.straighter_shot.up and self.buffs.raging_strikes.up:
             if not self.actions.barrage.on_cooldown:
                 return self.actions.barrage.perform()
 
             return self.actions.refulgent_arrow.perform()
+
+        if not self.actions.empyreal_arrow.on_cooldown \
+                and (self.song is not self.buffs.wanderers_minuet
+                     or current_rep < max_rep
+                     or self.buffs.barrage.up) \
+                or (
+                not self.buffs.raging_strikes.up and self.actions.raging_strikes.can_recast_at - self.sim.current_time
+                > self.actions.empyreal_arrow.recast_time):
+            return self.actions.empyreal_arrow.perform()
 
         if not self.target_data.windbite.up:
             return self.actions.windbite.perform()
@@ -122,6 +144,8 @@ class BardAction(Action):
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
                 delta=self.cast_time
             )
+
+            self.sim.schedule(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.barrage))
 
     @property
     def type_ii_speed_mod(self):
@@ -191,6 +215,7 @@ class Actions:
         self.armys_paeon = ArmysPaeonAction(sim, source)
         self.barrage = BarrageAction(sim, source)
         self.bloodletter = BloodletterAction(sim, source)
+        self.empyreal_arrow = EmpyrealArrowAction(sim, source)
         self.foe_requiem = FoeRequiemAction(sim, source)
         self.heavy_shot = HeavyShotAction(sim, source)
         self.iron_jaws = IronJawsAction(sim, source)
@@ -603,6 +628,8 @@ class WanderersMinuetAction(BardSongAction):
 
 
 class PitchPerfectAction(BardAction):
+    affected_by_barrage = True
+
     def perform(self):
         super().perform()
 
@@ -625,3 +652,15 @@ class PitchPerfectAction(BardAction):
             cls=self.__class__.__name__,
             repertoire=self.source.resources[Resource.REPERTOIRE],
         )
+
+
+class EmpyrealArrowAction(BardAction):
+    affected_by_barrage = True
+    base_recast_time = timedelta(seconds=15)
+    potency = 230
+
+    def perform(self):
+        super().perform()
+
+        if self.source.song is not None:
+            self.sim.schedule(ResourceEvent(sim=self.sim, target=self.source, resource=Resource.REPERTOIRE, amount=1))
