@@ -82,9 +82,9 @@ class AuraEvent(Event, metaclass=ABCMeta):
         if self.aura.__class__ not in self.target.statistics['auras']:
             self.target.statistics['auras'][self.aura.__class__] = {
                 'applications': [],
+                'consumptions': [],
                 'expirations': [],
                 'refreshes': [],
-                'consumptions': [],
             }
 
     def __str__(self) -> str:
@@ -526,9 +526,8 @@ class Action:
         self.can_recast_at = self.sim.current_time + self.recast_time
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
-        self.sim.schedule(ActorReadyEvent(sim=self.sim, actor=self.source),
-                          delta=max(self.source.animation_unlock_at,
-                                    self.source.gcd_unlock_at) - self.sim.current_time)
+        self.sim.schedule(event=ActorReadyEvent(sim=self.sim, actor=self.source),
+                          delta=max(self.source.animation_unlock_at, self.source.gcd_unlock_at) - self.sim.current_time)
 
         if self.shares_recast_with is not None:
             self.shares_recast_with.can_recast_at = self.can_recast_at
@@ -648,12 +647,18 @@ class ResourceEvent(Event):
         self.resource = resource
         self.amount = amount
 
+        if resource not in target.statistics['resources']:
+            target.statistics['resources'][resource] = {
+                'timeline': [],
+            }
+
     def execute(self) -> None:
         current, maximum = self.target.resources[self.resource]
 
         final_resource = max(min(current + self.amount, maximum), 0)
 
         self.target.resources[self.resource] = (final_resource, maximum)
+        self.target.statistics['resources'][self.resource]['timeline'].append((self.sim.current_time, final_resource))
 
     def __str__(self):
         return '<{cls} target={target} resource={resource} amount={amount}>'.format(

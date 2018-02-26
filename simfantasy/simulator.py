@@ -11,7 +11,7 @@ from humanfriendly.tables import format_pretty_table, format_robust_table
 
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, piety_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Slot, Role
+from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Role, Slot
 
 
 class Simulation:
@@ -324,6 +324,7 @@ class Actor:
             'actions': {},
             'auras': {},
             'damage': {},
+            'resources': {},
         }
 
         self.sim.actors.append(self)
