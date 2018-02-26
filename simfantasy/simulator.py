@@ -98,7 +98,7 @@ class Simulation:
         self.schedule_in(CombatStartEvent(sim=self))
         self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
 
-        for delta in range(1, int(self.combat_length.total_seconds()), 3):
+        for delta in range(3, int(self.combat_length.total_seconds()), 3):
             self.schedule_in(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
         for actor in self.actors:
@@ -107,6 +107,14 @@ class Simulation:
         with humanfriendly.AutomaticSpinner(label='Simulating'):
             while len(self.events) > 0:
                 event = heappop(self.events)
+
+                if event.timestamp < self.current_time:
+                    self.logger.critical(
+                        '%s %s timestamp %s before current timestamp',
+                        self.relative_timestamp,
+                        event,
+                        (event.timestamp - self.start_time).total_seconds()
+                    )
 
                 self.current_time = event.timestamp
 
@@ -188,6 +196,10 @@ class Simulation:
 
         self.logger.info('Quitting!')
 
+    @property
+    def relative_timestamp(self):
+        return format((self.current_time - self.start_time).total_seconds(), '.3f')
+
     def __set_logger(self, log_level: int):
         logger = logging.getLogger()
         logger.setLevel(log_level)
@@ -215,8 +227,11 @@ class Aura(ABC):
 
     def apply(self, target):
         if self in target.auras:
-            target.sim.logger.critical('%s Adding duplicate buff %s into %s',
-                                       (target.sim.current_time - target.sim.start_time).total_seconds(), self, target)
+            target.sim.logger.critical(
+                '%s Adding duplicate buff %s into %s',
+                target.sim.relative_timestamp, self, target
+            )
+
         target.auras.append(self)
 
     def expire(self, target):

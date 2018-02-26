@@ -31,7 +31,7 @@ class Event(metaclass=ABCMeta):
         :param other: The other event to compare to.
         :return: True if current event occurs before other.
         """
-        return self.timestamp <= other.timestamp
+        return self.timestamp < other.timestamp
 
     def __str__(self) -> str:
         """String representation of the object."""
@@ -514,6 +514,13 @@ class Action:
         self.can_recast_at = None
 
     def perform(self):
+        self.sim.logger.debug(
+            '@@ %s %s uses %s',
+            self.sim.relative_timestamp,
+            self.source,
+            self,
+        )
+
         self.can_recast_at = self.sim.current_time + self.recast_time
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
@@ -626,6 +633,9 @@ class Action:
     @property
     def _trait_multipliers(self) -> List[float]:
         yield 1.0
+
+    def __str__(self):
+        return '<{cls}>'.format(cls=self.__class__.__name__)
 
 
 class ServerTickEvent(Event):
