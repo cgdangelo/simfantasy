@@ -132,12 +132,17 @@ class Simulation:
 
             format_table = format_robust_table if self.vertical_output else format_pretty_table
 
+            actor_dps = 0
+
             if len(actor.statistics['damage']) > 0:
                 statistics = []
+
+                actor_damage = 0
 
                 for cls in actor.statistics['damage']:
                     s = actor.statistics['damage'][cls]
                     total_damage = sum(damage for timestamp, damage in s['damage'])
+                    actor_damage += total_damage
                     casts = len(s['casts'])
                     execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
 
@@ -168,6 +173,8 @@ class Simulation:
                     )
                 ))
 
+                actor_dps = format(actor_damage / self.combat_length.total_seconds(), '.3f')
+
             if len(actor.statistics['auras']) > 0:
                 statistics = []
 
@@ -193,7 +200,7 @@ class Simulation:
                 ))
 
             if len(tables) > 0:
-                self.logger.info('Actor: %s\n\n%s\n', actor.name, '\n'.join(tables))
+                self.logger.info('Actor: %s (%s DPS)\n\n%s\n', actor.name, actor_dps, '\n'.join(tables))
 
         self.logger.info('Quitting!')
 
