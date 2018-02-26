@@ -7,7 +7,7 @@ import numpy
 
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, RefreshBehavior, Slot, Resource
+from simfantasy.enums import Attribute, Job, RefreshBehavior, Resource, Slot
 from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
 
 
@@ -89,9 +89,11 @@ class AuraEvent(Event, metaclass=ABCMeta):
 
     def __str__(self) -> str:
         """String representation of the object."""
-        return '<{cls} aura={aura} target={target}>'.format(cls=self.__class__.__name__,
-                                                            aura=self.aura.__class__.__name__,
-                                                            target=self.target.name)
+        return '<{cls} aura={aura} target={target}>'.format(
+            cls=self.__class__.__name__,
+            aura=self.aura.__class__.__name__,
+            target=self.target.name
+        )
 
 
 class ApplyAuraEvent(AuraEvent):
@@ -134,8 +136,10 @@ class ActorReadyEvent(Event):
 
     def __str__(self):
         """String representation of the object."""
-        return '<{cls} actor={actor}>'.format(cls=self.__class__.__name__,
-                                              actor=self.actor.name)
+        return '<{cls} actor={actor}>'.format(
+            cls=self.__class__.__name__,
+            actor=self.actor.name
+        )
 
 
 class RefreshAuraEvent(AuraEvent):
@@ -145,11 +149,14 @@ class RefreshAuraEvent(AuraEvent):
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
+
         if self.aura.refresh_behavior is RefreshBehavior.RESET:
             delta = self.aura.duration
         elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
-            delta = max(self.aura.duration,
-                        self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension)
+            delta = max(
+                self.aura.duration,
+                self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension
+            )
         else:
             delta = self.aura.duration
 
