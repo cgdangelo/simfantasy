@@ -405,11 +405,12 @@ class DotTickEvent(DamageEvent):
                  trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
-        if ticks_remain is None:
-            ticks_remain = int(floor(aura.duration.total_seconds() / 3)) - 1
-
         self.aura = aura
         self.action = action
+
+        if ticks_remain is None:
+            ticks_remain = self.aura.ticks
+
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
@@ -566,7 +567,7 @@ class Action:
 
         dot.tick_event = tick_event
 
-        self.sim.schedule(tick_event)
+        self.sim.schedule(tick_event, timedelta(seconds=3))
 
     @property
     def on_cooldown(self):
@@ -586,6 +587,10 @@ class Action:
     @property
     def gcd(self):
         return self._speed(timedelta(seconds=2.5))
+
+    @property
+    def type_ii_speed_mod(self):
+        return 0
 
     def _speed(self, action_delay: timedelta) -> timedelta:
         speed = self.source.stats[self.hastened_by]
@@ -611,7 +616,7 @@ class Action:
         astral_umbral_mod = 50 if astral_umbral else 100
 
         type_1_mod = 0
-        type_2_mod = 0
+        type_2_mod = self.type_ii_speed_mod
 
         gcd_m = floor((1000 - floor(130 * (speed - sub_stat) / divisor)) * action_delay.total_seconds())
 
@@ -680,3 +685,9 @@ class ServerTickEvent(Event):
                 mp_tick = int(floor(0.02 * max_mp))
 
                 self.sim.schedule(ResourceEvent(sim=self.sim, target=actor, resource=Resource.MANA, amount=mp_tick))
+
+
+class ApplyAuraStackEvent(AuraEvent):
+    def execute(self) -> None:
+        if self.aura.stacks < self.aura.max_stacks:
+            self.aura.stacks += 1

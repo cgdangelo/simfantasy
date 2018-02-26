@@ -221,10 +221,12 @@ class Aura(ABC):
 
     refresh_behavior: RefreshBehavior = None
     refresh_extension: timedelta = None
+    max_stacks: int = 1
 
     def __init__(self) -> None:
         self.application_event = None
         self.expiration_event = None
+        self.stacks = 0
 
     def apply(self, target):
         if self in target.auras:
@@ -233,10 +235,12 @@ class Aura(ABC):
                 target.sim.relative_timestamp, self, target
             )
 
+        self.stacks = 1
         target.auras.append(self)
 
     def expire(self, target):
         try:
+            self.stacks = 0
             target.auras.remove(self)
         except ValueError:
             target.sim.logger.critical('%s Failed removing %s from %s',
@@ -248,7 +252,7 @@ class Aura(ABC):
 
     @property
     def remains(self):
-        if self.expiration_event is None:
+        if self.expiration_event is None or self.expiration_event.timestamp < self.expiration_event.sim.current_time:
             return timedelta()
 
         return self.expiration_event.timestamp - self.expiration_event.sim.current_time
@@ -267,6 +271,15 @@ class TickingAura(Aura):
         super().__init__()
 
         self.tick_event = None
+
+    def apply(self, target):
+        super().apply(target)
+
+        self.tick_event.ticks_remain = self.ticks
+
+    @property
+    def ticks(self):
+        return int(floor(self.duration.total_seconds() / 3)) - 1
 
 
 class Actor:

@@ -4,8 +4,8 @@ from typing import Dict, List
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
-from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, Event, \
-    ExpireAuraEvent, ResourceEvent
+from simfantasy.events import Action, ApplyAuraEvent, ApplyAuraStackEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
+    Event, ExpireAuraEvent, ResourceEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -38,8 +38,11 @@ class Bard(Actor):
         if self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
 
-        if not self.actions.mages_ballad.on_cooldown:
-            return self.actions.mages_ballad.perform()
+        if not self.song:
+            if not self.actions.mages_ballad.on_cooldown:
+                return self.actions.mages_ballad.perform()
+            elif not self.actions.armys_paeon.on_cooldown:
+                return self.actions.armys_paeon.perform()
 
         if self.target_data.windbite.up and self.target_data.venomous_bite.up:
             if self.target_data.windbite.remains <= timedelta(seconds=3) or \
@@ -73,6 +76,8 @@ class Bard(Actor):
     def song(self):
         if self.buffs.mages_ballad.up:
             return self.buffs.mages_ballad
+        elif self.buffs.armys_paeon.up:
+            return self.buffs.armys_paeon
 
         return None
 
@@ -100,6 +105,10 @@ class BardAction(Action):
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
                 delta=self.cast_time
             )
+
+    @property
+    def type_ii_speed_mod(self):
+        return self.source.buffs.armys_paeon.stacks * 4
 
     @property
     def _trait_multipliers(self) -> List[float]:
@@ -138,6 +147,9 @@ class RepertoireEvent(Event):
         if self.bard.buffs.mages_ballad.up:
             self.bard.actions.bloodletter.can_recast_at = self.sim.current_time + self.bard.actions.bloodletter.animation
             self.bard.actions.rain_of_death.can_recast_at = self.sim.current_time + self.bard.actions.rain_of_death.animation
+        elif self.bard.buffs.armys_paeon.up:
+            print('\n\n\n\n\n', self.bard.buffs.armys_paeon.stacks, '\n\n\n\n\n')
+            self.sim.schedule(ApplyAuraStackEvent(sim=self.sim, target=self.bard, aura=self.bard.buffs.armys_paeon))
 
     def __str__(self):
         return '<{cls} song={song}>'.format(
@@ -147,8 +159,6 @@ class RepertoireEvent(Event):
 
 
 class BardDotTickEvent(DotTickEvent):
-    source: Bard
-
     def execute(self) -> None:
         super().execute()
 
@@ -158,6 +168,7 @@ class BardDotTickEvent(DotTickEvent):
 
 class Actions:
     def __init__(self, sim: Simulation, source: Bard):
+        self.armys_paeon = ArmysPaeonAction(sim, source)
         self.barrage = BarrageAction(sim, source)
         self.bloodletter = BloodletterAction(sim, source)
         self.foe_requiem = FoeRequiemAction(sim, source)
@@ -176,6 +187,7 @@ class Actions:
 
 class Buffs:
     def __init__(self, sim: Simulation, source: Bard):
+        self.armys_paeon = ArmysPaeonBuff()
         self.barrage = BarrageBuff()
         self.foe_requiem = FoeRequiemBuff(source)
         self.mages_ballad = MagesBalladBuff()
@@ -226,8 +238,7 @@ class StraightShotAction(BardAction):
 
     @property
     def guarantee_crit(self):
-        if self.source.buffs.straighter_shot.up:
-            return True
+        return self.source.buffs.straighter_shot.up
 
     def perform(self):
         super().perform()
@@ -297,7 +308,7 @@ class VenomousBiteAction(BardAction):
 
         dot.tick_event = tick_event
 
-        self.sim.schedule(tick_event)
+        self.sim.schedule(dot.tick_event, timedelta(seconds=3))
 
 
 class MiserysEndAction(BardAction):
@@ -364,28 +375,29 @@ class WindbiteAction(BardAction):
         self.sim.schedule(tick_event)
 
 
+# TODO Implement crit buff for allies.
 class BardSongBuff(Aura):
     duration = timedelta(seconds=30)
 
-    def apply(self, target):
-        super().apply(target)
 
-        target.stats[Attribute.CRITICAL_HIT] *= 1.02
+class BardSongAction(BardAction):
+    base_recast_time = timedelta(seconds=80)
+    is_off_gcd = True
+    potency = 100
 
-    def expire(self, target):
-        super().expire(target)
+    def perform(self):
+        if self.source.song is not None:
+            self.sim.unschedule(self.source.song.expiration_event)
+            self.sim.schedule(self.source.song.expiration_event)
 
-        target.stats[Attribute.CRITICAL_HIT] /= 1.02
+        super().perform()
 
 
 class MagesBalladBuff(BardSongBuff):
     pass
 
 
-class MagesBalladAction(BardAction):
-    base_recast_time = timedelta(seconds=80)
-    potency = 100
-
+class MagesBalladAction(BardSongAction):
     def perform(self):
         super().perform()
 
@@ -494,7 +506,7 @@ class FoeRequiemDebuff(Aura):
 
 
 class FoeRequiemBuff(Aura):
-    def __init__(self, source: Bard) -> None:
+    def __init__(self, source: Actor) -> None:
         super().__init__()
 
         self.source = source
@@ -532,3 +544,14 @@ class FoeRequiemAction(BardAction):
         self.sim.schedule(
             event=ApplyAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.foe_requiem),
         )
+
+
+class ArmysPaeonBuff(BardSongBuff):
+    max_stacks = 4
+
+
+class ArmysPaeonAction(BardSongAction):
+    def perform(self):
+        super().perform()
+
+        self.schedule_aura_events(self.source, self.source.buffs.armys_paeon)
