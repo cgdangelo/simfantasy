@@ -4,7 +4,7 @@ from typing import Dict, List
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
-from simfantasy.events import Action, ApplyAuraEvent, ApplyAuraStackEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
+from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
@@ -25,6 +25,13 @@ class Bard(Actor):
         self._target_data_class = TargetData
         self.actions = Actions(sim, self)
         self.buffs = Buffs(sim, self)
+
+    def calculate_resources(self):
+        resources = super().calculate_resources()
+
+        resources[Resource.REPERTOIRE] = (0, 4)
+
+        return resources
 
     def decide(self):
         current_mp, max_mp = self.resources[Resource.MANA]
@@ -108,7 +115,11 @@ class BardAction(Action):
 
     @property
     def type_ii_speed_mod(self):
-        return self.source.buffs.armys_paeon.stacks * 4
+        if self.source.buffs.armys_paeon.up:
+            current, maximum = self.source.resources[Resource.REPERTOIRE]
+            return current * 4
+
+        return 0
 
     @property
     def _trait_multipliers(self) -> List[float]:
@@ -147,9 +158,8 @@ class RepertoireEvent(Event):
         if self.bard.buffs.mages_ballad.up:
             self.bard.actions.bloodletter.can_recast_at = self.sim.current_time + self.bard.actions.bloodletter.animation
             self.bard.actions.rain_of_death.can_recast_at = self.sim.current_time + self.bard.actions.rain_of_death.animation
-        elif self.bard.buffs.armys_paeon.up:
-            print('\n\n\n\n\n', self.bard.buffs.armys_paeon.stacks, '\n\n\n\n\n')
-            self.sim.schedule(ApplyAuraStackEvent(sim=self.sim, target=self.bard, aura=self.bard.buffs.armys_paeon))
+        elif self.bard.song is not None:
+            self.sim.schedule(ResourceEvent(sim=self.sim, target=self.bard, resource=Resource.REPERTOIRE, amount=1))
 
     def __str__(self):
         return '<{cls} song={song}>'.format(
@@ -547,7 +557,7 @@ class FoeRequiemAction(BardAction):
 
 
 class ArmysPaeonBuff(BardSongBuff):
-    max_stacks = 4
+    pass
 
 
 class ArmysPaeonAction(BardSongAction):
@@ -555,3 +565,11 @@ class ArmysPaeonAction(BardSongAction):
         super().perform()
 
         self.schedule_aura_events(self.source, self.source.buffs.armys_paeon)
+
+
+class WanderersMinuetBuff(BardSongBuff):
+    pass
+
+
+class WanderersMinuetAction(BardSongAction):
+    pass

@@ -138,3 +138,4 @@ class RefreshBehavior(Enum):
 class Resource(Enum):
     HEALTH = auto()
     MANA = auto()
+    REPERTOIRE = auto()
