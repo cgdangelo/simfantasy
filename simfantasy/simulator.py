@@ -74,7 +74,7 @@ class Simulation:
         self.events.remove(event)
         self.events.sort()
 
-    def schedule_in(self, event, delta: timedelta = None) -> None:
+    def schedule(self, event, delta: timedelta = None) -> None:
         """
         Schedule an event to occur in the future.
 
@@ -96,14 +96,14 @@ class Simulation:
         """Run the simulation and process all events."""
         from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
-        self.schedule_in(CombatStartEvent(sim=self))
-        self.schedule_in(CombatEndEvent(sim=self), self.combat_length)
+        self.schedule(CombatStartEvent(sim=self))
+        self.schedule(CombatEndEvent(sim=self), self.combat_length)
 
         for delta in range(3, int(self.combat_length.total_seconds()), 3):
-            self.schedule_in(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
+            self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
         for actor in self.actors:
-            self.schedule_in(ActorReadyEvent(sim=self, actor=actor))
+            self.schedule(ActorReadyEvent(sim=self, actor=actor))
 
         with humanfriendly.AutomaticSpinner(label='Simulating'):
             while len(self.events) > 0:

@@ -81,14 +81,14 @@ class BardAction(Action):
         super().perform()
 
         if self.source.buffs.barrage.up and self.affected_by_barrage:
-            self.sim.schedule_in(
+            self.sim.schedule(
                 DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
                             potency=self.potency, trait_multipliers=self._trait_multipliers,
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
                 delta=self.cast_time
             )
 
-            self.sim.schedule_in(
+            self.sim.schedule(
                 DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
                             potency=self.potency, trait_multipliers=self._trait_multipliers,
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
@@ -140,7 +140,7 @@ class BardDotTickEvent(DotTickEvent):
         super().execute()
 
         if self.source.song is not None and self.is_critical_hit:
-            self.sim.schedule_in(RepertoireEvent(sim=self.sim, bard=self.source))
+            self.sim.schedule(RepertoireEvent(sim=self.sim, bard=self.source))
 
 
 class Actions:
@@ -217,9 +217,9 @@ class StraightShotAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
-                                                  target=self.source,
-                                                  aura=self.source.buffs.straighter_shot))
+            self.sim.schedule(ConsumeAuraEvent(sim=self.sim,
+                                               target=self.source,
+                                               aura=self.source.buffs.straighter_shot))
 
         self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
 
@@ -281,7 +281,7 @@ class VenomousBiteAction(BardAction):
 
         dot.tick_event = tick_event
 
-        self.sim.schedule_in(tick_event)
+        self.sim.schedule(tick_event)
 
 
 class MiserysEndAction(BardAction):
@@ -345,7 +345,7 @@ class WindbiteAction(BardAction):
 
         dot.tick_event = tick_event
 
-        self.sim.schedule_in(tick_event)
+        self.sim.schedule(tick_event)
 
 
 class BardSongBuff(Aura):
@@ -425,9 +425,9 @@ class RefulgentArrowAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule_in(ConsumeAuraEvent(sim=self.sim,
-                                                  target=self.source,
-                                                  aura=self.source.buffs.straighter_shot))
+            self.sim.schedule(ConsumeAuraEvent(sim=self.sim,
+                                               target=self.source,
+                                               aura=self.source.buffs.straighter_shot))
 
 
 class BarrageBuff(Aura):
