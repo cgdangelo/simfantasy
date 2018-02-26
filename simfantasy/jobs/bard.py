@@ -80,7 +80,7 @@ class BardAction(Action):
     def perform(self):
         super().perform()
 
-        if self.affected_by_barrage:
+        if self.source.buffs.barrage.up and self.affected_by_barrage:
             self.sim.schedule_in(
                 DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
                             potency=self.potency, trait_multipliers=self._trait_multipliers,
