@@ -492,6 +492,8 @@ class Weapon(Item):
     def __init__(self,
                  physical_damage: int,
                  magic_damage: int,
+                 auto_attack: float,
+                 delay: float,
                  name: str = None,
                  stats: Dict[Attribute, int] = None,
                  melds: List[Tuple[Attribute, int]] = None):
@@ -499,3 +501,5 @@ class Weapon(Item):
 
         self.physical_damage = physical_damage
         self.magic_damage = magic_damage
+        self.auto_attack = auto_attack
+        self.delay = delay

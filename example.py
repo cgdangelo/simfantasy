@@ -27,6 +27,8 @@ if __name__ == '__main__':
     kujakuo = Weapon(name='Kujakuo',
                      physical_damage=102,
                      magic_damage=69,
+                     auto_attack=103.36,
+                     delay=3.04,
                      stats={
                          Attribute.DEXTERITY: 330,
                          Attribute.CRITICAL_HIT: 209,
