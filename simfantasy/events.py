@@ -699,15 +699,12 @@ class ApplyAuraStackEvent(AuraEvent):
 class AutoAttackAction(Action):
     animation = timedelta()
     is_off_gcd = True
+    hastened_by = Attribute.SKILL_SPEED
 
     def __init__(self, sim: Simulation, source: Actor):
         super().__init__(sim, source)
 
         self.last_attack = None
-
-    @property
-    def hastened_by(self):
-        return Attribute.SKILL_SPEED
 
     @property
     def base_cast_time(self):
