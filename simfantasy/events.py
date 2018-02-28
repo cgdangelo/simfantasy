@@ -737,8 +737,9 @@ class AutoAttackAction(Action):
             AutoAttackEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
                             potency=self.potency, trait_multipliers=self._trait_multipliers,
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
-            delta=self.cast_time
         )
+
+        self.sim.schedule(event=ActorReadyEvent(sim=self.sim, actor=self.source), delta=self.cast_time),
 
 
 class MeleeAttackAction(AutoAttackAction):
