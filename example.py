@@ -11,11 +11,18 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--vertical', action='store_true', default=False)
     parser.add_argument('--log-event-filter', action='store')
+
+    heap_options = parser.add_mutually_exclusive_group()
+    heap_options.add_argument('--log-pushes', action='store_false', default=True, dest='log_pops')
+    heap_options.add_argument('--log-pops', action='store_false', default=True, dest='log_pushes')
+
     args = parser.parse_args(argv[1:])
 
     sim = Simulation(log_level=logging.DEBUG if args.debug else None,
                      vertical_output=args.vertical,
-                     log_event_filter=args.log_event_filter)
+                     log_event_filter=args.log_event_filter,
+                     log_pushes=args.log_pushes,
+                     log_pops=args.log_pops)
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 

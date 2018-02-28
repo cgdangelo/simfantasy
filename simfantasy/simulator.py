@@ -18,7 +18,7 @@ class Simulation:
     """A simulated combat encounter."""
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
-                 log_event_filter: str = None, execute_time: timedelta = None):
+                 log_event_filter: str = None, execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None):
         """
         Create a new simulation.
 
@@ -36,6 +36,12 @@ class Simulation:
         if execute_time is None:
             execute_time = timedelta(seconds=60)
 
+        if log_pushes is None:
+            log_pushes = True
+
+        if log_pops is None:
+            log_pops = True
+
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
 
@@ -44,6 +50,10 @@ class Simulation:
         self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
 
         self.execute_time = execute_time
+
+        self.log_pushes = log_pushes
+
+        self.log_pops = log_pops
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
@@ -89,8 +99,9 @@ class Simulation:
 
         heappush(self.events, event)
 
-        if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-            self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+        if self.log_pushes is True:
+            if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+                self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
@@ -119,9 +130,10 @@ class Simulation:
 
                 self.current_time = event.timestamp
 
-                if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-                    self.logger.debug('<= %s %s',
-                                      format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                if self.log_pops is True:
+                    if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+                        self.logger.debug('<= %s %s',
+                                          format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
                 event.execute()
 
