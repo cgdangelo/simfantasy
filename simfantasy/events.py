@@ -694,3 +694,106 @@ class ApplyAuraStackEvent(AuraEvent):
     def execute(self) -> None:
         if self.aura.stacks < self.aura.max_stacks:
             self.aura.stacks += 1
+
+
+class AutoAttackAction(Action):
+    animation = timedelta()
+    is_off_gcd = True
+
+    def __init__(self, sim: Simulation, source: Actor):
+        super().__init__(sim, source)
+
+        self.last_attack = None
+
+    @property
+    def hastened_by(self):
+        return Attribute.SKILL_SPEED
+
+    @property
+    def base_cast_time(self):
+        return timedelta(seconds=self.source.gear[Slot.WEAPON].delay)
+
+    @property
+    def can_recast_at(self):
+        if self.last_attack is None:
+            return self.sim.current_time
+
+        return self.last_attack + self.cast_time
+
+    @can_recast_at.setter
+    def can_recast_at(self, value):
+        pass
+
+    def perform(self):
+        self.last_attack = self.sim.current_time
+
+        self.sim.logger.debug(
+            '@@ %s %s uses %s',
+            self.sim.relative_timestamp,
+            self.source,
+            self,
+        )
+
+        self.sim.schedule(
+            AutoAttackEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
+                            potency=self.potency, trait_multipliers=self._trait_multipliers,
+                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
+            delta=self.cast_time
+        )
+
+
+class MeleeAttackAction(AutoAttackAction):
+    potency = 110
+
+
+class ShotAction(AutoAttackAction):
+    potency = 100
+
+
+class AutoAttackEvent(DamageEvent):
+    @property
+    def damage(self) -> int:
+        if self._damage is not None:
+            return self._damage
+
+        base_stats = get_base_stats_by_job(self.source.job)
+
+        if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+            job_attribute_modifier = base_stats[Attribute.DEXTERITY]
+            attack_rating = self.source.stats[Attribute.DEXTERITY]
+        else:
+            job_attribute_modifier = base_stats[Attribute.STRENGTH]
+            attack_rating = self.source.stats[Attribute.STRENGTH]
+
+        weapon_damage = self.source.gear[Slot.WEAPON].physical_damage
+        weapon_delay = self.source.gear[Slot.WEAPON].delay
+
+        main_stat = main_stat_per_level[self.source.level]
+        sub_stat = sub_stat_per_level[self.source.level]
+        divisor = divisor_per_level[self.source.level]
+
+        f_ptc = self.potency / 100
+        f_aa = floor(floor((main_stat * job_attribute_modifier / 1000) + weapon_damage) * (weapon_delay / 3))
+        f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
+        f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+        f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+        f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+
+        damage_randomization = numpy.random.uniform(0.95, 1.05)
+
+        damage = f_ptc * f_aa * f_atk * f_det * f_tnc
+
+        for m in self.trait_multipliers:
+            damage *= m
+
+        damage = floor(damage)
+        damage = floor(damage * (f_chr if self.is_critical_hit else 1))
+        damage = floor(damage * (1.25 if self.is_direct_hit else 1))
+        damage = floor(damage * damage_randomization)
+
+        for m in self.buff_multipliers:
+            damage = floor(damage * m)
+
+        self._damage = int(damage)
+
+        return self._damage

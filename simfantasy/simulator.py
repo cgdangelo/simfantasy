@@ -166,7 +166,7 @@ class Simulation:
                         format(total_damage, ',.0f'),
                         format(total_damage / casts, ',.3f'),
                         format(total_damage / self.combat_length.total_seconds(), ',.3f'),
-                        format(total_damage / execute_time, ',.3f'),
+                        format(total_damage / execute_time, ',.3f') if execute_time > 0 else None,
                         format(len(s['critical_hits']) / casts * 100, '.3f'),
                         format(len(s['direct_hits']) / casts * 100, '.3f'),
                         format(len(s['critical_direct_hits']) / casts * 100, '.3f'),

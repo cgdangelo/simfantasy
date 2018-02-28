@@ -5,7 +5,7 @@ import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
-    Event, ExpireAuraEvent, ResourceEvent
+    Event, ExpireAuraEvent, ResourceEvent, ShotAction
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
 
 
@@ -34,6 +34,9 @@ class Bard(Actor):
         return resources
 
     def decide(self):
+        if not self.actions.shot.on_cooldown:
+            self.actions.shot.perform()
+
         current_mp, max_mp = self.resources[Resource.MANA]
         current_rep, max_rep = self.resources[Resource.REPERTOIRE]
 
@@ -212,6 +215,8 @@ class BardDotTickEvent(DotTickEvent):
 
 class Actions:
     def __init__(self, sim: Simulation, source: Bard):
+        self.shot = ShotAction(sim, source)
+
         self.armys_paeon = ArmysPaeonAction(sim, source)
         self.barrage = BarrageAction(sim, source)
         self.bloodletter = BloodletterAction(sim, source)
