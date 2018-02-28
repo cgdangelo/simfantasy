@@ -139,6 +139,11 @@ class Simulation:
                 dot_statistics = []
 
                 actor_damage = 0
+                for cls in actor.statistics['damage']:
+                    s = actor.statistics['damage'][cls]
+
+                    actor_damage += sum(damage for timestamp, damage in s['damage'])
+                    actor_damage += sum(damage for timestamp, damage in s['ticks'])
 
                 for cls in actor.statistics['damage']:
                     s = actor.statistics['damage'][cls]
@@ -147,12 +152,8 @@ class Simulation:
                     casts = len(s['casts'])
                     execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
 
-                    actor_damage += total_damage
-
                     if len(s['ticks']) > 0:
                         tick_dmg = sum(damage for timestamp, damage in s['ticks'])
-
-                        actor_damage += tick_dmg
 
                         dot_statistics.append((
                             cls.__class__.__name__,
@@ -163,10 +164,10 @@ class Simulation:
                     statistics.append((
                         cls.__class__.__name__,
                         casts,
-                        format(total_damage, ',.0f'),
+                        format(total_damage, ',.0f') + ' (' + format(total_damage / actor_damage * 100, '.2f') + ')',
                         format(total_damage / casts, ',.3f'),
                         format(total_damage / self.combat_length.total_seconds(), ',.3f'),
-                        format(total_damage / execute_time, ',.3f') if execute_time > 0 else None,
+                        # format(total_damage / execute_time, ',.3f') if execute_time > 0 else None,
                         format(len(s['critical_hits']) / casts * 100, '.3f'),
                         format(len(s['direct_hits']) / casts * 100, '.3f'),
                         format(len(s['critical_direct_hits']) / casts * 100, '.3f'),
@@ -180,10 +181,10 @@ class Simulation:
                     (
                         'Name',
                         'Casts',
-                        'Damage',
+                        'Damage (%)',
                         'Damage (Mean)',
                         'DPS',
-                        'DPET',
+                        # 'DPET',
                         'Crit %',
                         'Direct %',
                         'D.Crit %'

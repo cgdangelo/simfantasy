@@ -86,14 +86,12 @@ class Bard(Actor):
 
             return self.actions.refulgent_arrow.perform()
 
-        if not self.actions.empyreal_arrow.on_cooldown \
-                and (self.song is not self.buffs.wanderers_minuet
-                     or current_rep < max_rep
-                     or self.buffs.barrage.up) \
-                or (
-                not self.buffs.raging_strikes.up and self.actions.raging_strikes.can_recast_at - self.sim.current_time
-                > self.actions.empyreal_arrow.recast_time):
-            return self.actions.empyreal_arrow.perform()
+        if not self.actions.empyreal_arrow.on_cooldown:
+            if self.song is not self.buffs.wanderers_minuet or current_rep < max_rep or self.buffs.barrage.up:
+                return self.actions.empyreal_arrow.perform()
+
+            if self.actions.raging_strikes.can_recast_at - self.sim.current_time > self.actions.empyreal_arrow.recast_time:
+                return self.actions.empyreal_arrow.perform()
 
         if not self.target_data.windbite.up:
             return self.actions.windbite.perform()
@@ -351,9 +349,9 @@ class VenomousBiteAction(BardAction):
     def perform(self):
         super().perform()
 
-        self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
-
         dot = self.source.target_data.venomous_bite
+
+        self.schedule_aura_events(self.source.target, dot)
 
         if dot.tick_event is not None:
             self.sim.unschedule(dot.tick_event)
@@ -415,9 +413,9 @@ class WindbiteAction(BardAction):
     def perform(self):
         super().perform()
 
-        self.schedule_aura_events(aura=self.source.target_data.windbite, target=self.source.target)
-
         dot = self.source.target_data.windbite
+
+        self.schedule_aura_events(self.source.target, dot)
 
         if dot.tick_event is not None:
             self.sim.unschedule(dot.tick_event)
@@ -433,7 +431,7 @@ class WindbiteAction(BardAction):
 
         dot.tick_event = tick_event
 
-        self.sim.schedule(tick_event)
+        self.sim.schedule(dot.tick_event, timedelta(seconds=3))
 
 
 # TODO Implement crit buff for allies.
