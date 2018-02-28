@@ -389,7 +389,7 @@ class DamageEvent(Event):
 
     def __str__(self) -> str:
         """String representation of the object."""
-        return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage}>'.format(
+        return '<{cls} source={source} target={target} action={action} crit={crit} direct={direct} damage={damage} traits={traits} buffs={buffs}>'.format(
             cls=self.__class__.__name__,
             source=self.source.name,
             target=self.target.name,
@@ -397,6 +397,8 @@ class DamageEvent(Event):
             crit=self.is_critical_hit,
             direct=self.is_direct_hit,
             damage=self.damage,
+            traits=self.trait_multipliers,
+            buffs=self.buff_multipliers,
         )
 
 
@@ -637,11 +639,11 @@ class Action:
 
     @property
     def _buff_multipliers(self) -> List[float]:
-        yield 1.0
+        return [1.0]
 
     @property
     def _trait_multipliers(self) -> List[float]:
-        yield 1.0
+        return [1.0]
 
     def __str__(self):
         return '<{cls}>'.format(cls=self.__class__.__name__)

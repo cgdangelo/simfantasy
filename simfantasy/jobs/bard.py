@@ -160,27 +160,31 @@ class BardAction(Action):
 
     @property
     def _trait_multipliers(self) -> List[float]:
-        yield from super()._trait_multipliers
+        _trait_multipliers = super()._trait_multipliers
 
         if self.source.level >= 20:
-            yield 1.1
+            _trait_multipliers += [1.1]
 
         if self.source.level >= 40:
-            yield 1.2
+            _trait_multipliers += [1.2]
+
+        return _trait_multipliers
 
     @property
     def _buff_multipliers(self) -> List[float]:
-        yield from super()._buff_multipliers
+        _buff_multipliers = super()._buff_multipliers
 
         # TODO Make this possible.
         # if self.source.target_data.foe_requiem.up:
         #     yield 1.1
 
         if self.source.target_data.foe_requiem in self.source.target.auras:
-            yield 1.1
+            _buff_multipliers += [1.1]
 
         if self.source.buffs.raging_strikes.up:
-            yield 1.1
+            _buff_multipliers += [1.1]
+
+        return _buff_multipliers
 
 
 class RepertoireEvent(Event):
@@ -213,9 +217,13 @@ class BardDotTickEvent(DotTickEvent):
             self.sim.schedule(RepertoireEvent(sim=self.sim, bard=self.source))
 
 
+class BardShotAction(BardAction, ShotAction):
+    pass
+
+
 class Actions:
     def __init__(self, sim: Simulation, source: Bard):
-        self.shot = ShotAction(sim, source)
+        self.shot = BardShotAction(sim, source)
 
         self.armys_paeon = ArmysPaeonAction(sim, source)
         self.barrage = BarrageAction(sim, source)
