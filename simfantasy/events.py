@@ -74,7 +74,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
         :param target: The :class:`~simfantasy.simulator.Actor` context in which to evaluate the aura.
         :param aura: The aura that will interact with the target.
         """
-        super().__init__(sim=sim)
+        super().__init__(sim)
 
         self.target = target
         self.aura = aura
@@ -101,7 +101,7 @@ class ApplyAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         """Add the aura to the target and fire any post-application hooks from the aura itself."""
-        self.aura.apply(target=self.target)
+        self.aura.apply(self.target)
 
         self.target.statistics['auras'][self.aura.__class__]['applications'].append(self.timestamp)
 
@@ -111,7 +111,7 @@ class ExpireAuraEvent(AuraEvent):
 
     def execute(self) -> None:
         """Remove the aura if still present on the target and fire any post-expiration hooks from the aura itself."""
-        self.aura.expire(target=self.target)
+        self.aura.expire(self.target)
         self.aura.expiration_event = None
 
         self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
@@ -127,7 +127,7 @@ class ActorReadyEvent(Event):
         :param sim: The simulation that the event is fired within.
         :param actor: The :class:`~simfantasy.simulator.Actor` context, i.e, the one recovering from nonready state.
         """
-        super().__init__(sim=sim)
+        super().__init__(sim)
 
         self.actor = actor
 
@@ -149,14 +149,11 @@ class RefreshAuraEvent(AuraEvent):
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
-
         if self.aura.refresh_behavior is RefreshBehavior.RESET:
             delta = self.aura.duration
         elif self.aura.refresh_behavior is RefreshBehavior.EXTEND_TO_MAX:
-            delta = max(
-                self.aura.duration,
-                self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension
-            )
+            delta = max(self.aura.duration,
+                        self.sim.current_time - self.aura.expiration_event + self.aura.refresh_extension)
         else:
             delta = self.aura.duration
 
@@ -164,11 +161,11 @@ class RefreshAuraEvent(AuraEvent):
 
         self.sim.unschedule(self.aura.expiration_event)
 
-        self.aura.application_event = ApplyAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
-        self.aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.aura)
+        self.aura.application_event = ApplyAuraEvent(self.sim, self.target, self.aura)
+        self.aura.expiration_event = ExpireAuraEvent(self.sim, self.target, self.aura)
 
         self.sim.schedule(self.aura.application_event)
-        self.sim.schedule(self.aura.expiration_event, delta=delta)
+        self.sim.schedule(self.aura.expiration_event, delta)
 
         self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
 
@@ -189,7 +186,7 @@ class ConsumeAuraEvent(AuraEvent):
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
 
     def execute(self) -> None:
-        self.aura.expire(target=self.target)
+        self.aura.expire(self.target)
         self.sim.unschedule(self.aura.expiration_event)
         self.aura.expiration_event = None
 
@@ -403,9 +400,8 @@ class DamageEvent(Event):
 
 
 class DotTickEvent(DamageEvent):
-    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int,
-                 aura: TickingAura, ticks_remain: int = None,
-                 trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
+    def __init__(self, sim: Simulation, source: Actor, target: Actor, action: 'Action', potency: int, aura: TickingAura,
+                 ticks_remain: int = None, trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
         self.aura = aura
@@ -420,12 +416,9 @@ class DotTickEvent(DamageEvent):
         self.source.statistics['damage'][self.action]['ticks'].append((self.sim.current_time, self.damage))
 
         if self.ticks_remain > 0:
-            tick_event = self.create_tick_event(
-                sim=self.sim, source=self.source, target=self.target, action=self.action,
-                potency=self.potency, trait_multipliers=self.trait_multipliers,
-                buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
-                aura=self.aura
-            )
+            tick_event = self.create_tick_event(self.sim, self.source, self.target, self.action, self.potency,
+                                                self.aura, self.ticks_remain - 1, self.trait_multipliers,
+                                                self.buff_multipliers)
 
             self.aura.tick_event = tick_event
             self.sim.schedule(tick_event, timedelta(seconds=3))
@@ -529,26 +522,18 @@ class Action:
         self.can_recast_at = None
 
     def perform(self):
-        self.sim.logger.debug(
-            '@@ %s %s uses %s',
-            self.sim.relative_timestamp,
-            self.source,
-            self,
-        )
+        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
 
         self.set_recast_at(self.recast_time)
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
-        self.sim.schedule(event=ActorReadyEvent(sim=self.sim, actor=self.source),
-                          delta=max(self.source.animation_unlock_at, self.source.gcd_unlock_at) - self.sim.current_time)
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source),
+                          max(self.source.animation_unlock_at, self.source.gcd_unlock_at) - self.sim.current_time)
 
         if self.potency > 0:
             self.sim.schedule(
-                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
-                            potency=self.potency, trait_multipliers=self._trait_multipliers,
-                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
-                delta=self.cast_time
-            )
+                DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
+                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
 
     def set_recast_at(self, delta: timedelta):
         recast_at = self.sim.current_time + delta
@@ -560,27 +545,20 @@ class Action:
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
         if aura.expiration_event is not None:
-            self.sim.schedule(RefreshAuraEvent(sim=self.sim, target=target, aura=aura))
+            self.sim.schedule(RefreshAuraEvent(self.sim, target, aura))
             self.sim.unschedule(aura.expiration_event)
         else:
-            aura.application_event = ApplyAuraEvent(sim=self.sim, target=target, aura=aura)
-            aura.expiration_event = ExpireAuraEvent(sim=self.sim, target=target, aura=aura)
+            aura.application_event = ApplyAuraEvent(self.sim, target, aura)
+            aura.expiration_event = ExpireAuraEvent(self.sim, target, aura)
 
             self.sim.schedule(aura.application_event)
-            self.sim.schedule(aura.expiration_event, delta=aura.duration)
+            self.sim.schedule(aura.expiration_event, aura.duration)
 
     def schedule_dot(self, dot: TickingAura):
         if dot.tick_event is not None:
             self.sim.unschedule(dot.tick_event)
 
-        tick_event = DotTickEvent(
-            sim=self.sim,
-            source=self.source,
-            target=self.source.target,
-            action=self,
-            potency=dot.potency,
-            aura=dot,
-        )
+        tick_event = DotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot)
 
         dot.tick_event = tick_event
 
@@ -701,7 +679,7 @@ class ServerTickEvent(Event):
             if current_mp != max_mp:
                 mp_tick = int(floor(0.02 * max_mp))
 
-                self.sim.schedule(ResourceEvent(sim=self.sim, target=actor, resource=Resource.MANA, amount=mp_tick))
+                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MANA, mp_tick))
 
 
 class ApplyAuraStackEvent(AuraEvent):
@@ -738,20 +716,12 @@ class AutoAttackAction(Action):
     def perform(self):
         self.last_attack = self.sim.current_time
 
-        self.sim.logger.debug(
-            '@@ %s %s uses %s',
-            self.sim.relative_timestamp,
-            self.source,
-            self,
-        )
+        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
 
         self.sim.schedule(
-            AutoAttackEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
-                            potency=self.potency, trait_multipliers=self._trait_multipliers,
-                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
-        )
-
-        self.sim.schedule(event=ActorReadyEvent(sim=self.sim, actor=self.source), delta=self.cast_time),
+            AutoAttackEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
+                            self._buff_multipliers, self.guarantee_crit))
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.cast_time),
 
 
 class MeleeAttackAction(AutoAttackAction):
