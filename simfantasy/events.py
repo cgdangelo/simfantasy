@@ -420,12 +420,19 @@ class DotTickEvent(DamageEvent):
         self.source.statistics['damage'][self.action]['ticks'].append((self.sim.current_time, self.damage))
 
         if self.ticks_remain > 0:
-            tick_event = self.__class__(sim=self.sim, source=self.source, target=self.target, action=self.action,
-                                        potency=self.potency, trait_multipliers=self.trait_multipliers,
-                                        buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
-                                        aura=self.aura)
+            tick_event = self.create_tick_event(
+                sim=self.sim, source=self.source, target=self.target, action=self.action,
+                potency=self.potency, trait_multipliers=self.trait_multipliers,
+                buff_multipliers=self.buff_multipliers, ticks_remain=self.ticks_remain - 1,
+                aura=self.aura
+            )
+
             self.aura.tick_event = tick_event
             self.sim.schedule(tick_event, timedelta(seconds=3))
+
+    @classmethod
+    def create_tick_event(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
 
     @property
     def damage(self) -> int:
