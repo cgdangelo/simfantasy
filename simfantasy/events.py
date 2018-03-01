@@ -536,14 +536,11 @@ class Action:
             self,
         )
 
-        self.can_recast_at = self.sim.current_time + self.recast_time
+        self.set_recast_at(self.recast_time)
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
         self.sim.schedule(event=ActorReadyEvent(sim=self.sim, actor=self.source),
                           delta=max(self.source.animation_unlock_at, self.source.gcd_unlock_at) - self.sim.current_time)
-
-        if self.shares_recast_with is not None:
-            self.shares_recast_with.can_recast_at = self.can_recast_at
 
         if self.potency > 0:
             self.sim.schedule(
@@ -552,6 +549,14 @@ class Action:
                             buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
                 delta=self.cast_time
             )
+
+    def set_recast_at(self, delta: timedelta):
+        recast_at = self.sim.current_time + delta
+
+        self.can_recast_at = recast_at
+
+        if self.shares_recast_with is not None:
+            self.shares_recast_with.can_recast_at = recast_at
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
         if aura.expiration_event is not None:

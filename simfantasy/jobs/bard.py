@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 import numpy
 
@@ -13,27 +13,22 @@ class Bard(Actor):
     job = Job.BARD
     role = Role.DPS
 
-    def __init__(self,
-                 sim: Simulation,
-                 race: Race,
-                 level: int = None,
-                 target: Actor = None,
-                 name: str = None,
+    def __init__(self, sim: Simulation, race: Race, level: int = None, target: Actor = None, name: str = None,
                  equipment: Dict[Slot, Item] = None):
-        super().__init__(sim=sim, race=race, level=level, target=target, name=name, equipment=equipment)
+        super().__init__(sim, race, level, target, name, equipment)
 
         self._target_data_class = TargetData
         self.actions = Actions(sim, self)
         self.buffs = Buffs(sim, self)
 
-    def calculate_resources(self):
+    def calculate_resources(self) -> Dict[Resource, Tuple[int, int]]:
         resources = super().calculate_resources()
 
         resources[Resource.REPERTOIRE] = (0, 0)
 
         return resources
 
-    def decide(self):
+    def decide(self) -> None:
         if not self.actions.shot.on_cooldown:
             self.actions.shot.perform()
 
@@ -112,7 +107,7 @@ class Bard(Actor):
             self.actions.heavy_shot.perform()
 
     @property
-    def song(self):
+    def song(self) -> Optional['BardSongBuff']:
         if self.buffs.mages_ballad.up:
             return self.buffs.mages_ballad
         elif self.buffs.armys_paeon.up:
@@ -129,28 +124,22 @@ class BardAction(Action):
     powered_by = Attribute.ATTACK_POWER
     source: Bard
 
-    def perform(self):
+    def perform(self) -> None:
         super().perform()
 
         if self.source.buffs.barrage.up and self.affected_by_barrage:
             self.sim.schedule(
-                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
-                            potency=self.potency, trait_multipliers=self._trait_multipliers,
-                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
-                delta=self.cast_time
-            )
+                DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
+                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
 
             self.sim.schedule(
-                DamageEvent(sim=self.sim, source=self.source, target=self.source.target, action=self,
-                            potency=self.potency, trait_multipliers=self._trait_multipliers,
-                            buff_multipliers=self._buff_multipliers, guarantee_crit=self.guarantee_crit),
-                delta=self.cast_time
-            )
+                DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
+                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
 
-            self.sim.schedule(ConsumeAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.barrage))
+            self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.barrage))
 
     @property
-    def type_ii_speed_mod(self):
+    def type_ii_speed_mod(self) -> int:
         if self.source.buffs.armys_paeon.up:
             current, maximum = self.source.resources[Resource.REPERTOIRE]
             return current * 4
@@ -196,10 +185,9 @@ class RepertoireEvent(Event):
         super().execute()
 
         if self.bard.buffs.mages_ballad.up:
-            self.bard.actions.bloodletter.can_recast_at = self.sim.current_time + self.bard.actions.bloodletter.animation
-            self.bard.actions.rain_of_death.can_recast_at = self.sim.current_time + self.bard.actions.rain_of_death.animation
+            self.bard.actions.bloodletter.set_recast_at(self.bard.actions.bloodletter.animation)
         elif self.bard.song is not None:
-            self.sim.schedule(ResourceEvent(sim=self.sim, target=self.bard, resource=Resource.REPERTOIRE, amount=1))
+            self.sim.schedule(ResourceEvent(self.sim, self.bard, Resource.REPERTOIRE, 1))
 
     def __str__(self):
         return '<{cls} song={song}>'.format(
@@ -213,7 +201,7 @@ class BardDotTickEvent(DotTickEvent):
         super().execute()
 
         if self.source.song is not None and self.is_critical_hit:
-            self.sim.schedule(RepertoireEvent(sim=self.sim, bard=self.source))
+            self.sim.schedule(RepertoireEvent(self.sim, self.source))
 
 
 class BardShotAction(BardAction, ShotAction):
@@ -259,8 +247,8 @@ class Buffs:
 class TargetData:
     def __init__(self, source: Bard):
         self.foe_requiem = FoeRequiemDebuff()
-        self.venomous_bite = VenomousBiteDebuff(source=source)
-        self.windbite = WindbiteDebuff(source=source)
+        self.venomous_bite = VenomousBiteDebuff(source)
+        self.windbite = WindbiteDebuff(source)
 
 
 class StraighterShotBuff(Aura):
@@ -304,9 +292,7 @@ class StraightShotAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule(ConsumeAuraEvent(sim=self.sim,
-                                               target=self.source,
-                                               aura=self.source.buffs.straighter_shot))
+            self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
 
         self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
 
@@ -357,20 +343,14 @@ class VenomousBiteAction(BardAction):
         if dot.tick_event is not None:
             self.sim.unschedule(dot.tick_event)
 
-        tick_event = BardDotTickEvent(
-            sim=self.sim,
-            source=self.source,
-            target=self.source.target,
-            action=self,
-            potency=dot.potency,
-            aura=dot,
-        )
+        tick_event = BardDotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot)
 
         dot.tick_event = tick_event
 
         self.sim.schedule(dot.tick_event, timedelta(seconds=3))
 
 
+# FIXME Animation time likely longer than default.
 class MiserysEndAction(BardAction):
     base_recast_time = timedelta(seconds=12)
     potency = 190
@@ -466,7 +446,7 @@ class MagesBalladAction(BardSongAction):
     def perform(self):
         super().perform()
 
-        self.schedule_aura_events(aura=self.source.buffs.mages_ballad, target=self.source)
+        self.schedule_aura_events(self.source, self.source.buffs.mages_ballad)
 
 
 class RainOfDeathAction(BardAction):
@@ -486,10 +466,10 @@ class IronJawsAction(BardAction):
         super().perform()
 
         if self.source.target_data.windbite.up:
-            self.schedule_aura_events(target=self.source.target, aura=self.source.target_data.windbite)
+            self.schedule_aura_events(self.source.target, self.source.target_data.windbite)
 
         if self.source.target_data.venomous_bite.up:
-            self.schedule_aura_events(target=self.source.target, aura=self.source.target_data.venomous_bite)
+            self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
 
 
 class SidewinderAction(BardAction):
@@ -518,9 +498,7 @@ class RefulgentArrowAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule(ConsumeAuraEvent(sim=self.sim,
-                                               target=self.source,
-                                               aura=self.source.buffs.straighter_shot))
+            self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
 
 
 class BarrageBuff(Aura):
@@ -538,7 +516,7 @@ class BarrageAction(BardAction):
 
 class FoeTickEvent(ResourceEvent):
     def __init__(self, sim: Simulation, target: Actor):
-        super().__init__(sim=sim, target=target, resource=Resource.MANA, amount=-1680)
+        super().__init__(sim, target, Resource.MANA, -1680)
 
     def execute(self) -> None:
         super().execute()
@@ -546,7 +524,7 @@ class FoeTickEvent(ResourceEvent):
         current_mp, max_mp = self.target.resources[Resource.MANA]
 
         if current_mp > 0:
-            self.sim.schedule(FoeTickEvent(sim=self.sim, target=self.target), delta=timedelta(seconds=3))
+            self.sim.schedule(FoeTickEvent(self.sim, self.target), timedelta(seconds=3))
         else:
             original_target = self.target.target
 
@@ -554,16 +532,12 @@ class FoeTickEvent(ResourceEvent):
                 if actor.race is Race.ENEMY:
                     self.target.target = actor
 
-                    self.sim.schedule(
-                        event=ExpireAuraEvent(sim=self.sim, target=actor, aura=self.target.target_data.foe_requiem),
-                        delta=timedelta(seconds=6)
-                    )
+                    self.sim.schedule(ExpireAuraEvent(self.sim, actor, self.target.target_data.foe_requiem),
+                                      timedelta(seconds=6))
 
             self.target.target = original_target
 
-            self.sim.schedule(
-                event=ExpireAuraEvent(sim=self.sim, target=self.target, aura=self.target.buffs.foe_requiem),
-            )
+            self.sim.schedule(ExpireAuraEvent(self.sim, self.target, self.target.buffs.foe_requiem))
 
 
 class FoeRequiemDebuff(Aura):
@@ -592,23 +566,15 @@ class FoeRequiemAction(BardAction):
         for actor in self.sim.actors:
             if actor.race is Race.ENEMY:
                 self.source.target = actor
-                self.sim.schedule(
-                    event=ApplyAuraEvent(sim=self.sim, target=actor, aura=self.source.target_data.foe_requiem),
-                    delta=self.cast_time,
-                )
+                self.sim.schedule(ApplyAuraEvent(self.sim, actor, self.source.target_data.foe_requiem), self.cast_time)
 
         self.source.target = original_target
 
         delta = self.cast_time + timedelta(seconds=3)
 
-        self.sim.schedule(
-            event=FoeTickEvent(sim=self.sim, target=self.source),
-            delta=delta
-        )
+        self.sim.schedule(FoeTickEvent(self.sim, self.source), delta)
 
-        self.sim.schedule(
-            event=ApplyAuraEvent(sim=self.sim, target=self.source, aura=self.source.buffs.foe_requiem),
-        )
+        self.sim.schedule(ApplyAuraEvent(self.sim, self.source, self.source.buffs.foe_requiem))
 
 
 class ArmysPaeonBuff(BardSongBuff):
@@ -636,7 +602,7 @@ class WanderersMinuetAction(BardSongAction):
     def perform(self):
         super().perform()
 
-        self.schedule_aura_events(aura=self.source.buffs.wanderers_minuet, target=self.source)
+        self.schedule_aura_events(self.source, self.source.buffs.wanderers_minuet)
 
 
 class PitchPerfectAction(BardAction):
@@ -647,8 +613,7 @@ class PitchPerfectAction(BardAction):
     def perform(self):
         super().perform()
 
-        self.sim.schedule(ResourceEvent(sim=self.sim, target=self.source, resource=Resource.REPERTOIRE, amount=-3))
-        # self.source.resources[Resource.REPERTOIRE] = (0, 3)
+        self.sim.schedule(ResourceEvent(self.sim, self.source, Resource.REPERTOIRE, -3))
 
     @property
     def potency(self):
@@ -678,4 +643,4 @@ class EmpyrealArrowAction(BardAction):
         super().perform()
 
         if self.source.song is not None:
-            self.sim.schedule(ResourceEvent(sim=self.sim, target=self.source, resource=Resource.REPERTOIRE, amount=1))
+            self.sim.schedule(ResourceEvent(self.sim, self.source, Resource.REPERTOIRE, 1))
