@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import ClassVar, Dict, List, Tuple, Union
+from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union
 
 import humanfriendly
 from humanfriendly.tables import format_pretty_table, format_robust_table
@@ -14,11 +14,36 @@ from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Role, Slot
 
 
+class Materia(NamedTuple):
+    attribute: Attribute
+    bonus: int
+    name: str = None
+
+
+class Item(NamedTuple):
+    slot: Slot
+    stats: Tuple[Tuple[Attribute, int], ...]
+    melds: Tuple[Materia, ...] = None
+    name: str = None
+
+
+class Weapon(NamedTuple):
+    magic_damage: int
+    physical_damage: int
+    delay: float
+    auto_attack: float
+    stats: Tuple[Tuple[Attribute, int], ...]
+    slot = Slot.WEAPON
+    melds: Tuple[Materia, ...] = None
+    name: str = None
+
+
 class Simulation:
     """A simulated combat encounter."""
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
-                 log_event_filter: str = None, execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None):
+                 log_event_filter: str = None, execute_time: timedelta = None, log_pushes: bool = None,
+                 log_pops: bool = None):
         """
         Create a new simulation.
 
@@ -45,7 +70,9 @@ class Simulation:
         self.combat_length: timedelta = combat_length
         """Total length of encounter. Not in real time."""
 
+        # @formatter:off
         self.vertical_output: bool = vertical_output
+        # @formatter:on
 
         self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
 
@@ -101,7 +128,8 @@ class Simulation:
 
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-                self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                                  event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
@@ -131,7 +159,8 @@ class Simulation:
                 self.current_time = event.timestamp
 
                 if self.log_pops is True:
-                    if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+                    if self.log_event_filter is None or self.log_event_filter.match(
+                            event.__class__.__name__) is not None:
                         self.logger.debug('<= %s %s',
                                           format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
@@ -333,7 +362,7 @@ class Actor:
                  level: int = None,
                  target: 'Actor' = None,
                  name: str = None,
-                 equipment: Dict[Slot, 'Item'] = None):
+                 gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
         """
         Create a new actor.
 
@@ -345,8 +374,8 @@ class Actor:
         if level is None:
             level = 70
 
-        if equipment is None:
-            equipment = {}
+        if gear is None:
+            gear = ()
 
         if name is None:
             name = humanfriendly.text.random_string(length=10)
@@ -365,8 +394,8 @@ class Actor:
 
         self.stats = self.calculate_base_stats()
 
-        self.gear: Dict[Slot, Union[Item, Weapon]] = {}
-        self.equip_gear(equipment)
+        self.gear = {}
+        self.equip_gear(gear)
 
         self.resources: Dict[Resource, Tuple[int, int]] = self.calculate_resources()
 
@@ -387,12 +416,10 @@ class Actor:
         job_resources = get_base_resources_by_job(self.job)
 
         # FIXME It's broken.
-        hp = floor(3600 * (job_resources[Resource.HEALTH] / 100)) + \
-             floor((self.stats[Attribute.VITALITY] - main_stat) * 21.5)
-        mp = floor(
-            (job_resources[Resource.MANA] / 100) *
-            ((6000 * (self.stats[Attribute.PIETY] - 292) / 2170) + 12000)
-        )
+        # @formatter:off
+        hp = floor(3600 * (job_resources[Resource.HEALTH] / 100)) + floor((self.stats[Attribute.VITALITY] - main_stat) * 21.5)
+        mp = floor((job_resources[Resource.MANA] / 100) * ((6000 * (self.stats[Attribute.PIETY] - 292) / 2170) + 12000))
+        # @formatter:on
 
         return {
             Resource.HEALTH: (hp, hp),
@@ -414,33 +441,24 @@ class Actor:
     def animation_up(self):
         return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
-    def equip_gear(self, equipment: Dict[Slot, 'Item']):
-        """
-        Equip items and adjust stats accordingly.
-
-        :param equipment: Dictionary mapping :class:`Slot<simfantasy.enums.Slot>` to :class:`Item`.
-        :return:
-        """
-        for slot, item in equipment.items():
+    def equip_gear(self, gear: Tuple[Tuple[Slot, Union[Weapon, Item]], ...]):
+        for slot, item in gear:
             if not slot & item.slot:
                 raise Exception('Tried to place equipment in an incorrect slot.')
 
-            if slot in self.gear and self.gear[slot] is not None:
-                raise Exception('Tried to replace gear in slot.')
-
             self.gear[slot] = item
 
-            for gear_stat, bonus in item.stats.items():
+            for gear_stat, bonus in item.stats:
                 if gear_stat not in self.stats:
                     self.stats[gear_stat] = 0
 
                 self.stats[gear_stat] += bonus
 
-            for meld_stat, bonus in item.melds:
-                if meld_stat not in self.stats:
-                    self.stats[meld_stat] = 0
+            for materia in item.melds:
+                if materia.attribute not in self.stats:
+                    self.stats[materia.attribute] = 0
 
-                self.stats[meld_stat] += bonus
+                self.stats[materia.attribute] += materia.bonus
 
     @abstractmethod
     def decide(self) -> None:
@@ -487,35 +505,3 @@ class Actor:
 
     def __str__(self):
         return '<{cls} name={name}>'.format(cls=self.__class__.__name__, name=self.name)
-
-
-class Item:
-    def __init__(self,
-                 slot: Slot,
-                 name: str = None,
-                 stats: Dict[Attribute, int] = None,
-                 melds: List[Tuple[Attribute, int]] = None):
-        if melds is None:
-            melds = []
-
-        self.slot = slot
-        self.name = name
-        self.stats = stats
-        self.melds = melds
-
-
-class Weapon(Item):
-    def __init__(self,
-                 physical_damage: int,
-                 magic_damage: int,
-                 auto_attack: float,
-                 delay: float,
-                 name: str = None,
-                 stats: Dict[Attribute, int] = None,
-                 melds: List[Tuple[Attribute, int]] = None):
-        super().__init__(slot=Slot.WEAPON, name=name, stats=stats, melds=melds)
-
-        self.physical_damage = physical_damage
-        self.magic_damage = magic_damage
-        self.auto_attack = auto_attack
-        self.delay = delay

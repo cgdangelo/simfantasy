@@ -1,21 +1,21 @@
 from datetime import timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent, ShotAction
-from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura
+from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura, Weapon
 
 
 class Bard(Actor):
     job = Job.BARD
     role = Role.DPS
 
-    def __init__(self, sim: Simulation, race: Race, level: int = None, target: Actor = None, name: str = None,
-                 equipment: Dict[Slot, Item] = None):
-        super().__init__(sim, race, level, target, name, equipment)
+    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
+                 gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
+        super().__init__(sim, race, level, target, name, gear)
 
         self._target_data_class = TargetData
         self.actions = Actions(sim, self)
