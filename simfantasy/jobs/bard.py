@@ -30,7 +30,7 @@ class Bard(Actor):
 
     def decide(self) -> None:
         if not self.actions.shot.on_cooldown:
-            self.actions.shot.perform()
+            return self.actions.shot.perform()
 
         current_mp, max_mp = self.resources[Resource.MANA]
         current_rep, max_rep = self.resources[Resource.REPERTOIRE]
@@ -561,20 +561,20 @@ class FoeRequiemAction(BardAction):
     def perform(self):
         super().perform()
 
+        self.sim.schedule(ApplyAuraEvent(self.sim, self.source, self.source.buffs.foe_requiem), self.cast_time)
+
+        delta = self.cast_time + timedelta(seconds=3)
+
         original_target = self.source.target
 
         for actor in self.sim.actors:
             if actor.race is Race.ENEMY:
                 self.source.target = actor
-                self.sim.schedule(ApplyAuraEvent(self.sim, actor, self.source.target_data.foe_requiem), self.cast_time)
+                self.sim.schedule(ApplyAuraEvent(self.sim, actor, self.source.target_data.foe_requiem), delta)
 
         self.source.target = original_target
 
-        delta = self.cast_time + timedelta(seconds=3)
-
         self.sim.schedule(FoeTickEvent(self.sim, self.source), delta)
-
-        self.sim.schedule(ApplyAuraEvent(self.sim, self.source, self.source.buffs.foe_requiem))
 
 
 class ArmysPaeonBuff(BardSongBuff):

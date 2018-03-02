@@ -521,12 +521,18 @@ class Action:
     def perform(self):
         self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
 
-        self.set_recast_at(self.recast_time)
         self.source.animation_unlock_at = self.sim.current_time + self.animation
-        self.source.gcd_unlock_at = self.sim.current_time + (timedelta() if self.is_off_gcd else self.gcd)
-        self.sim.schedule(ActorReadyEvent(self.sim, self.source),
-                          max(self.source.animation_unlock_at, self.source.gcd_unlock_at) - self.sim.current_time)
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.animation, self.cast_time))
 
+        if not self.is_off_gcd:
+            self.source.gcd_unlock_at = self.sim.current_time + self.gcd
+            self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.cast_time, self.gcd))
+
+        self.set_recast_at(self.recast_time)
+
+        self.schedule_damage_event()
+
+    def schedule_damage_event(self):
         if self.potency > 0:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
@@ -686,39 +692,26 @@ class ApplyAuraStackEvent(AuraEvent):
 
 
 class AutoAttackAction(Action):
-    animation = timedelta()
     is_off_gcd = True
     hastened_by = Attribute.SKILL_SPEED
 
-    def __init__(self, sim: Simulation, source: Actor):
-        super().__init__(sim, source)
+    def perform(self):
+        super().perform()
 
-        self.last_attack = None
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source))
 
     @property
-    def base_cast_time(self):
+    def animation(self):
+        return self.recast_time
+
+    @property
+    def base_recast_time(self):
         return timedelta(seconds=self.source.gear[Slot.WEAPON].delay)
 
-    @property
-    def can_recast_at(self):
-        if self.last_attack is None:
-            return self.sim.current_time
-
-        return self.last_attack + self.cast_time
-
-    @can_recast_at.setter
-    def can_recast_at(self, value):
-        pass
-
-    def perform(self):
-        self.last_attack = self.sim.current_time
-
-        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
-
+    def create_damage_event(self):
         self.sim.schedule(
             AutoAttackEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
                             self._buff_multipliers, self.guarantee_crit))
-        self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.cast_time),
 
 
 class MeleeAttackAction(AutoAttackAction):

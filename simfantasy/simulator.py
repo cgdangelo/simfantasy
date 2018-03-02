@@ -408,11 +408,11 @@ class Actor:
 
     @property
     def gcd_up(self):
-        return self.gcd_unlock_at is None or self.gcd_unlock_at < self.sim.current_time
+        return self.gcd_unlock_at is None or self.gcd_unlock_at <= self.sim.current_time
 
     @property
     def animation_up(self):
-        return self.animation_unlock_at is None or self.animation_unlock_at < self.sim.current_time
+        return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
     def equip_gear(self, equipment: Dict[Slot, 'Item']):
         """
