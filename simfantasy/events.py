@@ -158,13 +158,10 @@ class RefreshAuraEvent(AuraEvent):
             delta = self.aura.duration
 
         self.aura.expire(self.target)
+        self.aura.apply(self.target)
 
         self.sim.unschedule(self.aura.expiration_event)
-
-        self.aura.application_event = ApplyAuraEvent(self.sim, self.target, self.aura)
         self.aura.expiration_event = ExpireAuraEvent(self.sim, self.target, self.aura)
-
-        self.sim.schedule(self.aura.application_event)
         self.sim.schedule(self.aura.expiration_event, delta)
 
         self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
