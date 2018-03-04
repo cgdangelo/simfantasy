@@ -11,6 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--vertical', action='store_true', default=False)
     parser.add_argument('--log-event-filter', action='store')
+    parser.add_argument('--iterations', action='store', type=int, default=100)
 
     heap_options = parser.add_mutually_exclusive_group()
     heap_options.add_argument('--log-pushes', action='store_false', default=True, dest='log_pops')
