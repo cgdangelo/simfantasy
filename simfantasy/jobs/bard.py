@@ -13,7 +13,7 @@ class Bard(Actor):
     job = Job.BARD
     role = Role.DPS
 
-    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
+    def __init__(self, sim: Simulation, race: Race, level: int = None, target: Actor = None, name: str = None,
                  gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
         super().__init__(sim, race, level, target, name, gear)
 
