@@ -23,7 +23,8 @@ if __name__ == '__main__':
                      vertical_output=args.vertical,
                      log_event_filter=args.log_event_filter,
                      log_pushes=args.log_pushes,
-                     log_pops=args.log_pops)
+                     log_pops=args.log_pops,
+                     iterations=args.iterations)
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 

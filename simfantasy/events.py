@@ -226,34 +226,14 @@ class DamageEvent(Event):
         """
 
     def execute(self):
-        if self.action.__class__ not in self.source.statistics['damage']:
-            self.source.statistics['damage'][self.action.__class__] = {
-                'casts': [],
-                'execute_time': [],
-                'damage': [],
-                'critical_hits': [],
-                'direct_hits': [],
-                'critical_direct_hits': [],
-                'ticks': [],
-            }
-
-        s = self.source.statistics['damage'][self.action.__class__]
-
-        s['casts'].append(self.sim.current_time)
-        s['execute_time'].append(
-            (self.sim.current_time,
-             max(self.action.animation, self.action.gcd if not self.action.is_off_gcd else timedelta()))
-        )
-        s['damage'].append((self.sim.current_time, self.damage))
-
-        if self.is_critical_hit:
-            s['critical_hits'].append(self.sim.current_time)
-
-        if self.is_direct_hit:
-            s['direct_hits'].append(self.sim.current_time)
-
-        if self.is_critical_hit and self.is_direct_hit:
-            s['critical_direct_hits'].append(self.sim.current_time)
+        self.source.statistics['damage'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'action': self.action.__class__.__name__,
+            'damage': self.damage,
+            'critical': self.is_critical_hit,
+            'direct': self.is_direct_hit
+        })
 
     @property
     def critical_hit_chance(self) -> float:
@@ -412,7 +392,7 @@ class DotTickEvent(DamageEvent):
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
-        self.source.statistics['damage'][self.action.__class__]['ticks'].append((self.sim.current_time, self.damage))
+        # self.source.statistics['damage'][self.action.__class__]['ticks'].append((self.sim.current_time, self.damage))
 
         if self.ticks_remain > 0:
             tick_event = self.create_tick_event(self.sim, self.source, self.target, self.action, self.potency,

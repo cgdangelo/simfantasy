@@ -7,7 +7,7 @@ from math import floor
 from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union
 
 import humanfriendly
-from humanfriendly.tables import format_pretty_table, format_robust_table
+import pandas as pd
 
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, piety_per_level, sub_stat_per_level
@@ -82,7 +82,9 @@ class Simulation:
 
         self.log_pops = log_pops
 
-        self.iterations = iterations
+        self.iterations: int = iterations
+
+        self.current_iteration: int = None
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
@@ -137,11 +139,17 @@ class Simulation:
         """Run the simulation and process all events."""
         from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
+        df = pd.DataFrame()
+
         with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
-            self.events.clear()
-            self.events.sort()
+            iteration_runtimes = []
 
             for iteration in range(self.iterations):
+                pd_runtimes = pd.Series(iteration_runtimes)
+
+                iteration_start = datetime.now()
+                self.current_iteration = iteration
+
                 self.schedule(CombatStartEvent(sim=self))
                 self.schedule(CombatEndEvent(sim=self), self.combat_length)
 
@@ -168,106 +176,26 @@ class Simulation:
                         if self.log_event_filter is None or self.log_event_filter.match(
                                 event.__class__.__name__) is not None:
                             self.logger.debug('<= %s %s',
-                                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                                              event)
 
                     event.execute()
 
+                for actor in self.actors:
+                    df = df.append(pd.DataFrame.from_records(actor.statistics['damage']))
+
+                iteration_runtimes.append(datetime.now() - iteration_start)
+
+                spinner.label = 'Simulating ({0})'.format(
+                    (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                 spinner.step(iteration)
 
-        self.logger.info('Analyzing encounter data...\n')
+        self.logger.info('Finished %s iterations in %s (mean %s).', self.iterations, pd_runtimes.sum(),
+                         pd_runtimes.mean())
 
-        for actor in self.actors:
-            tables = []
+        self.logger.info('Analyzing encounter data...')
 
-            format_table = format_robust_table if self.vertical_output else format_pretty_table
-
-            actor_dps = 0
-
-            if len(actor.statistics['damage']) > 0:
-                statistics = []
-                dot_statistics = []
-
-                actor_damage = 0
-                for cls in actor.statistics['damage']:
-                    s = actor.statistics['damage'][cls]
-
-                    actor_damage += sum(damage for timestamp, damage in s['damage'])
-                    actor_damage += sum(damage for timestamp, damage in s['ticks'])
-
-                for cls in actor.statistics['damage']:
-                    s = actor.statistics['damage'][cls]
-
-                    total_damage = sum(damage for timestamp, damage in s['damage'])
-                    casts = len(s['casts'])
-                    execute_time = sum(duration.total_seconds() for timestamp, duration in s['execute_time'])
-
-                    if len(s['ticks']) > 0:
-                        tick_dmg = sum(damage for timestamp, damage in s['ticks'])
-
-                        dot_statistics.append((
-                            cls.__name__,
-                            len(s['ticks']),
-                            format(tick_dmg, ',.0f')
-                        ))
-
-                    statistics.append((
-                        cls.__name__,
-                        casts,
-                        format(total_damage, ',.0f') + ' (' + format(total_damage / actor_damage * 100, '.2f') + ')',
-                        format(total_damage / casts, ',.3f'),
-                        format(total_damage / self.combat_length.total_seconds(), ',.3f'),
-                        # format(total_damage / execute_time, ',.3f') if execute_time > 0 else None,
-                        format(len(s['critical_hits']) / casts * 100, '.3f'),
-                        format(len(s['direct_hits']) / casts * 100, '.3f'),
-                        format(len(s['critical_direct_hits']) / casts * 100, '.3f'),
-                    ))
-
-                if len(dot_statistics) > 0:
-                    tables.append(format_table(dot_statistics, ('Name', 'Ticks', 'Damage')))
-
-                tables.append(format_table(
-                    statistics,
-                    (
-                        'Name',
-                        'Casts',
-                        'Damage (%)',
-                        'Damage (Mean)',
-                        'DPS',
-                        # 'DPET',
-                        'Crit %',
-                        'Direct %',
-                        'D.Crit %'
-                    )
-                ))
-
-                actor_dps = format(actor_damage / self.combat_length.total_seconds(), '.3f')
-
-            if len(actor.statistics['auras']) > 0:
-                statistics = []
-
-                for cls in actor.statistics['auras']:
-                    s = actor.statistics['auras'][cls]
-
-                    total_overflow = sum(remains.total_seconds() for timestamp, remains in s['refreshes'])
-                    average_overflow = total_overflow / len(s['refreshes']) if s['refreshes'] else 0
-
-                    statistics.append((
-                        cls.__name__,
-                        format(len(s['applications']), ',.0f'),
-                        format(len(s['expirations']), ',.0f'),
-                        format(len(s['refreshes']), ',.0f'),
-                        format(len(s['consumptions']), ',.0f'),
-                        format(total_overflow, ',.3f'),
-                        format(average_overflow, ',.3f'),
-                    ))
-
-                tables.append(format_table(
-                    statistics,
-                    ('Name', 'Applications', 'Expirations', 'Refreshes', 'Consumptions', 'Overflow', 'Overflow (Mean)'),
-                ))
-
-            if len(tables) > 0:
-                self.logger.info('Actor: %s (%s DPS)\n\n%s\n', actor.name, actor_dps, '\n'.join(tables))
+        # TODO Everything.
 
         self.logger.info('Quitting!')
 
@@ -405,13 +333,7 @@ class Actor:
 
         self.equip_gear(gear)
 
-        self.statistics = {
-            'actions': {},
-            'auras': {},
-            'damage': {},
-            'dots': {},
-            'resources': {},
-        }
+        self.statistics = {}
 
         self.sim.actors.append(self)
 
@@ -426,6 +348,14 @@ class Actor:
         self.stats = self.calculate_base_stats()
         self.apply_gear_attribute_bonuses()
         self.resources = self.calculate_resources()
+
+        self.statistics = {
+            'actions': {},
+            'auras': {},
+            'damage': [],
+            'dots': {},
+            'resources': {},
+        }
 
     def calculate_resources(self):
         main_stat = main_stat_per_level[self.level]
