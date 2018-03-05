@@ -12,6 +12,7 @@ import pandas as pd
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, piety_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Role, Slot
+from simfantasy.reporting import HTMLReporter, TerminalReporter
 
 
 class Materia(NamedTuple):
@@ -190,13 +191,14 @@ class Simulation:
                     (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                 spinner.step(iteration)
 
-        self.logger.info('Finished %s iterations in %s (mean %s).', self.iterations, pd_runtimes.sum(),
+        self.logger.info('Finished %s iterations in %s (mean %s).\n\n', self.iterations, pd_runtimes.sum(),
                          pd_runtimes.mean())
-
-        self.logger.info('Analyzing encounter data...')
 
         # TODO Everything.
         df.set_index('iteration', inplace=True)
+
+        TerminalReporter(self, df).report()
+        # HTMLReporter(self, df).report()
 
         self.logger.info('Quitting!')
 

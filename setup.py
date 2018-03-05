@@ -10,6 +10,7 @@ setup(
     install_requires=[
         'numpy',
         'humanfriendly',
+        'pandas',
     ],
     extras_require={
         'docs': [

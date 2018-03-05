@@ -229,6 +229,7 @@ class DamageEvent(Event):
         self.source.statistics['damage'].append({
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
+            'actor': self.source.name,
             'action': self.action.__class__.__name__,
             'damage': self.damage,
             'critical': self.is_critical_hit,
