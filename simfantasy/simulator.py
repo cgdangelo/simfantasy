@@ -12,7 +12,7 @@ import pandas as pd
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, piety_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Role, Slot
-from simfantasy.reporting import HTMLReporter, TerminalReporter
+from simfantasy.reporting import TerminalReporter
 
 
 class Materia(NamedTuple):
@@ -140,7 +140,10 @@ class Simulation:
         """Run the simulation and process all events."""
         from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
-        df = pd.DataFrame()
+        auras_df = pd.DataFrame()
+        damage_df = pd.DataFrame()
+        dots_df = pd.DataFrame()
+        resources_df = pd.DataFrame()
 
         with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
             iteration_runtimes = []
@@ -183,7 +186,10 @@ class Simulation:
                     event.execute()
 
                 for actor in self.actors:
-                    df = df.append(pd.DataFrame.from_records(actor.statistics['damage']))
+                    auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
+                    damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
+                    dots_df = dots_df.append(pd.DataFrame.from_records(actor.statistics['dots']))
+                    resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
 
                 iteration_runtimes.append(datetime.now() - iteration_start)
 
@@ -195,9 +201,12 @@ class Simulation:
                          pd_runtimes.mean())
 
         # TODO Everything.
-        df.set_index('iteration', inplace=True)
+        auras_df.set_index('iteration', inplace=True)
+        damage_df.set_index('iteration', inplace=True)
+        dots_df.set_index('iteration', inplace=True)
+        resources_df.set_index('iteration', inplace=True)
 
-        TerminalReporter(self, df).report()
+        TerminalReporter(self, auras=auras_df, damage=damage_df, dots=dots_df, resources=resources_df).report()
         # HTMLReporter(self, df).report()
 
         self.logger.info('Quitting!')
@@ -353,11 +362,10 @@ class Actor:
         self.resources = self.calculate_resources()
 
         self.statistics = {
-            'actions': {},
-            'auras': {},
+            'auras': [],
             'damage': [],
-            'dots': {},
-            'resources': {},
+            'dots': [],
+            'resources': [],
         }
 
     def calculate_resources(self):

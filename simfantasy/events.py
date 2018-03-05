@@ -81,14 +81,6 @@ class AuraEvent(Event, metaclass=ABCMeta):
         self.target = target
         self.aura = aura
 
-        if self.aura.__class__ not in self.target.statistics['auras']:
-            self.target.statistics['auras'][self.aura.__class__] = {
-                'applications': [],
-                'consumptions': [],
-                'expirations': [],
-                'refreshes': [],
-            }
-
     def __str__(self) -> str:
         """String representation of the object."""
         return '<{cls} aura={aura} target={target}>'.format(
@@ -105,7 +97,13 @@ class ApplyAuraEvent(AuraEvent):
         """Add the aura to the target and fire any post-application hooks from the aura itself."""
         self.aura.apply(self.target)
 
-        self.target.statistics['auras'][self.aura.__class__]['applications'].append(self.timestamp)
+        self.target.statistics['auras'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'target': self.target.name,
+            'aura': self.aura.__class__.__name__,
+            'application': True,
+        })
 
 
 class ExpireAuraEvent(AuraEvent):
@@ -116,7 +114,13 @@ class ExpireAuraEvent(AuraEvent):
         self.aura.expire(self.target)
         self.aura.expiration_event = None
 
-        self.target.statistics['auras'][self.aura.__class__]['expirations'].append(self.timestamp)
+        self.target.statistics['auras'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'target': self.target.name,
+            'aura': self.aura.__class__.__name__,
+            'expiration': True,
+        })
 
 
 class ActorReadyEvent(Event):
@@ -166,7 +170,13 @@ class RefreshAuraEvent(AuraEvent):
         self.aura.expiration_event = ExpireAuraEvent(self.sim, self.target, self.aura)
         self.sim.schedule(self.aura.expiration_event, delta)
 
-        self.target.statistics['auras'][self.aura.__class__]['refreshes'].append((self.timestamp, self.remains))
+        self.target.statistics['auras'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'target': self.target.name,
+            'aura': self.aura.__class__.__name__,
+            'refresh': True,
+        })
 
     def __str__(self) -> str:
         return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
@@ -189,7 +199,13 @@ class ConsumeAuraEvent(AuraEvent):
         self.sim.unschedule(self.aura.expiration_event)
         self.aura.expiration_event = None
 
-        self.target.statistics['auras'][self.aura.__class__]['consumptions'].append((self.timestamp, self.remains))
+        self.target.statistics['auras'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'target': self.target.name,
+            'aura': self.aura.__class__.__name__,
+            'consumption': True,
+        })
 
 
 class DamageEvent(Event):
@@ -229,7 +245,8 @@ class DamageEvent(Event):
         self.source.statistics['damage'].append({
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
-            'actor': self.source.name,
+            'source': self.source.name,
+            'target': self.target.name,
             'action': self.action.__class__.__name__,
             'damage': self.damage,
             'critical': self.is_critical_hit,
@@ -393,7 +410,16 @@ class DotTickEvent(DamageEvent):
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
-        # self.source.statistics['damage'][self.action.__class__]['ticks'].append((self.sim.current_time, self.damage))
+        self.source.statistics['dots'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'source': self.source.name,
+            'target': self.target.name,
+            'action': self.action.__class__.__name__,
+            'damage': self.damage,
+            'critical': self.is_critical_hit,
+            'direct': self.is_direct_hit
+        })
 
         if self.ticks_remain > 0:
             tick_event = self.create_tick_event(self.sim, self.source, self.target, self.action, self.potency,
@@ -633,18 +659,20 @@ class ResourceEvent(Event):
         self.resource = resource
         self.amount = amount
 
-        if resource not in target.statistics['resources']:
-            target.statistics['resources'][resource] = {
-                'timeline': [],
-            }
-
     def execute(self) -> None:
         current, maximum = self.target.resources[self.resource]
 
         final_resource = max(min(current + self.amount, maximum), 0)
 
         self.target.resources[self.resource] = (final_resource, maximum)
-        self.target.statistics['resources'][self.resource]['timeline'].append((self.sim.current_time, final_resource))
+        self.target.statistics['resources'].append({
+            'iteration': self.sim.current_iteration,
+            'timestamp': self.sim.current_time,
+            'target': self.target.name,
+            'resource': self.resource,
+            'amount': self.amount,
+            'level': final_resource,
+        })
 
     def __str__(self):
         return '<{cls} target={target} resource={resource} amount={amount}>'.format(
