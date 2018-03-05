@@ -392,12 +392,11 @@ class Actor:
         self.gcd_unlock_at: datetime = None
         self.auras: List[Aura] = []
 
-        self.stats = self.calculate_base_stats()
+        self.stats: Dict[Attribute, int] = {}
+        self.gear: Dict[Slot, Union[Item, Weapon]] = {}
+        self.resources: Dict[Resource, Tuple[int, int]] = {}
 
-        self.gear = {}
         self.equip_gear(gear)
-
-        self.resources: Dict[Resource, Tuple[int, int]] = self.calculate_resources()
 
         self.statistics = {
             'actions': {},
@@ -410,6 +409,16 @@ class Actor:
         self.sim.actors.append(self)
 
         self.sim.logger.debug('Initialized: %s', self)
+
+    def arise(self):
+        self.__target_data = {}
+        self.animation_unlock_at = None
+        self.gcd_unlock_at = None
+        self.auras.clear()
+
+        self.stats = self.calculate_base_stats()
+        self.apply_gear_attribute_bonuses()
+        self.resources = self.calculate_resources()
 
     def calculate_resources(self):
         main_stat = main_stat_per_level[self.level]
@@ -448,6 +457,8 @@ class Actor:
 
             self.gear[slot] = item
 
+    def apply_gear_attribute_bonuses(self):
+        for slot, item in self.gear.items():
             for gear_stat, bonus in item.stats:
                 if gear_stat not in self.stats:
                     self.stats[gear_stat] = 0

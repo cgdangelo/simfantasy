@@ -49,7 +49,8 @@ class CombatStartEvent(Event):
         self.sim.current_time = self.sim.start_time = datetime.now()
 
     def execute(self) -> None:
-        pass
+        for actor in self.sim.actors:
+            actor.arise()
 
 
 class CombatEndEvent(Event):
