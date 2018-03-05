@@ -18,8 +18,14 @@ class Bard(Actor):
         super().__init__(sim, race, level, target, name, gear)
 
         self._target_data_class = TargetData
-        self.actions = Actions(sim, self)
-        self.buffs = Buffs(sim, self)
+        self.actions = None
+        self.buffs = None
+
+    def arise(self):
+        super().arise()
+
+        self.actions = Actions(self.sim, self)
+        self.buffs = Buffs(self.sim, self)
 
     def calculate_resources(self) -> Dict[Resource, Tuple[int, int]]:
         resources = super().calculate_resources()

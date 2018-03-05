@@ -43,7 +43,7 @@ class Simulation:
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
                  log_event_filter: str = None, execute_time: timedelta = None, log_pushes: bool = None,
-                 log_pops: bool = None):
+                 log_pops: bool = None, iterations: int = 100):
         """
         Create a new simulation.
 
@@ -81,6 +81,8 @@ class Simulation:
         self.log_pushes = log_pushes
 
         self.log_pops = log_pops
+
+        self.iterations = iterations
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
@@ -135,36 +137,42 @@ class Simulation:
         """Run the simulation and process all events."""
         from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
-        self.schedule(CombatStartEvent(sim=self))
-        self.schedule(CombatEndEvent(sim=self), self.combat_length)
+        with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
+            self.events.clear()
+            self.events.sort()
 
-        for delta in range(3, int(self.combat_length.total_seconds()), 3):
-            self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
+            for iteration in range(self.iterations):
+                self.schedule(CombatStartEvent(sim=self))
+                self.schedule(CombatEndEvent(sim=self), self.combat_length)
 
-        for actor in self.actors:
-            self.schedule(ActorReadyEvent(sim=self, actor=actor))
+                for delta in range(3, int(self.combat_length.total_seconds()), 3):
+                    self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
-        with humanfriendly.AutomaticSpinner(label='Simulating'):
-            while len(self.events) > 0:
-                event = heappop(self.events)
+                for actor in self.actors:
+                    self.schedule(ActorReadyEvent(sim=self, actor=actor))
 
-                if event.timestamp < self.current_time:
-                    self.logger.critical(
-                        '%s %s timestamp %s before current timestamp',
-                        self.relative_timestamp,
-                        event,
-                        (event.timestamp - self.start_time).total_seconds()
-                    )
+                while len(self.events) > 0:
+                    event = heappop(self.events)
 
-                self.current_time = event.timestamp
+                    if event.timestamp < self.current_time:
+                        self.logger.critical(
+                            '%s %s timestamp %s before current timestamp',
+                            self.relative_timestamp,
+                            event,
+                            (event.timestamp - self.start_time).total_seconds()
+                        )
 
-                if self.log_pops is True:
-                    if self.log_event_filter is None or self.log_event_filter.match(
-                            event.__class__.__name__) is not None:
-                        self.logger.debug('<= %s %s',
-                                          format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                    self.current_time = event.timestamp
 
-                event.execute()
+                    if self.log_pops is True:
+                        if self.log_event_filter is None or self.log_event_filter.match(
+                                event.__class__.__name__) is not None:
+                            self.logger.debug('<= %s %s',
+                                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+
+                    event.execute()
+
+                spinner.step(iteration)
 
         self.logger.info('Analyzing encounter data...\n')
 
@@ -197,13 +205,13 @@ class Simulation:
                         tick_dmg = sum(damage for timestamp, damage in s['ticks'])
 
                         dot_statistics.append((
-                            cls.__class__.__name__,
+                            cls.__name__,
                             len(s['ticks']),
                             format(tick_dmg, ',.0f')
                         ))
 
                     statistics.append((
-                        cls.__class__.__name__,
+                        cls.__name__,
                         casts,
                         format(total_damage, ',.0f') + ' (' + format(total_damage / actor_damage * 100, '.2f') + ')',
                         format(total_damage / casts, ',.3f'),
@@ -309,8 +317,7 @@ class Aura(ABC):
             self.stacks = 0
             target.auras.remove(self)
         except ValueError:
-            target.sim.logger.critical('%s Failed removing %s from %s',
-                                       (target.sim.current_time - target.sim.start_time).total_seconds(), self, target)
+            target.sim.logger.critical('%s Failed removing %s from %s', target.sim.relative_timestamp, self, target)
 
     @property
     def up(self):

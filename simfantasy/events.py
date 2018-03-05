@@ -50,6 +50,7 @@ class CombatStartEvent(Event):
 
     def execute(self) -> None:
         for actor in self.sim.actors:
+            self.sim.logger.debug('^^ %s %s arises', self.sim.relative_timestamp, actor)
             actor.arise()
 
 
@@ -225,8 +226,8 @@ class DamageEvent(Event):
         """
 
     def execute(self):
-        if self.action not in self.source.statistics['damage']:
-            self.source.statistics['damage'][self.action] = {
+        if self.action.__class__ not in self.source.statistics['damage']:
+            self.source.statistics['damage'][self.action.__class__] = {
                 'casts': [],
                 'execute_time': [],
                 'damage': [],
@@ -236,7 +237,7 @@ class DamageEvent(Event):
                 'ticks': [],
             }
 
-        s = self.source.statistics['damage'][self.action]
+        s = self.source.statistics['damage'][self.action.__class__]
 
         s['casts'].append(self.sim.current_time)
         s['execute_time'].append(
@@ -411,7 +412,7 @@ class DotTickEvent(DamageEvent):
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
-        self.source.statistics['damage'][self.action]['ticks'].append((self.sim.current_time, self.damage))
+        self.source.statistics['damage'][self.action.__class__]['ticks'].append((self.sim.current_time, self.damage))
 
         if self.ticks_remain > 0:
             tick_event = self.create_tick_event(self.sim, self.source, self.target, self.action, self.potency,
