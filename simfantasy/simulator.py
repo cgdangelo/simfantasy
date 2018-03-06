@@ -243,6 +243,10 @@ class Aura(ABC):
         self.expiration_event = None
         self.stacks = 0
 
+    @property
+    def name(self):
+        return self.__class__.__name__
+
     def apply(self, target):
         if self in target.auras:
             target.sim.logger.critical(

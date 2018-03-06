@@ -101,7 +101,7 @@ class ApplyAuraEvent(AuraEvent):
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
             'target': self.target.name,
-            'aura': self.aura.__class__.__name__,
+            'aura': self.aura.name,
             'application': True,
         })
 
@@ -118,7 +118,7 @@ class ExpireAuraEvent(AuraEvent):
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
             'target': self.target.name,
-            'aura': self.aura.__class__.__name__,
+            'aura': self.aura.name,
             'expiration': True,
         })
 
@@ -174,7 +174,7 @@ class RefreshAuraEvent(AuraEvent):
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
             'target': self.target.name,
-            'aura': self.aura.__class__.__name__,
+            'aura': self.aura.name,
             'refresh': True,
         })
 
@@ -203,7 +203,7 @@ class ConsumeAuraEvent(AuraEvent):
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
             'target': self.target.name,
-            'aura': self.aura.__class__.__name__,
+            'aura': self.aura.name,
             'consumption': True,
         })
 
@@ -247,7 +247,7 @@ class DamageEvent(Event):
             'timestamp': self.sim.current_time,
             'source': self.source.name,
             'target': self.target.name,
-            'action': self.action.__class__.__name__,
+            'action': self.action.name,
             'damage': self.damage,
             'critical': self.is_critical_hit,
             'direct': self.is_direct_hit
@@ -415,7 +415,7 @@ class DotTickEvent(DamageEvent):
             'timestamp': self.sim.current_time,
             'source': self.source.name,
             'target': self.target.name,
-            'action': self.action.__class__.__name__,
+            'action': self.action.name,
             'damage': self.damage,
             'critical': self.is_critical_hit,
             'direct': self.is_direct_hit,
@@ -527,6 +527,10 @@ class Action:
         self.sim = sim
         self.source = source
         self.can_recast_at = None
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     def perform(self):
         self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
