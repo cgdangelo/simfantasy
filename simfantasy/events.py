@@ -724,17 +724,15 @@ class ApplyAuraStackEvent(AuraEvent):
 
 
 class AutoAttackAction(Action):
+    animation = timedelta()
     is_off_gcd = True
     hastened_by = Attribute.SKILL_SPEED
 
     # TODO Would like to avoid having to duplicate so much code here.
     def perform(self):
-        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
+        super().perform()
 
         self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.recast_time)
-        self.set_recast_at(self.recast_time)
-        self.schedule_damage_event()
-        self.sim.schedule(ActorReadyEvent(self.sim, self.source))
 
     @property
     def base_recast_time(self):
