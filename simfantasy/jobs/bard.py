@@ -41,10 +41,10 @@ class Bard(Actor):
         current_mp, max_mp = self.resources[Resource.MANA]
         current_rep, max_rep = self.resources[Resource.REPERTOIRE]
 
-        if self.gcd_up and not self.buffs.foe_requiem.up and current_mp == max_mp:
+        if self.animation_up and self.gcd_up and not self.buffs.foe_requiem.up and current_mp == max_mp:
             return self.actions.foe_requiem.perform()
 
-        if self.gcd_up and self.actions.raging_strikes.on_cooldown \
+        if self.animation_up and self.gcd_up and self.actions.raging_strikes.on_cooldown \
                 and self.actions.raging_strikes.can_recast_at - self.sim.current_time < timedelta(seconds=5):
             if self.target_data.windbite.up and self.target_data.venomous_bite.up:
                 if self.target_data.windbite.remains <= self.buffs.raging_strikes.duration \
@@ -60,7 +60,7 @@ class Bard(Actor):
                 and not self.actions.empyreal_arrow.on_cooldown:
             return self.actions.barrage.perform()
 
-        if self.gcd_up and self.buffs.straight_shot.remains < timedelta(seconds=3):
+        if self.animation_up and self.gcd_up and self.buffs.straight_shot.remains < timedelta(seconds=3):
             return self.actions.straight_shot.perform()
 
         if self.animation_up and not self.actions.wanderers_minuet.on_cooldown:
@@ -76,12 +76,12 @@ class Bard(Actor):
             elif not self.actions.armys_paeon.on_cooldown:
                 return self.actions.armys_paeon.perform()
 
-        if self.gcd_up and self.target_data.windbite.up and self.target_data.venomous_bite.up:
+        if self.animation_up and self.gcd_up and self.target_data.windbite.up and self.target_data.venomous_bite.up:
             if self.target_data.windbite.remains <= timedelta(seconds=3) \
                     or self.target_data.venomous_bite.remains <= timedelta(seconds=3):
                 return self.actions.iron_jaws.perform()
 
-        if self.gcd_up and self.buffs.straighter_shot.up and self.buffs.raging_strikes.up:
+        if self.animation_up and self.gcd_up and self.buffs.straighter_shot.up and self.buffs.raging_strikes.up:
             if not self.actions.barrage.on_cooldown:
                 return self.actions.barrage.perform()
 
@@ -94,10 +94,10 @@ class Bard(Actor):
             if self.actions.raging_strikes.can_recast_at - self.sim.current_time > self.actions.empyreal_arrow.recast_time:
                 return self.actions.empyreal_arrow.perform()
 
-        if self.gcd_up and not self.target_data.windbite.up:
+        if self.animation_up and self.gcd_up and not self.target_data.windbite.up:
             return self.actions.windbite.perform()
 
-        if self.gcd_up and not self.target_data.venomous_bite.up:
+        if self.animation_up and self.gcd_up and not self.target_data.venomous_bite.up:
             return self.actions.venomous_bite.perform()
 
         if self.animation_up and not self.actions.bloodletter.on_cooldown:
@@ -109,7 +109,7 @@ class Bard(Actor):
         if self.animation_up and not self.actions.sidewinder.on_cooldown:
             return self.actions.sidewinder.perform()
 
-        if self.gcd_up:
+        if self.animation_up and self.gcd_up:
             self.actions.heavy_shot.perform()
 
     @property
@@ -373,6 +373,7 @@ class VenomousBiteAction(BardAction):
 # FIXME Animation time likely longer than default.
 class MiserysEndAction(BardAction):
     base_recast_time = timedelta(seconds=12)
+    is_off_gcd = True
     name = "Misery's End"
     potency = 190
 
@@ -544,6 +545,7 @@ class BarrageBuff(Aura):
 
 class BarrageAction(BardAction):
     base_recast_time = timedelta(seconds=80)
+    is_off_gcd = True
     name = 'Barrage'
 
     def perform(self):

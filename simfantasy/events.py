@@ -533,6 +533,22 @@ class Action:
         return self.__class__.__name__
 
     def perform(self):
+        if self.animation > timedelta() and \
+                self.source.animation_unlock_at is not None and \
+                self.source.animation_unlock_at > self.sim.current_time:
+            self.sim.logger.critical('%s %s uses %s %s before animation unlock',
+                                     self.sim.relative_timestamp,
+                                     self.source, self,
+                                     (self.source.animation_unlock_at - self.sim.current_time).total_seconds())
+
+        if not self.is_off_gcd and \
+                self.source.gcd_unlock_at is not None and \
+                self.source.gcd_unlock_at > self.sim.current_time:
+            self.sim.logger.critical('%s %s uses %s %s before GCD unlock',
+                                     self.sim.relative_timestamp,
+                                     self.source, self,
+                                     (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
+
         self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
@@ -711,14 +727,14 @@ class AutoAttackAction(Action):
     is_off_gcd = True
     hastened_by = Attribute.SKILL_SPEED
 
+    # TODO Would like to avoid having to duplicate so much code here.
     def perform(self):
-        super().perform()
+        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
 
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.recast_time)
+        self.set_recast_at(self.recast_time)
+        self.schedule_damage_event()
         self.sim.schedule(ActorReadyEvent(self.sim, self.source))
-
-    @property
-    def animation(self):
-        return self.recast_time
 
     @property
     def base_recast_time(self):
