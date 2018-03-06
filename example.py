@@ -9,7 +9,6 @@ from simfantasy.simulator import Actor, Item, Materia, Simulation, Weapon
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--vertical', action='store_true', default=False)
     parser.add_argument('--log-event-filter', action='store')
     parser.add_argument('--iterations', action='store', type=int, default=100)
 
@@ -20,7 +19,6 @@ if __name__ == '__main__':
     args = parser.parse_args(argv[1:])
 
     sim = Simulation(log_level=logging.DEBUG if args.debug else None,
-                     vertical_output=args.vertical,
                      log_event_filter=args.log_event_filter,
                      log_pushes=args.log_pushes,
                      log_pops=args.log_pops,

@@ -16,19 +16,64 @@ from simfantasy.reporting import TerminalReporter
 
 
 class Materia(NamedTuple):
+    """Provides a bonus to a specific stat."""
+
     attribute: Attribute
     bonus: int
     name: str = None
 
 
+Materia.attribute.__doc__ = """
+The :class:`~simfantasy.enums.Attribute` that will be modified.
+
+:type: :class:`~simfantasy.enums.Attribute`
+"""
+Materia.bonus.__doc__ = """
+The amount of :class:`~simfantasy.enums.Attribute`.
+
+:type: int
+"""
+Materia.name.__doc__ = """
+Optional name, for convenience.
+
+:type: str
+"""
+
+
 class Item(NamedTuple):
+    """A piece of equipment that can be worn."""
+
     slot: Slot
     stats: Tuple[Tuple[Attribute, int], ...]
     melds: Tuple[Materia, ...] = None
     name: str = None
 
 
+Item.slot.__doc__ = """
+The :class:`~simfantasy.enums.Slot` where the equipment fits.
+
+:type: :class:`~simfantasy.enums.Slot`
+"""
+Item.stats.__doc__ = """
+The :class:`~simfantasy.enums.Attribute` provided by this equipment.
+
+:type: tuple[tuple[:class:`~simfantasy.enums.Attribute`, int], ...]
+
+.. code-block:: python
+    :caption: Creating an example piece of gear.
+
+    Item(stats=((Attribute.CRITICAL_HIT, 43), (Attribute.DIRECT_HIT, 96))
+"""
+Item.melds.__doc__ = """
+Optional :class:`~simfantasy.simulator.Materia` affixed to this equipment.
+
+:type: list[:class:`~simfantasy.simulator.Materia`]
+"""
+Item.name.__doc__ = Materia.name.__doc__
+
+
 class Weapon(NamedTuple):
+    """An :class:`~simfantasy.simulator.Item` that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`."""
     magic_damage: int
     physical_damage: int
     delay: float
@@ -39,25 +84,53 @@ class Weapon(NamedTuple):
     name: str = None
 
 
-class Simulation:
-    """A simulated combat encounter."""
+Weapon.magic_damage.__doc__ = """
+Amount of magic damage inflicted by the weapon. May be hidden for non-casters.
 
-    def __init__(self, combat_length: timedelta = None, log_level: int = None, vertical_output: bool = None,
-                 log_event_filter: str = None, execute_time: timedelta = None, log_pushes: bool = None,
-                 log_pops: bool = None, iterations: int = 100):
+:type: int
+"""
+Weapon.physical_damage.__doc__ = """
+Amount of physical damage inflicted by the weapon. May be hidden for casters.
+
+:type: int
+"""
+Weapon.delay.__doc__ = """
+Weapon speed.
+
+:type: float
+"""
+Weapon.auto_attack.__doc__ = """
+Auto attack damage.
+
+:type: float
+"""
+Weapon.stats.__doc__ = Item.stats.__doc__
+Weapon.slot.__doc__ = Item.slot.__doc__
+Weapon.melds.__doc__ = Item.melds.__doc__
+Weapon.name.__doc__ = Item.name.__doc__
+
+
+class Simulation:
+    """Business logic for managing the simulated combat encounter and subsequent reporting."""
+
+    def __init__(self, combat_length: timedelta = None, log_level: int = None, log_event_filter: str = None,
+                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = 100):
         """
         Create a new simulation.
 
         :param combat_length: Desired combat length. Default: 5 minutes.
+        :param log_level: Minimum message level necessary to see logger output. Default: logging.INFO.
+        :param log_event_filter: Pattern for filtering logging output to only matching class names. Default: None.
+        :param execute_time: Length of time to allow jobs to use "execute" actions. Default: 1 minute.
+        :param log_pushes: True to show events being placed on the queue. Default: True.
+        :param log_pops: True to show events being popped off the queue. Default: True.
+        :param iterations: Number of encounters to simulate. Default: 100.
         """
         if combat_length is None:
             combat_length = timedelta(minutes=5)
 
         if log_level is None:
             log_level = logging.INFO
-
-        if vertical_output is None:
-            vertical_output = False
 
         if execute_time is None:
             execute_time = timedelta(seconds=60)
@@ -68,29 +141,21 @@ class Simulation:
         if log_pops is None:
             log_pops = True
 
-        self.combat_length: timedelta = combat_length
-        """Total length of encounter. Not in real time."""
-
-        # @formatter:off
-        self.vertical_output: bool = vertical_output
-        # @formatter:on
-
+        self.combat_length = combat_length
         self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
-
         self.execute_time = execute_time
-
         self.log_pushes = log_pushes
-
         self.log_pops = log_pops
+        self.iterations = iterations
 
-        self.iterations: int = iterations
-
-        self.current_iteration: int = None
+        self.current_iteration = None
+        """Current iteration number."""
 
         self.actors: List[Actor] = []
         """List of actors involved in this encounter, i.e., players and enemies."""
 
         self.start_time: datetime = None
+        """Timestamp when the encounter began."""
 
         self.current_time: datetime = None
         """Current game timestamp."""
@@ -103,7 +168,11 @@ class Simulation:
         self.__set_logger(log_level)
 
     @property
-    def in_execute(self):
+    def in_execute(self) -> bool:
+        """
+        True if the encounter is in execute time, allowing actions such as
+        :class:`~simfantasy.jobs.bard.MiserysEndAction` to be used.
+        """
         return self.current_time + self.execute_time >= self.start_time + self.combat_length
 
     def unschedule(self, event):

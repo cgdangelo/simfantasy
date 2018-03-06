@@ -18,6 +18,11 @@ Welcome to SimFantasy's documentation!
 
 .. automodule:: simfantasy.enums
 
+Jobs
+====
+
+.. automodule:: simfantasy.jobs.bard
+
 
 Indices and tables
 ==================
