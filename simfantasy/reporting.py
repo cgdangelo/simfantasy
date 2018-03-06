@@ -12,14 +12,12 @@ import pandas as pd
 
 
 class Reporter(ABC):
-    def __init__(self, sim, auras: pd.DataFrame, damage: pd.DataFrame, dots: pd.DataFrame,
-                 resources: pd.DataFrame) -> None:
+    def __init__(self, sim, auras: pd.DataFrame, damage: pd.DataFrame, resources: pd.DataFrame) -> None:
         super().__init__()
 
         self.sim = sim
         self.auras = auras
         self.damage = damage
-        self.dots = dots
         self.resources = resources
 
     @abstractmethod
@@ -54,7 +52,7 @@ class TerminalReporter(Reporter):
         mean_dmg_per_action_df = get_damage_grouping(self.damage, ['source', 'action'])
         self.sim.logger.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
 
-        mean_tick_dmg_per_action_df = get_damage_grouping(self.dots, ['source', 'action'])
+        mean_tick_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'] == True], ['source', 'action'])
         self.sim.logger.info('Tick Damage Dealt by Action\n\n%s\n', mean_tick_dmg_per_action_df)
 
         mean_dmg_per_target_df = get_damage_grouping(self.damage, ['source', 'target'])

@@ -410,7 +410,7 @@ class DotTickEvent(DamageEvent):
         self.ticks_remain = ticks_remain
 
     def execute(self) -> None:
-        self.source.statistics['dots'].append({
+        self.source.statistics['damage'].append({
             'iteration': self.sim.current_iteration,
             'timestamp': self.sim.current_time,
             'source': self.source.name,
@@ -418,7 +418,8 @@ class DotTickEvent(DamageEvent):
             'action': self.action.__class__.__name__,
             'damage': self.damage,
             'critical': self.is_critical_hit,
-            'direct': self.is_direct_hit
+            'direct': self.is_direct_hit,
+            'dot': True,
         })
 
         if self.ticks_remain > 0:

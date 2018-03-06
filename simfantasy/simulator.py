@@ -142,7 +142,6 @@ class Simulation:
 
         auras_df = pd.DataFrame()
         damage_df = pd.DataFrame()
-        dots_df = pd.DataFrame()
         resources_df = pd.DataFrame()
 
         try:
@@ -189,7 +188,6 @@ class Simulation:
                     for actor in self.actors:
                         auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
                         damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
-                        dots_df = dots_df.append(pd.DataFrame.from_records(actor.statistics['dots']))
                         resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
 
                     iteration_runtimes.append(datetime.now() - iteration_start)
@@ -207,10 +205,9 @@ class Simulation:
         # TODO Everything.
         auras_df.set_index('iteration', inplace=True)
         damage_df.set_index('iteration', inplace=True)
-        dots_df.set_index('iteration', inplace=True)
         resources_df.set_index('iteration', inplace=True)
 
-        TerminalReporter(self, auras=auras_df, damage=damage_df, dots=dots_df, resources=resources_df).report()
+        TerminalReporter(self, auras=auras_df, damage=damage_df, resources=resources_df).report()
         # HTMLReporter(self, df).report()
 
         self.logger.info('Quitting!')
@@ -368,7 +365,6 @@ class Actor:
         self.statistics = {
             'auras': [],
             'damage': [],
-            'dots': [],
             'resources': [],
         }
 
