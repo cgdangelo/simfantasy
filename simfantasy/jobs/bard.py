@@ -198,7 +198,7 @@ class RepertoireEvent(Event):
     def __str__(self):
         return '<{cls} song={song}>'.format(
             cls=self.__class__.__name__,
-            song=self.bard.song.__class__.__name__,
+            song=self.bard.song.name,
         )
 
 
@@ -259,10 +259,12 @@ class TargetData:
 
 class StraighterShotBuff(Aura):
     duration = timedelta(seconds=10)
+    name = 'Straighter Shot'
 
 
 class HeavyShotAction(BardAction):
     affected_by_barrage = True
+    name = 'Heavy Shot'
     potency = 150
 
     def perform(self):
@@ -274,6 +276,7 @@ class HeavyShotAction(BardAction):
 
 class StraightShotBuff(Aura):
     duration = timedelta(seconds=30)
+    name = 'Straight Shot'
 
     def apply(self, target):
         super().apply(target)
@@ -288,6 +291,7 @@ class StraightShotBuff(Aura):
 
 class StraightShotAction(BardAction):
     affected_by_barrage = True
+    name = 'Straight Shot'
     potency = 140
 
     @property
@@ -305,11 +309,13 @@ class StraightShotAction(BardAction):
 
 class RagingStrikesBuff(Aura):
     duration = timedelta(seconds=20)
+    name = 'Raging Strikes'
 
 
 class RagingStrikesAction(BardAction):
     base_recast_time = timedelta(seconds=90)
     is_off_gcd = True
+    name = 'Raging Strikes'
 
     def perform(self):
         super().perform()
@@ -324,6 +330,10 @@ class VenomousBiteDebuff(TickingAura):
         self.source = source
 
     @property
+    def name(self):
+        return '%s Bite' % ('Venomous' if self.source.level < 64 else 'Caustic')
+
+    @property
     def potency(self):
         return 40 if self.source.level < 64 else 45
 
@@ -334,6 +344,10 @@ class VenomousBiteDebuff(TickingAura):
 
 class VenomousBiteAction(BardAction):
     affected_by_barrage = True
+
+    @property
+    def name(self):
+        return '%s Bite' % ('Venomous' if self.source.level < 64 else 'Caustic')
 
     @property
     def potency(self):
@@ -359,12 +373,14 @@ class VenomousBiteAction(BardAction):
 # FIXME Animation time likely longer than default.
 class MiserysEndAction(BardAction):
     base_recast_time = timedelta(seconds=12)
+    name = "Misery's End"
     potency = 190
 
 
 class BloodletterAction(BardAction):
     base_recast_time = timedelta(seconds=8)
     is_off_gcd = True
+    name = 'Bloodletter'
     potency = 130
 
     def __init__(self, sim: Simulation, source: Actor):
@@ -382,6 +398,10 @@ class WindbiteDebuff(TickingAura):
         self.source = source
 
     @property
+    def name(self):
+        return '%sbite' % ('Wind' if self.source.level < 64 else 'Storm')
+
+    @property
     def potency(self):
         return 50 if self.source.level < 64 else 55
 
@@ -392,6 +412,10 @@ class WindbiteDebuff(TickingAura):
 
 class WindbiteAction(BardAction):
     affected_by_barrage = True
+
+    @property
+    def name(self):
+        return '%sbite' % ('Wind' if self.source.level < 64 else 'Storm')
 
     @property
     def potency(self):
@@ -445,10 +469,12 @@ class BardSongAction(BardAction):
 
 
 class MagesBalladBuff(BardSongBuff):
-    pass
+    name = "Mage's Ballad"
 
 
 class MagesBalladAction(BardSongAction):
+    name = "Mage's Ballad"
+
     def perform(self):
         super().perform()
 
@@ -457,6 +483,7 @@ class MagesBalladAction(BardSongAction):
 
 class RainOfDeathAction(BardAction):
     is_off_gcd = True
+    name = 'Rain of Death'
     potency = 100
 
     @property
@@ -466,6 +493,7 @@ class RainOfDeathAction(BardAction):
 
 class IronJawsAction(BardAction):
     affected_by_barrage = True
+    name = 'Iron Jaws'
     potency = 100
 
     def perform(self):
@@ -480,6 +508,7 @@ class IronJawsAction(BardAction):
 
 class SidewinderAction(BardAction):
     base_recast_time = timedelta(seconds=60)
+    name = 'Sidewinder'
     is_off_gcd = True
 
     @property
@@ -498,6 +527,7 @@ class SidewinderAction(BardAction):
 
 class RefulgentArrowAction(BardAction):
     affected_by_barrage = True
+    name = 'Refulgent Arrow'
     potency = 300
 
     def perform(self):
@@ -509,10 +539,12 @@ class RefulgentArrowAction(BardAction):
 
 class BarrageBuff(Aura):
     duration = timedelta(seconds=10)
+    name = 'Barrage'
 
 
 class BarrageAction(BardAction):
     base_recast_time = timedelta(seconds=80)
+    name = 'Barrage'
 
     def perform(self):
         super().perform()
@@ -547,10 +579,12 @@ class FoeTickEvent(ResourceEvent):
 
 
 class FoeRequiemDebuff(Aura):
-    pass
+    name = "Foe's Requiem"
 
 
 class FoeRequiemBuff(Aura):
+    name = "Foe's Requiem"
+
     def __init__(self, source: Actor) -> None:
         super().__init__()
 
@@ -563,6 +597,7 @@ class FoeRequiemBuff(Aura):
 
 class FoeRequiemAction(BardAction):
     base_cast_time = timedelta(seconds=1.5)
+    name = "Foe's Requiem"
 
     def perform(self):
         super().perform()
@@ -584,6 +619,8 @@ class FoeRequiemAction(BardAction):
 
 
 class ArmysPaeonBuff(BardSongBuff):
+    name = "Army's Paeon"
+
     def apply(self, target):
         super().apply(target)
 
@@ -591,6 +628,8 @@ class ArmysPaeonBuff(BardSongBuff):
 
 
 class ArmysPaeonAction(BardSongAction):
+    name = "Army's Paeon"
+
     def perform(self):
         super().perform()
 
@@ -598,6 +637,8 @@ class ArmysPaeonAction(BardSongAction):
 
 
 class WanderersMinuetBuff(BardSongBuff):
+    name = "The Wanderer's Minuet"
+
     def apply(self, target):
         super().apply(target)
 
@@ -605,6 +646,8 @@ class WanderersMinuetBuff(BardSongBuff):
 
 
 class WanderersMinuetAction(BardSongAction):
+    name = "The Wanderer's Minuet"
+
     def perform(self):
         super().perform()
 
@@ -613,8 +656,9 @@ class WanderersMinuetAction(BardSongAction):
 
 class PitchPerfectAction(BardAction):
     affected_by_barrage = True
-    is_off_gcd = True
     base_recast_time = timedelta(seconds=3)
+    is_off_gcd = True
+    name = 'Pitch Perfect'
 
     def perform(self):
         super().perform()
@@ -642,6 +686,7 @@ class PitchPerfectAction(BardAction):
 class EmpyrealArrowAction(BardAction):
     affected_by_barrage = True
     base_recast_time = timedelta(seconds=15)
+    name = 'Empyreal Arrow'
     is_off_gcd = True
     potency = 230
 

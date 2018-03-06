@@ -85,7 +85,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
         """String representation of the object."""
         return '<{cls} aura={aura} target={target}>'.format(
             cls=self.__class__.__name__,
-            aura=self.aura.__class__.__name__,
+            aura=self.aura.name,
             target=self.target.name
         )
 
@@ -181,7 +181,7 @@ class RefreshAuraEvent(AuraEvent):
     def __str__(self) -> str:
         return '<{cls} aura={aura} target={target} behavior={behavior} remains={remains}>'.format(
             cls=self.__class__.__name__,
-            aura=self.aura.__class__.__name__,
+            aura=self.aura.name,
             target=self.target.name,
             behavior=self.aura.refresh_behavior,
             remains=format(self.remains.total_seconds(), '.3f')
@@ -387,7 +387,7 @@ class DamageEvent(Event):
             cls=self.__class__.__name__,
             source=self.source.name,
             target=self.target.name,
-            action=self.action.__class__.__name__,
+            action=self.action.name,
             crit=self.is_critical_hit,
             direct=self.is_direct_hit,
             damage=self.damage,
@@ -503,7 +503,7 @@ class DotTickEvent(DamageEvent):
             cls=self.__class__.__name__,
             source=self.source.name,
             target=self.target.name,
-            action=self.action.__class__.__name__,
+            action=self.action.name,
             crit=self.is_critical_hit,
             direct=self.is_direct_hit,
             damage=self.damage,
@@ -731,10 +731,12 @@ class AutoAttackAction(Action):
 
 
 class MeleeAttackAction(AutoAttackAction):
+    name = 'Attack'
     potency = 110
 
 
 class ShotAction(AutoAttackAction):
+    name = 'Shot'
     potency = 100
 
 
