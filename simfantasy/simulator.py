@@ -145,60 +145,64 @@ class Simulation:
         dots_df = pd.DataFrame()
         resources_df = pd.DataFrame()
 
-        with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
-            iteration_runtimes = []
+        try:
+            with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
+                iteration_runtimes = []
 
-            for iteration in range(self.iterations):
-                pd_runtimes = pd.Series(iteration_runtimes)
+                for iteration in range(self.iterations):
+                    pd_runtimes = pd.Series(iteration_runtimes)
 
-                iteration_start = datetime.now()
-                self.current_iteration = iteration
+                    iteration_start = datetime.now()
+                    self.current_iteration = iteration
 
-                self.schedule(CombatStartEvent(sim=self))
-                self.schedule(CombatEndEvent(sim=self), self.combat_length)
+                    self.schedule(CombatStartEvent(sim=self))
+                    self.schedule(CombatEndEvent(sim=self), self.combat_length)
 
-                for delta in range(3, int(self.combat_length.total_seconds()), 3):
-                    self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
+                    for delta in range(3, int(self.combat_length.total_seconds()), 3):
+                        self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
-                for actor in self.actors:
-                    self.schedule(ActorReadyEvent(sim=self, actor=actor))
+                    for actor in self.actors:
+                        self.schedule(ActorReadyEvent(sim=self, actor=actor))
 
-                while len(self.events) > 0:
-                    event = heappop(self.events)
+                    while len(self.events) > 0:
+                        event = heappop(self.events)
 
-                    if event.timestamp < self.current_time:
-                        self.logger.critical(
-                            '%s %s timestamp %s before current timestamp',
-                            self.relative_timestamp,
-                            event,
-                            (event.timestamp - self.start_time).total_seconds()
-                        )
+                        if event.timestamp < self.current_time:
+                            self.logger.critical(
+                                '%s %s timestamp %s before current timestamp',
+                                self.relative_timestamp,
+                                event,
+                                (event.timestamp - self.start_time).total_seconds()
+                            )
 
-                    self.current_time = event.timestamp
+                        self.current_time = event.timestamp
 
-                    if self.log_pops is True:
-                        if self.log_event_filter is None or self.log_event_filter.match(
-                                event.__class__.__name__) is not None:
-                            self.logger.debug('<= %s %s',
-                                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
-                                              event)
+                        if self.log_pops is True:
+                            if self.log_event_filter is None or self.log_event_filter.match(
+                                    event.__class__.__name__) is not None:
+                                self.logger.debug('<= %s %s',
+                                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                                                  event)
 
-                    event.execute()
+                        event.execute()
 
-                for actor in self.actors:
-                    auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
-                    damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
-                    dots_df = dots_df.append(pd.DataFrame.from_records(actor.statistics['dots']))
-                    resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
+                    for actor in self.actors:
+                        auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
+                        damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
+                        dots_df = dots_df.append(pd.DataFrame.from_records(actor.statistics['dots']))
+                        resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
 
-                iteration_runtimes.append(datetime.now() - iteration_start)
+                    iteration_runtimes.append(datetime.now() - iteration_start)
 
-                spinner.label = 'Simulating ({0})'.format(
-                    (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
-                spinner.step(iteration)
+                    spinner.label = 'Simulating ({0})'.format(
+                        (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
+                    spinner.step(iteration)
 
-        self.logger.info('Finished %s iterations in %s (mean %s).\n\n', self.iterations, pd_runtimes.sum(),
-                         pd_runtimes.mean())
+            self.logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations, pd_runtimes.sum(),
+                             pd_runtimes.mean())
+        except KeyboardInterrupt:
+            self.logger.critical('Interrupted at %s / %s iterations after %s.\n', self.current_iteration,
+                                 self.iterations, pd_runtimes.sum())
 
         # TODO Everything.
         auras_df.set_index('iteration', inplace=True)

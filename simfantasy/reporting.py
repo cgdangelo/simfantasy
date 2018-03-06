@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from math import pi
 
 import bokeh.io
@@ -36,20 +36,28 @@ class TerminalReporter(Reporter):
         mean_dps = mean_dps.groupby('source').mean().to_frame()
         self.sim.logger.info('Average DPS:\n\n%s\n', mean_dps)
 
-        def pct_total(x):
-            return np.sum(x) / self.damage.groupby('source')['damage'].sum() * 100
+        def create_pct_total(original):
+            def pct_total(x):
+                return np.sum(x) / original.groupby('source')['damage'].sum() * 100
 
-        def get_damage_grouping(group: pd.DataFrame):
+            return pct_total
+
+        def get_damage_grouping(df: pd.DataFrame, groupby):
+            group = df.groupby(groupby)
+
             return group['damage'] \
-                .agg([np.size, np.sum, pct_total, np.mean]) \
+                .agg([np.size, np.sum, create_pct_total(df), np.mean]) \
                 .rename(columns={'size': '#'}) \
                 .join(group['critical', 'direct'].mean() * 100) \
                 .sort_values(by='sum', ascending=False)
 
-        mean_dmg_per_action_df = get_damage_grouping(self.damage.groupby(['source', 'action']))
+        mean_dmg_per_action_df = get_damage_grouping(self.damage, ['source', 'action'])
         self.sim.logger.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
 
-        mean_dmg_per_target_df = get_damage_grouping(self.damage.groupby(['source', 'target']))
+        mean_tick_dmg_per_action_df = get_damage_grouping(self.dots, ['source', 'action'])
+        self.sim.logger.info('Tick Damage Dealt by Action\n\n%s\n', mean_tick_dmg_per_action_df)
+
+        mean_dmg_per_target_df = get_damage_grouping(self.damage, ['source', 'target'])
         self.sim.logger.info('Damage Dealt by Target\n\n%s\n', mean_dmg_per_target_df)
         # @formatter:on
 
