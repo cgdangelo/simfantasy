@@ -722,11 +722,15 @@ class ServerTickEvent(Event):
 
         for actor in self.sim.actors:
             current_mp, max_mp = actor.resources[Resource.MP]
+            current_tp, max_tp = actor.resources[Resource.TP]
 
-            if current_mp != max_mp:
+            if current_mp < max_mp:
                 mp_tick = int(floor(0.02 * max_mp))
 
-                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MP, mp_tick))
+                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MP, mp_tick))  # TODO Tick rate?
+
+            if current_tp < max_tp:
+                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.TP, 60))  # TODO Tick rate?
 
 
 class ApplyAuraStackEvent(AuraEvent):
