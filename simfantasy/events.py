@@ -23,6 +23,7 @@ class Event(metaclass=ABCMeta):
         self.sim = sim
 
         self.timestamp: datetime = None
+        self.unscheduled = False
 
     def __lt__(self, other: 'Event') -> bool:
         """
@@ -50,7 +51,7 @@ class CombatStartEvent(Event):
 
     def execute(self) -> None:
         for actor in self.sim.actors:
-            self.sim.logger.debug('^^ %s %s arises', self.sim.relative_timestamp, actor)
+            self.sim.logger.debug('[%s] ^^ %s %s arises', self.sim.current_iteration, self.sim.relative_timestamp, actor)
             actor.arise()
 
 
@@ -536,7 +537,8 @@ class Action:
         if self.animation > timedelta() and \
                 self.source.animation_unlock_at is not None and \
                 self.source.animation_unlock_at > self.sim.current_time:
-            self.sim.logger.critical('%s %s uses %s %s before animation unlock',
+            self.sim.logger.critical('[%s] %s %s uses %s %s before animation unlock',
+                                     self.sim.current_iteration,
                                      self.sim.relative_timestamp,
                                      self.source, self,
                                      (self.source.animation_unlock_at - self.sim.current_time).total_seconds())
@@ -544,12 +546,13 @@ class Action:
         if not self.is_off_gcd and \
                 self.source.gcd_unlock_at is not None and \
                 self.source.gcd_unlock_at > self.sim.current_time:
-            self.sim.logger.critical('%s %s uses %s %s before GCD unlock',
+            self.sim.logger.critical('[%s] %s %s uses %s %s before GCD unlock',
+                                     self.sim.current_iteration,
                                      self.sim.relative_timestamp,
                                      self.source, self,
                                      (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
 
-        self.sim.logger.debug('@@ %s %s uses %s', self.sim.relative_timestamp, self.source, self)
+        self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp, self.source, self)
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.animation, self.cast_time))

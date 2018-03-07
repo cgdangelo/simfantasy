@@ -180,10 +180,10 @@ class Simulation:
             return
 
         if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-            self.logger.debug('XX %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+            self.logger.debug('[%s] XX %s %s', self.current_iteration,
+                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
 
-        self.events.remove(event)
-        self.events.sort()
+        event.unscheduled = True
 
     def schedule(self, event, delta: timedelta = None) -> None:
         """
@@ -202,7 +202,8 @@ class Simulation:
 
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
-                self.logger.debug('=> %s %s', format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                self.logger.debug('[%s] => %s %s', self.current_iteration,
+                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
                                   event)
 
     def run(self) -> None:
@@ -235,9 +236,13 @@ class Simulation:
                     while len(self.events) > 0:
                         event = heappop(self.events)
 
+                        if event.unscheduled is True:
+                            continue
+
                         if event.timestamp < self.current_time:
                             self.logger.critical(
-                                '%s %s timestamp %s before current timestamp',
+                                '[%s] %s %s timestamp %s before current timestamp',
+                                self.current_iteration,
                                 self.relative_timestamp,
                                 event,
                                 (event.timestamp - self.start_time).total_seconds()
@@ -248,7 +253,8 @@ class Simulation:
                         if self.log_pops is True:
                             if self.log_event_filter is None or self.log_event_filter.match(
                                     event.__class__.__name__) is not None:
-                                self.logger.debug('<= %s %s',
+                                self.logger.debug('[%s] <= %s %s',
+                                                  self.current_iteration,
                                                   format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
                                                   event)
 
@@ -319,7 +325,8 @@ class Aura(ABC):
     def apply(self, target):
         if self in target.auras:
             target.sim.logger.critical(
-                '%s Adding duplicate buff %s into %s',
+                '[%s] %s Adding duplicate buff %s into %s',
+                target.sim.current_iteration,
                 target.sim.relative_timestamp, self, target
             )
 
@@ -331,7 +338,8 @@ class Aura(ABC):
             self.stacks = 0
             target.auras.remove(self)
         except ValueError:
-            target.sim.logger.critical('%s Failed removing %s from %s', target.sim.relative_timestamp, self, target)
+            target.sim.logger.critical('[%s] %s Failed removing %s from %s', target.sim.current_iteration,
+                                       target.sim.relative_timestamp, self, target)
 
     @property
     def up(self):

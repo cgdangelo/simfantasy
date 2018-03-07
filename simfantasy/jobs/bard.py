@@ -462,11 +462,12 @@ class BardSongAction(BardAction):
     potency = 100
 
     def perform(self):
-        if self.source.song is not None:
-            self.sim.unschedule(self.source.song.expiration_event)
-            self.sim.schedule(self.source.song.expiration_event)
-
         super().perform()
+
+        if self.source.song is not None:
+            self.source.song.expire(self.source)
+            self.sim.unschedule(self.source.song.expiration_event)
+            self.source.song.expiration_event = None
 
 
 class MagesBalladBuff(BardSongBuff):
