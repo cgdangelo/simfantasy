@@ -513,14 +513,13 @@ class DotTickEvent(DamageEvent):
 
 
 class Action:
-    hastened_by: Attribute = None
-    powered_by: Attribute = None
-
     animation = timedelta(seconds=0.75)
-    is_off_gcd: bool = False
     base_cast_time: timedelta = timedelta()
     base_recast_time: timedelta = timedelta(seconds=2.5)
+    hastened_by: Attribute = None
+    is_off_gcd: bool = False
     potency: int = 0
+    powered_by: Attribute = None
     shares_recast_with: 'Action' = None
     guarantee_crit: bool = None
 
@@ -712,12 +711,12 @@ class ServerTickEvent(Event):
         super().execute()
 
         for actor in self.sim.actors:
-            current_mp, max_mp = actor.resources[Resource.MANA]
+            current_mp, max_mp = actor.resources[Resource.MP]
 
             if current_mp != max_mp:
                 mp_tick = int(floor(0.02 * max_mp))
 
-                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MANA, mp_tick))
+                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MP, mp_tick))
 
 
 class ApplyAuraStackEvent(AuraEvent):

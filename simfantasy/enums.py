@@ -136,6 +136,6 @@ class RefreshBehavior(Enum):
 
 
 class Resource(Enum):
-    HEALTH = auto()
-    MANA = auto()
+    HP = auto()
+    MP = auto()
     REPERTOIRE = auto()

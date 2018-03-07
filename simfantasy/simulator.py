@@ -455,14 +455,14 @@ class Actor:
 
         # FIXME It's broken.
         # @formatter:off
-        hp = floor(3600 * (job_resources[Resource.HEALTH] / 100)) + floor(
+        hp = floor(3600 * (job_resources[Resource.HP] / 100)) + floor(
             (self.stats[Attribute.VITALITY] - main_stat) * 21.5)
-        mp = floor((job_resources[Resource.MANA] / 100) * ((6000 * (self.stats[Attribute.PIETY] - 292) / 2170) + 12000))
+        mp = floor((job_resources[Resource.MP] / 100) * ((6000 * (self.stats[Attribute.PIETY] - 292) / 2170) + 12000))
         # @formatter:on
 
         return {
-            Resource.HEALTH: (hp, hp),
-            Resource.MANA: (mp, mp),
+            Resource.HP: (hp, hp),
+            Resource.MP: (mp, mp),
         }
 
     @property

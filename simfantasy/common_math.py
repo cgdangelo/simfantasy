@@ -369,126 +369,126 @@ def get_base_resources_by_job(job: Job) -> Dict[Resource, int]:
     """
     if job is Job.GLADIATOR:
         return {
-            Resource.HEALTH: 110,
-            Resource.MANA: 49,
+            Resource.HP: 110,
+            Resource.MP: 49,
         }
     elif job is Job.PUGILIST:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 34,
+            Resource.HP: 105,
+            Resource.MP: 34,
         }
     elif job is Job.MARAUDER:
         return {
-            Resource.HEALTH: 115,
-            Resource.MANA: 28,
+            Resource.HP: 115,
+            Resource.MP: 28,
         }
     elif job is Job.LANCER:
         return {
-            Resource.HEALTH: 110,
-            Resource.MANA: 39,
+            Resource.HP: 110,
+            Resource.MP: 39,
         }
     elif job is Job.ARCHER:
         return {
-            Resource.HEALTH: 100,
-            Resource.MANA: 69,
+            Resource.HP: 100,
+            Resource.MP: 69,
         }
     elif job is Job.CONJURER:
         return {
-            Resource.HEALTH: 100,
-            Resource.MANA: 117,
+            Resource.HP: 100,
+            Resource.MP: 117,
         }
     elif job is Job.THAUMATURGE:
         return {
-            Resource.HEALTH: 100,
-            Resource.MANA: 123,
+            Resource.HP: 100,
+            Resource.MP: 123,
         }
     elif job is Job.PALADIN:
         return {
-            Resource.HEALTH: 120,
-            Resource.MANA: 59,
+            Resource.HP: 120,
+            Resource.MP: 59,
         }
     elif job is Job.MONK:
         return {
-            Resource.HEALTH: 110,
-            Resource.MANA: 43,
+            Resource.HP: 110,
+            Resource.MP: 43,
         }
     elif job is Job.WARRIOR:
         return {
-            Resource.HEALTH: 125,
-            Resource.MANA: 38,
+            Resource.HP: 125,
+            Resource.MP: 38,
         }
     elif job is Job.DRAGOON:
         return {
-            Resource.HEALTH: 115,
-            Resource.MANA: 49,
+            Resource.HP: 115,
+            Resource.MP: 49,
         }
     elif job is Job.BARD:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 79,
+            Resource.HP: 105,
+            Resource.MP: 79,
         }
     elif job is Job.WHITE_MAGE:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 124,
+            Resource.HP: 105,
+            Resource.MP: 124,
         }
     elif job is Job.BLACK_MAGE:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 129,
+            Resource.HP: 105,
+            Resource.MP: 129,
         }
     elif job is Job.ARCANIST:
         return {
-            Resource.HEALTH: 100,
-            Resource.MANA: 110,
+            Resource.HP: 100,
+            Resource.MP: 110,
         }
     elif job is Job.SUMMONER:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 111,
+            Resource.HP: 105,
+            Resource.MP: 111,
         }
     elif job is Job.SCHOLAR:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 119,
+            Resource.HP: 105,
+            Resource.MP: 119,
         }
     elif job is Job.ROGUE:
         return {
-            Resource.HEALTH: 103,
-            Resource.MANA: 38,
+            Resource.HP: 103,
+            Resource.MP: 38,
         }
     elif job is Job.NINJA:
         return {
-            Resource.HEALTH: 108,
-            Resource.MANA: 48,
+            Resource.HP: 108,
+            Resource.MP: 48,
         }
     elif job is Job.MACHINIST:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 79,
+            Resource.HP: 105,
+            Resource.MP: 79,
         }
     elif job is Job.DARK_KNIGHT:
         return {
-            Resource.HEALTH: 120,
-            Resource.MANA: 79,
+            Resource.HP: 120,
+            Resource.MP: 79,
         }
     elif job is Job.ASTROLOGIAN:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 124,
+            Resource.HP: 105,
+            Resource.MP: 124,
         }
     elif job is Job.SAMURAI:
         return {
-            Resource.HEALTH: 109,
-            Resource.MANA: 40,
+            Resource.HP: 109,
+            Resource.MP: 40,
         }
     elif job is Job.RED_MAGE:
         return {
-            Resource.HEALTH: 105,
-            Resource.MANA: 120,
+            Resource.HP: 105,
+            Resource.MP: 120,
         }
     else:
         return {
-            Resource.HEALTH: 0,
-            Resource.MANA: 0,
+            Resource.HP: 0,
+            Resource.MP: 0,
         }

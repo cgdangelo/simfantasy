@@ -38,7 +38,7 @@ class Bard(Actor):
         if not self.actions.shot.on_cooldown:
             return self.actions.shot.perform()
 
-        current_mp, max_mp = self.resources[Resource.MANA]
+        current_mp, max_mp = self.resources[Resource.MP]
         current_rep, max_rep = self.resources[Resource.REPERTOIRE]
 
         if self.animation_up and self.gcd_up and not self.buffs.foe_requiem.up and current_mp == max_mp:
@@ -557,12 +557,12 @@ class BarrageAction(BardAction):
 
 class FoeTickEvent(ResourceEvent):
     def __init__(self, sim: Simulation, target: Actor):
-        super().__init__(sim, target, Resource.MANA, -1680)
+        super().__init__(sim, target, Resource.MP, -1680)
 
     def execute(self) -> None:
         super().execute()
 
-        current_mp, max_mp = self.target.resources[Resource.MANA]
+        current_mp, max_mp = self.target.resources[Resource.MP]
 
         if current_mp > 0:
             self.sim.schedule(FoeTickEvent(self.sim, self.target), timedelta(seconds=3))
