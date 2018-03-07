@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from math import ceil, floor
-from typing import List
+from typing import List, Tuple
 
 import numpy
 
@@ -517,12 +517,13 @@ class Action:
     animation = timedelta(seconds=0.75)
     base_cast_time: timedelta = timedelta()
     base_recast_time: timedelta = timedelta(seconds=2.5)
+    cost: Tuple[Resource, int] = None
+    guarantee_crit: bool = None
     hastened_by: Attribute = None
     is_off_gcd: bool = False
     potency: int = 0
     powered_by: Attribute = None
     shares_recast_with: 'Action' = None
-    guarantee_crit: bool = None
 
     def __init__(self, sim: Simulation, source: Actor):
         self.sim = sim
@@ -564,7 +565,14 @@ class Action:
 
         self.set_recast_at(self.recast_time)
 
+        self.schedule_resource_consumption()
+
         self.schedule_damage_event()
+
+    def schedule_resource_consumption(self):
+        if self.cost is not None:
+            resource, amount = self.cost
+            self.sim.schedule(ResourceEvent(self.sim, self.source, resource, amount))
 
     def schedule_damage_event(self):
         if self.potency > 0:
