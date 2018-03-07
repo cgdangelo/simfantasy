@@ -264,6 +264,7 @@ class StraighterShotBuff(Aura):
 
 class HeavyShotAction(BardAction):
     affected_by_barrage = True
+    cost = (Resource.TP, 50)
     name = 'Heavy Shot'
     potency = 150
 
@@ -291,6 +292,7 @@ class StraightShotBuff(Aura):
 
 class StraightShotAction(BardAction):
     affected_by_barrage = True
+    cost = (Resource.TP, 50)
     name = 'Straight Shot'
     potency = 140
 
@@ -344,6 +346,7 @@ class VenomousBiteDebuff(TickingAura):
 
 class VenomousBiteAction(BardAction):
     affected_by_barrage = True
+    cost = (Resource.TP, 60)
 
     @property
     def name(self):
@@ -413,6 +416,7 @@ class WindbiteDebuff(TickingAura):
 
 class WindbiteAction(BardAction):
     affected_by_barrage = True
+    cost = (Resource.TP, 60)
 
     @property
     def name(self):
@@ -495,6 +499,7 @@ class RainOfDeathAction(BardAction):
 
 class IronJawsAction(BardAction):
     affected_by_barrage = True
+    cost = (Resource.TP, 50)
     name = 'Iron Jaws'
     potency = 100
 
@@ -689,8 +694,9 @@ class PitchPerfectAction(BardAction):
 class EmpyrealArrowAction(BardAction):
     affected_by_barrage = True
     base_recast_time = timedelta(seconds=15)
-    name = 'Empyreal Arrow'
+    cost = (Resource.TP, 50)
     is_off_gcd = True
+    name = 'Empyreal Arrow'
     potency = 230
 
     def perform(self):

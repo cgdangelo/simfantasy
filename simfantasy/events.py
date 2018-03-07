@@ -572,7 +572,7 @@ class Action:
     def schedule_resource_consumption(self):
         if self.cost is not None:
             resource, amount = self.cost
-            self.sim.schedule(ResourceEvent(self.sim, self.source, resource, amount))
+            self.sim.schedule(ResourceEvent(self.sim, self.source, resource, -amount))
 
     def schedule_damage_event(self):
         if self.potency > 0:
