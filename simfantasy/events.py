@@ -51,7 +51,8 @@ class CombatStartEvent(Event):
 
     def execute(self) -> None:
         for actor in self.sim.actors:
-            self.sim.logger.debug('[%s] ^^ %s %s arises', self.sim.current_iteration, self.sim.relative_timestamp, actor)
+            self.sim.logger.debug('[%s] ^^ %s %s arises', self.sim.current_iteration, self.sim.relative_timestamp,
+                                  actor)
             actor.arise()
 
 
@@ -551,7 +552,8 @@ class Action:
                                      self.source, self,
                                      (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
 
-        self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp, self.source, self)
+        self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp,
+                              self.source, self)
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.animation, self.cast_time))

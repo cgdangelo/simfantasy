@@ -139,3 +139,4 @@ class Resource(Enum):
     HP = auto()
     MP = auto()
     REPERTOIRE = auto()
+    TP = auto()

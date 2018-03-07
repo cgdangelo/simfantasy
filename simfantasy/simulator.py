@@ -463,6 +463,7 @@ class Actor:
         return {
             Resource.HP: (hp, hp),
             Resource.MP: (mp, mp),
+            Resource.TP: (1000, 1000),  # TODO Math for this?
         }
 
     @property
