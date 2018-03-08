@@ -11,6 +11,7 @@ setup(
         'numpy',
         'humanfriendly',
         'pandas',
+        'bokeh',
     ],
     extras_require={
         'docs': [
