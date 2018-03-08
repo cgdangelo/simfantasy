@@ -133,6 +133,15 @@ class BardAction(Action):
 
             self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.barrage))
 
+    def schedule_dot(self, dot: TickingAura):
+        super().schedule_dot(dot)
+
+        # TODO Find a better way to do this, or hook into the DotTickEvent.
+        self.sim.unschedule(dot.tick_event)
+        dot.tick_event = BardDotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot, None,
+                                          self._trait_multipliers, self._buff_multipliers)
+        self.sim.schedule(dot.tick_event, timedelta(seconds=3))
+
     @property
     def type_ii_speed_mod(self) -> int:
         if self.source.buffs.armys_paeon.up:
@@ -348,18 +357,7 @@ class VenomousBiteAction(BardAction):
     def perform(self):
         super().perform()
 
-        dot = self.source.target_data.venomous_bite
-
-        self.schedule_aura_events(self.source.target, dot)
-
-        if dot.tick_event is not None:
-            self.sim.unschedule(dot.tick_event)
-
-        tick_event = BardDotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot)
-
-        dot.tick_event = tick_event
-
-        self.sim.schedule(dot.tick_event, timedelta(seconds=3))
+        self.schedule_dot(self.source.target_data.venomous_bite)
 
 
 # FIXME Animation time likely longer than default.
@@ -418,25 +416,7 @@ class WindbiteAction(BardAction):
     def perform(self):
         super().perform()
 
-        dot = self.source.target_data.windbite
-
-        self.schedule_aura_events(self.source.target, dot)
-
-        if dot.tick_event is not None:
-            self.sim.unschedule(dot.tick_event)
-
-        tick_event = BardDotTickEvent(
-            sim=self.sim,
-            source=self.source,
-            target=self.source.target,
-            action=self,
-            potency=dot.potency,
-            aura=dot,
-        )
-
-        dot.tick_event = tick_event
-
-        self.sim.schedule(dot.tick_event, timedelta(seconds=3))
+        self.schedule_dot(self.source.target_data.windbite)
 
 
 # TODO Implement crit buff for allies.

@@ -609,6 +609,8 @@ class Action:
             self.sim.schedule(aura.expiration_event, aura.duration)
 
     def schedule_dot(self, dot: TickingAura):
+        self.schedule_aura_events(self.source.target, dot)
+
         if dot.tick_event is not None:
             self.sim.unschedule(dot.tick_event)
 
