@@ -147,9 +147,10 @@ class ActorReadyEvent(Event):
                 try:
                     decision.perform()
                     break
-                except TimeoutError as e:
+                except FailedActionAttemptError as e:
                     if self.sim.log_action_attempts:
-                        self.sim.logger.warning(e)
+                        self.sim.logger.warning('[%s] %s %s',
+                                                self.sim.current_iteration, self.sim.relative_timestamp, e)
 
                     continue
             else:
@@ -549,27 +550,17 @@ class Action:
 
     def perform(self):
         if self.on_cooldown:
-            raise TimeoutError('%s wanted to use %s, but on cooldown' % (self.source, self))
+            raise ActionOnCooldownError(self.sim, self.source, self)
 
         if self.animation > timedelta() and \
                 self.source.animation_unlock_at is not None and \
                 self.source.animation_unlock_at > self.sim.current_time:
-            # self.sim.logger.critical('[%s] %s %s uses %s %s before animation unlock',
-            #                          self.sim.current_iteration,
-            #                          self.sim.relative_timestamp,
-            #                          self.source, self,
-            #                          (self.source.animation_unlock_at - self.sim.current_time).total_seconds())
-            raise TimeoutError('%s wanted to use %s, but animation locked' % (self.source, self))
+            raise ActorAnimationLockedError(self.sim, self.source, self)
 
         if not self.is_off_gcd and \
                 self.source.gcd_unlock_at is not None and \
                 self.source.gcd_unlock_at > self.sim.current_time:
-            # self.sim.logger.critical('[%s] %s %s uses %s %s before GCD unlock',
-            #                          self.sim.current_iteration,
-            #                          self.sim.relative_timestamp,
-            #                          self.source, self,
-            #                          (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
-            raise TimeoutError('%s wanted to use %s, but GCD locked' % (self.source, self))
+            raise ActorGCDLockedError(self.sim, self.source, self)
 
         self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp,
                               self.source, self)
@@ -839,3 +830,27 @@ class AutoAttackEvent(DamageEvent):
         self._damage = int(damage)
 
         return self._damage
+
+
+class FailedActionAttemptError(Exception):
+    pass
+
+
+class ActionOnCooldownError(FailedActionAttemptError):
+    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
+        super().__init__('%s tried to use %s, but on cooldown for %.3f' %
+                         (source, action, action.cooldown_remains.total_seconds()), *args, **kwargs)
+
+
+class ActorAnimationLockedError(FailedActionAttemptError):
+    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
+        super().__init__('%s tried to use %s, but animation locked for %.3f' %
+                         (source, action, (source.animation_unlock_at - sim.current_time).total_seconds()), *args,
+                         **kwargs)
+
+
+class ActorGCDLockedError(FailedActionAttemptError):
+    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
+        super().__init__('%s tried to use %s, but GCD locked for %.3f' %
+                         (source, action, (source.gcd_unlock_at - sim.current_time).total_seconds()), *args,
+                         **kwargs)
