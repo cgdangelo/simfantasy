@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy
 
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
-from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DamageEvent, DotTickEvent, \
+from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent, ShotAction
 from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura, Weapon
 
@@ -123,14 +123,8 @@ class BardAction(Action):
         super().perform()
 
         if self.source.buffs.barrage.up and self.affected_by_barrage:
-            self.sim.schedule(
-                DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
-
-            self.sim.schedule(
-                DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
-
+            self.schedule_damage_event()
+            self.schedule_damage_event()
             self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.barrage))
 
     def schedule_dot(self, dot: TickingAura):
