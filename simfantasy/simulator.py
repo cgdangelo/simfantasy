@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union, Iterable, Optional
+from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union, Iterable
 
 import humanfriendly
 import pandas as pd
