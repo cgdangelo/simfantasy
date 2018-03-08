@@ -11,6 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--log-event-filter', action='store')
     parser.add_argument('--iterations', action='store', type=int, default=100)
+    parser.add_argument('--log-action-attempts', action='store_true', default=False, dest='log_action_attempts')
 
     heap_options = parser.add_mutually_exclusive_group()
     heap_options.add_argument('--log-pushes', action='store_false', default=True, dest='log_pops')
@@ -22,7 +23,8 @@ if __name__ == '__main__':
                      log_event_filter=args.log_event_filter,
                      log_pushes=args.log_pushes,
                      log_pops=args.log_pops,
-                     iterations=args.iterations)
+                     iterations=args.iterations,
+                     log_action_attempts=args.log_action_attempts)
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 

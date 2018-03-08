@@ -140,7 +140,20 @@ class ActorReadyEvent(Event):
         self.actor = actor
 
     def execute(self) -> None:
-        self.actor.decide()
+        decision_engine = self.actor.decide()
+
+        for decision in decision_engine:
+            if decision is not None:
+                try:
+                    decision.perform()
+                    break
+                except TimeoutError as e:
+                    if self.sim.log_action_attempts:
+                        self.sim.logger.warning(e)
+
+                    continue
+            else:
+                break
 
     def __str__(self):
         """String representation of the object."""
@@ -535,23 +548,28 @@ class Action:
         return self.__class__.__name__
 
     def perform(self):
+        if self.on_cooldown:
+            raise TimeoutError('%s wanted to use %s, but on cooldown' % (self.source, self))
+
         if self.animation > timedelta() and \
                 self.source.animation_unlock_at is not None and \
                 self.source.animation_unlock_at > self.sim.current_time:
-            self.sim.logger.critical('[%s] %s %s uses %s %s before animation unlock',
-                                     self.sim.current_iteration,
-                                     self.sim.relative_timestamp,
-                                     self.source, self,
-                                     (self.source.animation_unlock_at - self.sim.current_time).total_seconds())
+            # self.sim.logger.critical('[%s] %s %s uses %s %s before animation unlock',
+            #                          self.sim.current_iteration,
+            #                          self.sim.relative_timestamp,
+            #                          self.source, self,
+            #                          (self.source.animation_unlock_at - self.sim.current_time).total_seconds())
+            raise TimeoutError('%s wanted to use %s, but animation locked' % (self.source, self))
 
         if not self.is_off_gcd and \
                 self.source.gcd_unlock_at is not None and \
                 self.source.gcd_unlock_at > self.sim.current_time:
-            self.sim.logger.critical('[%s] %s %s uses %s %s before GCD unlock',
-                                     self.sim.current_iteration,
-                                     self.sim.relative_timestamp,
-                                     self.source, self,
-                                     (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
+            # self.sim.logger.critical('[%s] %s %s uses %s %s before GCD unlock',
+            #                          self.sim.current_iteration,
+            #                          self.sim.relative_timestamp,
+            #                          self.source, self,
+            #                          (self.source.gcd_unlock_at - self.sim.current_time).total_seconds())
+            raise TimeoutError('%s wanted to use %s, but GCD locked' % (self.source, self))
 
         self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp,
                               self.source, self)
@@ -612,6 +630,10 @@ class Action:
     @property
     def on_cooldown(self):
         return self.can_recast_at is not None and self.can_recast_at > self.sim.current_time
+
+    @property
+    def cooldown_remains(self):
+        return timedelta() if not self.on_cooldown else self.can_recast_at - self.sim.current_time
 
     @property
     def cast_time(self):

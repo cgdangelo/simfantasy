@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union
+from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union, Iterable, Optional
 
 import humanfriendly
 import pandas as pd
@@ -114,7 +114,8 @@ class Simulation:
     """Business logic for managing the simulated combat encounter and subsequent reporting."""
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, log_event_filter: str = None,
-                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = 100):
+                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = 100,
+                 log_action_attempts: bool = None):
         """
         Create a new simulation.
 
@@ -126,6 +127,9 @@ class Simulation:
         :param log_pops: True to show events being popped off the queue. Default: True.
         :param iterations: Number of encounters to simulate. Default: 100.
         """
+
+        # FIXME Do I even need to set these here? They aren't mutable.
+
         if combat_length is None:
             combat_length = timedelta(minutes=5)
 
@@ -141,12 +145,16 @@ class Simulation:
         if log_pops is None:
             log_pops = True
 
+        if log_action_attempts is None:
+            log_action_attempts = False
+
         self.combat_length = combat_length
         self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
         self.execute_time = execute_time
         self.log_pushes = log_pushes
         self.log_pops = log_pops
         self.iterations = iterations
+        self.log_action_attempts = log_action_attempts
 
         self.current_iteration = None
         """Current iteration number."""
@@ -503,8 +511,9 @@ class Actor:
                 self.stats[materia.attribute] += materia.bonus
 
     @abstractmethod
-    def decide(self) -> None:
+    def decide(self) -> Iterable:
         """Given current simulation environment, decide what action should be performed, if any."""
+        yield
 
     def has_aura(self, aura: Aura) -> bool:
         """
