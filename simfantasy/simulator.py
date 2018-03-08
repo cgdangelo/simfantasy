@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import ClassVar, Dict, List, NamedTuple, Tuple, Union, Iterable
+from typing import ClassVar, Dict, Iterable, List, NamedTuple, Pattern, Tuple, Union
 
 import humanfriendly
 import pandas as pd
@@ -16,64 +16,50 @@ from simfantasy.reporting import TerminalReporter
 
 
 class Materia(NamedTuple):
-    """Provides a bonus to a specific stat."""
+    """Provides a bonus to a specific stat.
 
+    Arguments:
+        attribute (simfantasy.enums.Attribute): The attribute that will be modified.
+        bonus (int): Amount of the attribute added.
+        name (Optional[str]): Name of the materia, for convenience.
+    """
     attribute: Attribute
     bonus: int
     name: str = None
 
 
-Materia.attribute.__doc__ = """
-The :class:`~simfantasy.enums.Attribute` that will be modified.
-
-:type: :class:`~simfantasy.enums.Attribute`
-"""
-Materia.bonus.__doc__ = """
-The amount of :class:`~simfantasy.enums.Attribute`.
-
-:type: int
-"""
-Materia.name.__doc__ = """
-Optional name, for convenience.
-
-:type: str
-"""
-
-
 class Item(NamedTuple):
-    """A piece of equipment that can be worn."""
+    """A piece of equipment that can be worn.
 
+    Arguments:
+        slot (simfantasy.enums.Slot): The slot where the item fits.
+        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added
+            by the item.
+        melds (Optional[Tuple[Materia, ...]]):  :class:`~simfantasy.simulator.Materia`
+            affixed to the item.
+        name (Optional[str]): Name of the materia, for convenience.
+    """
     slot: Slot
     stats: Tuple[Tuple[Attribute, int], ...]
     melds: Tuple[Materia, ...] = None
     name: str = None
 
 
-Item.slot.__doc__ = """
-The :class:`~simfantasy.enums.Slot` where the equipment fits.
-
-:type: :class:`~simfantasy.enums.Slot`
-"""
-Item.stats.__doc__ = """
-The :class:`~simfantasy.enums.Attribute` provided by this equipment.
-
-:type: tuple[tuple[:class:`~simfantasy.enums.Attribute`, int], ...]
-
-.. code-block:: python
-    :caption: Creating an example piece of gear.
-
-    Item(stats=((Attribute.CRITICAL_HIT, 43), (Attribute.DIRECT_HIT, 96))
-"""
-Item.melds.__doc__ = """
-Optional :class:`~simfantasy.simulator.Materia` affixed to this equipment.
-
-:type: list[:class:`~simfantasy.simulator.Materia`]
-"""
-Item.name.__doc__ = Materia.name.__doc__
-
-
 class Weapon(NamedTuple):
-    """An :class:`~simfantasy.simulator.Item` that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`."""
+    """An :class:`~simfantasy.simulator.Item` that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`.
+
+    Arguments:
+        magic_damage (:obj:`int`): Magic damage inflicted by the weapon. May be hidden for non-casters.
+        physical_damage (:obj:`int`): Physical damage inflicted by the weapon. May be hidden for casters.
+        delay (:obj:`float`): Weapon attack delay.
+        auto_attack (:obj:`float`): Auto attack value.
+        slot (:class:`~simfantasy.enums.Slot`): The slot where the item fits.
+        stats (:obj:`tuple` [:obj:`tuple` [:class:`~simfantasy.enums.Attribute`, :obj:`int`], ...]): Attributes added
+            by the item.
+        melds (Optional[:obj:`tuple` [:class:`~simfantasy.simulator.Materia`]]):  :class:`~simfantasy.simulator.Materia`
+            affixed to the item.
+        name (Optional[:obj:`str`]): Name of the materia, for convenience.
+    """
     magic_damage: int
     physical_damage: int
     delay: float
@@ -84,52 +70,43 @@ class Weapon(NamedTuple):
     name: str = None
 
 
-Weapon.magic_damage.__doc__ = """
-Amount of magic damage inflicted by the weapon. May be hidden for non-casters.
-
-:type: int
-"""
-Weapon.physical_damage.__doc__ = """
-Amount of physical damage inflicted by the weapon. May be hidden for casters.
-
-:type: int
-"""
-Weapon.delay.__doc__ = """
-Weapon speed.
-
-:type: float
-"""
-Weapon.auto_attack.__doc__ = """
-Auto attack damage.
-
-:type: float
-"""
-Weapon.stats.__doc__ = Item.stats.__doc__
-Weapon.slot.__doc__ = Item.slot.__doc__
-Weapon.melds.__doc__ = Item.melds.__doc__
-Weapon.name.__doc__ = Item.name.__doc__
-
-
 class Simulation:
-    """Business logic for managing the simulated combat encounter and subsequent reporting."""
+    """Business logic for managing the simulated combat encounter and subsequent reporting.
+
+    Arguments:
+        combat_length (Optional[datetime.timedelta]): Desired combat length. Default: 5 minutes.
+        log_level (Optional[int]): Minimum message level necessary to see logger output. Default: :obj:`logging.INFO`.
+        log_event_filter (Optional[str]): Pattern for filtering logging output to only matching class names.
+            Default: None.
+        execute_time (Optional[datetime.timedelta]): Length of time to allow jobs to use "execute" actions.
+            Default: 1 minute.
+        log_pushes (Optional[bool]): True to show events being placed on the queue. Default: True.
+        log_pops (Optional[bool]): True to show events being popped off the queue. Default: True.
+        iterations (Optional[int]): Number of encounters to simulate. Default: 100.
+        log_action_attempts (Optional[bool]): True to log actions attempted by :class:`~simfantasy.simulator.Actor`
+            decision engines.
+
+    Attributes:
+        actors (List[simfantasy.simulator.Actor]): Actors involved in the encounter.
+        combat_length (datetime.timedelta): Length of the encounter.
+        current_iteration (int): Current iteration index.
+        current_time (datetime.timestamp): "In game" timestamp.
+        events (List[simfantasy.events.Event]): Heapified list of upcoming events.
+        execute_time (datetime.timedelta): Length of time to allow jobs to use "execute" actions.
+        iterations (int): Number of encounters to simulate. Default: 100.
+        log_action_attempts (bool): True to log actions attempted by :class:`~simfantasy.simulator.Actor` decision
+            engines.
+        log_event_filter (Optional[Pattern]): Pattern for filtering logging output to only matching class names.
+        log_pops (bool): True to show events being popped off the queue. Default: True.
+        log_pushes (bool): True to show events being placed on the queue. Default: True.
+        logger (logging.Logger): Logger instance to stdout/stderr.
+        start_time (datetime.timestamp): Time that combat started.
+    """
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, log_event_filter: str = None,
-                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = 100,
+                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = None,
                  log_action_attempts: bool = None):
-        """
-        Create a new simulation.
-
-        :param combat_length: Desired combat length. Default: 5 minutes.
-        :param log_level: Minimum message level necessary to see logger output. Default: logging.INFO.
-        :param log_event_filter: Pattern for filtering logging output to only matching class names. Default: None.
-        :param execute_time: Length of time to allow jobs to use "execute" actions. Default: 1 minute.
-        :param log_pushes: True to show events being placed on the queue. Default: True.
-        :param log_pops: True to show events being popped off the queue. Default: True.
-        :param iterations: Number of encounters to simulate. Default: 100.
-        """
-
         # FIXME Do I even need to set these here? They aren't mutable.
-
         if combat_length is None:
             combat_length = timedelta(minutes=5)
 
@@ -148,28 +125,19 @@ class Simulation:
         if log_action_attempts is None:
             log_action_attempts = False
 
-        self.combat_length = combat_length
-        self.log_event_filter = re.compile(log_event_filter) if log_event_filter else None
-        self.execute_time = execute_time
-        self.log_pushes = log_pushes
-        self.log_pops = log_pops
-        self.iterations = iterations
-        self.log_action_attempts = log_action_attempts
+        self.combat_length: timedelta = combat_length
+        self.log_event_filter: Pattern = re.compile(log_event_filter) if log_event_filter else None
+        self.execute_time: timedelta = execute_time
+        self.log_pushes: bool = log_pushes
+        self.log_pops: bool = log_pops
+        self.iterations: int = iterations
+        self.log_action_attempts: bool = log_action_attempts
 
-        self.current_iteration = None
-        """Current iteration number."""
-
+        self.current_iteration: int = None
         self.actors: List[Actor] = []
-        """List of actors involved in this encounter, i.e., players and enemies."""
-
         self.start_time: datetime = None
-        """Timestamp when the encounter began."""
-
         self.current_time: datetime = None
-        """Current game timestamp."""
-
         self.events = []
-        """Scheduled events."""
 
         heapify(self.events)
 
@@ -177,15 +145,84 @@ class Simulation:
 
     @property
     def in_execute(self) -> bool:
-        """
-        True if the encounter is in execute time, allowing actions such as
-        :class:`~simfantasy.jobs.bard.MiserysEndAction` to be used.
+        """Indicate whether the encounter is currently in an "execute" phase.
+
+        "Execute" phases are usually when an enemy falls below a certain health percentage, allowing actions such as
+        :class:`simfantasy.jobs.bard.MiserysEndAction` to be used.
+
+        Examples:
+            A fresh simulation that has just started a moment ago:
+
+            >>> sim = Simulation(combat_length=timedelta(seconds=60), execute_time=timedelta(seconds=30))
+            >>> sim.start_time = sim.current_time = datetime.now()
+            >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
+            Heavy Shot
+
+            And now, if we adjust the start time to force us halfway into the execute phase:
+
+            >>> sim.start_time = sim.current_time - timedelta(seconds=30)
+            >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
+            Misery's End
+
+        Returns:
+            bool: True if the encounter is in an execute phase, False otherwise.
         """
         return self.current_time + self.execute_time >= self.start_time + self.combat_length
 
-    def unschedule(self, event):
-        if event is None or event not in self.events or event.timestamp < self.current_time:
-            return
+    def unschedule(self, event) -> bool:
+        """Unschedule an event, ensuring that it is not executed.
+
+        Does not "remove" the event. In actuality, flags the event itself as unscheduled to prevent having to
+        resort the events list and subsequently recalculate the heap invariant.
+
+        Examples:
+            >>> from simfantasy.events import Event
+            >>> sim = Simulation()
+            >>> sim.start_time = sim.current_time = datetime.now()
+            >>> class MyEvent(Event):
+            ...     def execute(self):
+            ...         pass
+
+            Unscheduling an upcoming event:
+
+            >>> event = MyEvent(sim)
+            >>> sim.schedule(event)
+            >>> sim.unschedule(event)
+            True
+            >>> event.unscheduled
+            True
+
+            However, unscheduling a past event will fail:
+
+            >>> event = MyEvent(sim)
+            >>> sim.schedule(event, timedelta(seconds=-30))
+            >>> sim.unschedule(event)
+            False
+            >>> event.unscheduled
+            False
+
+            With logging enabled, information about the current timings and the event will be displayed:
+
+            >>> sim.current_iteration = 1000
+            >>> sim.current_time = sim.start_time + timedelta(minutes=10)
+            >>> sim.logger.warning = lambda s, *args: print(s % args)
+            >>> sim.unschedule(event)
+            [1000] 600.000 Wanted to unschedule event past event <MyEvent> at 30.000
+            False
+
+        Arguments:
+            event (simfantasy.events.Event): The event to unschedule.
+
+        Returns:
+            bool: True if the event was unscheduled without issue. False if an error occurred, specifically a
+            desync bug between the game clock and the event loop.
+        """
+        if event.timestamp < self.current_time:  # Some event desync clearly happened.
+            self.logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
+                                self.current_iteration, self.relative_timestamp, event,
+                                format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'))
+
+            return False
 
         if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
             self.logger.debug('[%s] XX %s %s', self.current_iteration,
@@ -193,13 +230,31 @@ class Simulation:
 
         event.unscheduled = True
 
-    def schedule(self, event, delta: timedelta = None) -> None:
-        """
-        Schedule an event to occur in the future.
+        return True
 
-        :type event: simfantasy.events.Event
-        :param event: An event.
-        :param delta: Time difference from current for event to occur.
+    def schedule(self, event, delta: timedelta = None) -> None:
+        """Schedule an event to occur in the future.
+
+        Examples:
+            >>> from simfantasy.events import Event
+            >>> sim = Simulation()
+            >>> sim.start_time = sim.current_time = datetime.now()
+            >>> class MyEvent(Event):
+            ...     def execute(self):
+            ...         pass
+            >>> event = MyEvent(sim)
+            >>> event in sim.events
+            False
+            >>> sim.schedule(event)
+            >>> event in sim.events
+            True
+
+
+        Arguments:
+            event (simfantasy.events.Event): The event to schedule.
+            delta (Optional[datetime.timedelta]): An optional amount of time to wait before the event should be
+                executed. When delta is None, the event will be scheduled for the current timestamp, and executed after
+                any preexisting events already scheduled for the current timestamp are finished.
         """
         if delta is None:
             delta = timedelta()
@@ -223,7 +278,9 @@ class Simulation:
         resources_df = pd.DataFrame()
 
         try:
+            # Create a friendly progress indicator for the user.
             with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
+                # Store iteration runtimes so we can predict overall runtime.
                 iteration_runtimes = []
 
                 for iteration in range(self.iterations):
@@ -232,21 +289,28 @@ class Simulation:
                     iteration_start = datetime.now()
                     self.current_iteration = iteration
 
+                    # Schedule the bookend events.
                     self.schedule(CombatStartEvent(sim=self))
                     self.schedule(CombatEndEvent(sim=self), self.combat_length)
 
+                    # Schedule the server ticks.
                     for delta in range(3, int(self.combat_length.total_seconds()), 3):
                         self.schedule(ServerTickEvent(sim=self), delta=timedelta(seconds=delta))
 
+                    # TODO Maybe move this to Actor#arise?
+                    # Tell the actors to get ready.
                     for actor in self.actors:
                         self.schedule(ActorReadyEvent(sim=self, actor=actor))
 
+                    # Start the event loop.
                     while len(self.events) > 0:
                         event = heappop(self.events)
 
+                        # Ignore events that are flagged as unscheduled.
                         if event.unscheduled is True:
                             continue
 
+                        # Some event desync clearly happened.
                         if event.timestamp < self.current_time:
                             self.logger.critical(
                                 '[%s] %s %s timestamp %s before current timestamp',
@@ -256,6 +320,7 @@ class Simulation:
                                 (event.timestamp - self.start_time).total_seconds()
                             )
 
+                        # Update the simulation's current time to the latest event.
                         self.current_time = event.timestamp
 
                         if self.log_pops is True:
@@ -266,22 +331,26 @@ class Simulation:
                                                   format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
                                                   event)
 
+                        # Handle the event.
                         event.execute()
 
+                    # Build statistical dataframes for the completed iteration.
                     for actor in self.actors:
                         auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
                         damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
                         resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
 
+                    # Add the iteration runtime to the collection.
                     iteration_runtimes.append(datetime.now() - iteration_start)
 
+                    # Update our fancy progress indicator with the runtime estimation.
                     spinner.label = 'Simulating ({0})'.format(
                         (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                     spinner.step(iteration)
 
             self.logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations, pd_runtimes.sum(),
                              pd_runtimes.mean())
-        except KeyboardInterrupt:
+        except KeyboardInterrupt:  # Handle SIGINT.
             self.logger.critical('Interrupted at %s / %s iterations after %s.\n', self.current_iteration,
                                  self.iterations, pd_runtimes.sum())
 
@@ -296,10 +365,16 @@ class Simulation:
         self.logger.info('Quitting!')
 
     @property
-    def relative_timestamp(self):
+    def relative_timestamp(self) -> str:
+        """Return a formatted string containing the number of seconds since the simulation began."""
         return format((self.current_time - self.start_time).total_seconds(), '.3f')
 
-    def __set_logger(self, log_level: int):
+    def __set_logger(self, log_level: int) -> None:
+        """
+        Create and set the logger instance.
+
+        :param log_level: The minimum priority level a message needs to be shown.
+        """
         logger = logging.getLogger()
         logger.setLevel(log_level)
 
@@ -314,11 +389,15 @@ class Simulation:
 class Aura(ABC):
     """A buff or debuff that can be applied to a target."""
 
+    #: Initial duration of the effect.
     duration: timedelta = None
-    """Initial duration of the effect."""
 
     refresh_behavior: RefreshBehavior = None
+    """Specify how the aura should be refreshed if it already exists on the target."""
+
     refresh_extension: timedelta = None
+    """For :class:`simfantasy.enums.RefreshBehavior`, specify how much time should be added to the current duration."""
+
     max_stacks: int = 1
 
     def __init__(self) -> None:

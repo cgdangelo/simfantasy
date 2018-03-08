@@ -611,7 +611,7 @@ class Action:
     def schedule_dot(self, dot: TickingAura):
         self.schedule_aura_events(self.source.target, dot)
 
-        if dot.tick_event is not None:
+        if dot.tick_event is not None and dot.tick_event.timestamp > self.sim.current_time:
             self.sim.unschedule(dot.tick_event)
 
         tick_event = DotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot)
