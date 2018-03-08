@@ -13,9 +13,4 @@ setup(
         'pandas',
         'bokeh',
     ],
-    extras_require={
-        'docs': [
-            'sphinx-autodoc-typehints',
-        ]
-    }
 )
