@@ -90,7 +90,7 @@ class Simulation:
         actors (List[simfantasy.simulator.Actor]): Actors involved in the encounter.
         combat_length (datetime.timedelta): Length of the encounter.
         current_iteration (int): Current iteration index.
-        current_time (datetime.timestamp): "In game" timestamp.
+        current_time (datetime.datetime): "In game" timestamp.
         events (List[simfantasy.events.Event]): Heapified list of upcoming events.
         execute_time (datetime.timedelta): Length of time to allow jobs to use "execute" actions.
         iterations (int): Number of encounters to simulate. Default: 100.
@@ -100,7 +100,7 @@ class Simulation:
         log_pops (bool): True to show events being popped off the queue. Default: True.
         log_pushes (bool): True to show events being placed on the queue. Default: True.
         logger (logging.Logger): Logger instance to stdout/stderr.
-        start_time (datetime.timestamp): Time that combat started.
+        start_time (datetime.datetime): Time that combat started.
     """
 
     def __init__(self, combat_length: timedelta = None, log_level: int = None, log_event_filter: str = None,
@@ -150,6 +150,9 @@ class Simulation:
         "Execute" phases are usually when an enemy falls below a certain health percentage, allowing actions such as
         :class:`simfantasy.jobs.bard.MiserysEndAction` to be used.
 
+        Returns:
+            bool: True if the encounter is in an execute phase, False otherwise.
+
         Examples:
             A fresh simulation that has just started a moment ago:
 
@@ -163,9 +166,6 @@ class Simulation:
             >>> sim.start_time = sim.current_time - timedelta(seconds=30)
             >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
             Misery's End
-
-        Returns:
-            bool: True if the encounter is in an execute phase, False otherwise.
         """
         return self.current_time + self.execute_time >= self.start_time + self.combat_length
 
@@ -174,6 +174,13 @@ class Simulation:
 
         Does not "remove" the event. In actuality, flags the event itself as unscheduled to prevent having to
         resort the events list and subsequently recalculate the heap invariant.
+
+        Arguments:
+            event (simfantasy.events.Event): The event to unschedule.
+
+        Returns:
+            bool: True if the event was unscheduled without issue. False if an error occurred, specifically a
+            desync bug between the game clock and the event loop.
 
         Examples:
             >>> from simfantasy.events import Event
@@ -209,13 +216,6 @@ class Simulation:
             >>> sim.unschedule(event)
             [1000] 600.000 Wanted to unschedule event past event <MyEvent> at 30.000
             False
-
-        Arguments:
-            event (simfantasy.events.Event): The event to unschedule.
-
-        Returns:
-            bool: True if the event was unscheduled without issue. False if an error occurred, specifically a
-            desync bug between the game clock and the event loop.
         """
         if event.timestamp < self.current_time:  # Some event desync clearly happened.
             self.logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
@@ -235,6 +235,12 @@ class Simulation:
     def schedule(self, event, delta: timedelta = None) -> None:
         """Schedule an event to occur in the future.
 
+        Arguments:
+            event (simfantasy.events.Event): The event to schedule.
+            delta (Optional[datetime.timedelta]): An optional amount of time to wait before the event should be
+                executed. When delta is None, the event will be scheduled for the current timestamp, and executed after
+                any preexisting events already scheduled for the current timestamp are finished.
+
         Examples:
             >>> from simfantasy.events import Event
             >>> sim = Simulation()
@@ -248,13 +254,6 @@ class Simulation:
             >>> sim.schedule(event)
             >>> event in sim.events
             True
-
-
-        Arguments:
-            event (simfantasy.events.Event): The event to schedule.
-            delta (Optional[datetime.timedelta]): An optional amount of time to wait before the event should be
-                executed. When delta is None, the event will be scheduled for the current timestamp, and executed after
-                any preexisting events already scheduled for the current timestamp are finished.
         """
         if delta is None:
             delta = timedelta()
@@ -366,14 +365,28 @@ class Simulation:
 
     @property
     def relative_timestamp(self) -> str:
-        """Return a formatted string containing the number of seconds since the simulation began."""
+        """Return a formatted string containing the number of seconds since the simulation began.
+
+        Returns:
+            str: A string, with precision to the thousandths.
+
+        Examples:
+            >>> sim = Simulation()
+            >>> sim.start_time = datetime.now()
+            >>> sim.current_time = sim.start_time + timedelta(minutes=5)
+            >>> sim.relative_timestamp
+            '300.000'
+            >>> sim.current_time += timedelta(seconds=30)
+            >>> sim.relative_timestamp
+            '330.000'
+        """
         return format((self.current_time - self.start_time).total_seconds(), '.3f')
 
     def __set_logger(self, log_level: int) -> None:
-        """
-        Create and set the logger instance.
+        """Create and set the logger instance.
 
-        :param log_level: The minimum priority level a message needs to be shown.
+        Arguments:
+            log_level (int): The minimum priority level a message needs to be shown.
         """
         logger = logging.getLogger()
         logger.setLevel(log_level)
@@ -387,16 +400,28 @@ class Simulation:
 
 
 class Aura(ABC):
-    """A buff or debuff that can be applied to a target."""
+    """A buff or debuff that can be applied to a target.
 
-    #: Initial duration of the effect.
+    Attributes:
+        application_event (simfantasy.events.ApplyAuraEvent): Pointer to the scheduled event that will apply the aura
+            to the target.
+        duration (datetime.timedelta): Initial duration of the aura.
+        expiration_event (simfantasy.events.ExpireAuraEvent): Pointer to the scheduled event that will remove the aura
+            from the target.
+        max_stacks (int): The maximum number of stacks that the aura can accumulate.
+        refresh_behavior (simfantasy.enums.RefreshBehavior): Defines how the aura behaves when refreshes, i.e., what
+            happens when reapplying an aura that already exists on the target.
+        refresh_extension (datetime.timedelta): For :class:`simfantasy.enums.RefreshBehavior.EXTEND_TO_MAX`, this defines
+            the amount of time that should be added to the aura's current remaining time.
+        stacks (int): The current number of stacks that the aura has accumulated. Should be less than or equal to
+            `max_stacks`.
+    """
+
     duration: timedelta = None
 
     refresh_behavior: RefreshBehavior = None
-    """Specify how the aura should be refreshed if it already exists on the target."""
 
     refresh_extension: timedelta = None
-    """For :class:`simfantasy.enums.RefreshBehavior`, specify how much time should be added to the current duration."""
 
     max_stacks: int = 1
 
@@ -406,10 +431,48 @@ class Aura(ABC):
         self.stacks = 0
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Return the name of the aura.
+
+        Examples:
+            By default, shows the class name.
+
+            >>> class MyCustomAura(Aura): pass
+            >>> aura = MyCustomAura()
+            >>> aura.name
+            'MyCustomAura'
+
+            This property should be overwritten to provide a friendlier name, since it will be used for data
+            visualization and reporting:
+
+            >>> class MyCustomAura(Aura):
+            ...    @property
+            ...    def name(self):
+            ...        return 'My Custom'
+            >>> aura = MyCustomAura()
+            >>> aura.name
+            'My Custom'
+        """
         return self.__class__.__name__
 
-    def apply(self, target):
+    def apply(self, target) -> None:
+        """Apply the aura to the target.
+
+        Arguments:
+            target (simfantasy.simulator.Actor): The target that the aura will be applied to.
+
+        Examples:
+            >>> class FakeActor:
+            ...     def __init__(self):
+            ...         self.auras = []
+            >>> actor = FakeActor()
+            >>> aura = Aura()
+            >>> aura in actor.auras
+            False
+            >>> aura.apply(actor)
+            >>> aura in actor.auras
+            True
+        """
         if self in target.auras:
             target.sim.logger.critical(
                 '[%s] %s Adding duplicate buff %s into %s',
@@ -420,7 +483,16 @@ class Aura(ABC):
         self.stacks = 1
         target.auras.append(self)
 
-    def expire(self, target):
+    def expire(self, target) -> None:
+        """Remove the aura from the target.
+
+        Warnings:
+            In the event that the aura does not exist on the target, the exception will be trapped, and error output
+            will be shown.
+
+        Arguments:
+            target (simfantasy.simulator.Actor): The target that the aura will be removed from.
+        """
         try:
             self.stacks = 0
             target.auras.remove(self)
@@ -429,24 +501,72 @@ class Aura(ABC):
                                        target.sim.relative_timestamp, self, target)
 
     @property
-    def up(self):
+    def up(self) -> bool:
+        """Indicates whether the aura is still on the target or not.
+
+        Quite simply, this is a check to see whether the remaining time on the aura is greater than zero.
+
+        Returns:
+            bool: True if the aura is still active, False otherwise.
+        """
         return self.remains > timedelta()
 
     @property
-    def remains(self):
+    def remains(self) -> timedelta:
+        """Return the length of time the aura will remain active on the target.
+
+        Examples:
+            For auras with expiration events in the past, we interpret this to mean that they have already fallen off,
+            and return zero:
+
+            >>> aura = Aura()
+            >>> aura.remains == timedelta()
+            True
+
+            On the other hand, if the expiration date is still forthcoming, we use its timestamp to determine the
+            remaining time. Consider an aura that is due to expire in 30 seconds:
+
+            >>> sim = Simulation()
+            >>> sim.current_time = datetime.now()
+            >>> from simfantasy.events import ExpireAuraEvent
+            >>> aura.expiration_event = ExpireAuraEvent(sim, None, aura)
+            >>> aura.expiration_event.timestamp = sim.current_time + timedelta(seconds=30)
+
+            Obviously, the remaining time will be 30 seconds:
+
+            >>> aura.remains == timedelta(seconds=30)
+            True
+
+            And if we move forward in time 10 seconds, we can expect the remaining time to decrease accordingly:
+
+            >>> sim.current_time += timedelta(seconds=10)
+            >>> aura.remains == timedelta(seconds=20)
+            True
+        """
         if self.expiration_event is None or self.expiration_event.timestamp < self.expiration_event.sim.current_time:
             return timedelta()
 
         return self.expiration_event.timestamp - self.expiration_event.sim.current_time
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '<{cls}>'.format(cls=self.__class__.__name__)
 
 
 class TickingAura(Aura):
+    """An aura that ticks on the target, e.g., a damage-over-time spell.
+
+    Attributes:
+        tick_event (simfantasy.events.DotTickEvent): Pointer to the event that will apply the next tick.
+    """
+
     @property
     @abstractmethod
     def potency(self):
+        """Defines the potency for the dot.
+
+        Returns:
+            int: Amount of potency per tick.
+        """
         pass
 
     def __init__(self) -> None:
@@ -454,39 +574,86 @@ class TickingAura(Aura):
 
         self.tick_event = None
 
-    def apply(self, target):
+    def apply(self, target) -> None:
         super().apply(target)
 
         self.tick_event.ticks_remain = self.ticks
 
     @property
     def ticks(self):
-        return int(floor(self.duration.total_seconds() / 3)) - 1
+        """Return the base number of times that the aura will tick on the target.
+
+        Damage-over-time effects are synchronized to server tick events, so by default we assume that the number of
+        ticks is :math:`\\frac{duration}{3}`.
+
+        Returns:
+            int: Number of ticks.
+
+        Examples:
+            Consider a damage-over-time spell that has a base duration of 30 seconds:
+
+            >>> class MyDot(TickingAura):
+            ...     duration = timedelta(seconds=30)
+            ...     potency = 100
+
+            Since server ticks occur every 3 seconds, we can expect :math:`\\frac{30}{3} = 10` ticks:
+
+            >>> aura = MyDot()
+            >>> aura.duration = timedelta(seconds=30)
+            >>> aura.ticks
+            10
+        """
+        return int(floor(self.duration.total_seconds() / 3))
 
 
 class Actor:
-    """A participant in an encounter."""
+    """A participant in an encounter.
+
+    Warnings:
+        Although level is accepted as an argument, many of the formulae only work at level 70. This argument may be
+        deprecated in the future, or at least restricted to max levels of each game version, i.e., 50, 60, 70 for
+        A Realm Reborn, Heavensward, and Stormblood respectively, where it's more likely that someone spent the time to
+        figure out all the math.
+
+    Arguments:
+        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
+        race (simfantasy.enums.Race): Race and clan of the actor.
+        level (int): Level of the actor.
+        target (simfantasy.simulator.Actor): The enemy that the actor is targeting.
+        name (str): Name of the actor.
+        gear (Tuple[Tuple[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]]):
+            Collection of equipment that the actor is wearing.
+
+    Attributes:
+        _target_data_class (Type[object]): Reference to class type that is used to track target data.
+        __target_data (object): Contains the actor's state in the context of a particular target.
+        animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
+            being inhibited by animation lockout.
+        auras (List[simfantasy.simulator.Aura]): Auras, both friendly and hostile, that exist on the actor.
+        gcd_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute GCD actions again without
+            being inhibited by GCD lockout.
+        gear (Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]): Mapping of
+            equipment slot to the item contained within.
+        job (simfantasy.enums.Job): The actor's job specialization.
+        level (int): Level of the actor.
+        name (str): Name of the actor.
+        race (simfantasy.enums.Race): Race and clan of the actor.
+        resources (Dict[~simfantasy.enums.Resource, Tuple[int, int]]): Mapping of resource type to a tuple containing
+            the current amount and maximum capacity.
+        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
+        statistics (Dict[str, List[Dict[Any, Any]]]): Collection of different event occurrences that are used for
+            reporting and visualizations.
+        stats (Dict[~simfantasy.enums.Attribute, int]): Mapping of attribute type to amount.
+        target (simfantasy.simulator.Actor): The enemy that the actor is targeting.
+    """
 
     job: Job = None
     role: Role = None
     _target_data_class: ClassVar = None
 
     # TODO Get rid of level?
-    def __init__(self,
-                 sim: Simulation,
-                 race: Race,
-                 level: int = None,
-                 target: 'Actor' = None,
-                 name: str = None,
+    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
                  gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
-        """
-        Create a new actor.
-
-        :param sim: The encounter that the actor will enter.
-        :param race: Race and clan.
-        :param level: Level. Note that most calculations only work at 70.
-        :param target: Primary target.
-        """
         if level is None:
             level = 70
 
