@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from heapq import heapify, heappop, heappush
 from math import floor
-from typing import ClassVar, Dict, Iterable, List, NamedTuple, Pattern, Tuple, Union
+from typing import ClassVar, Dict, Iterable, List, Pattern, Tuple, Union
 
 import humanfriendly
 import pandas as pd
@@ -19,15 +19,12 @@ class TargetData(ABC):
     pass
 
 
-# TODO NamedTuple has been nothing but problematic. Kill these fucking things ASAP.
-
 class Materia:
     """Provides a bonus to a specific stat.
 
     Arguments:
         attribute (simfantasy.enums.Attribute): The attribute that will be modified.
         bonus (int): Amount of the attribute added.
-        name (Optional[str]): Name of the materia, for convenience.
     """
 
     def __init__(self, attribute: Attribute, bonus: int, name: str = None):
@@ -41,11 +38,15 @@ class Item:
 
     Arguments:
         slot (simfantasy.enums.Slot): The slot where the item fits.
-        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added
-            by the item.
-        melds (Optional[Tuple[Materia, ...]]):  :class:`~simfantasy.simulator.Materia`
-            affixed to the item.
-        name (Optional[str]): Name of the materia, for convenience.
+        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the item.
+        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the item.
+        name (Optional[str]): Name of the item, for convenience.
+
+    Attributes:
+        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the item.
+        name (Optional[str]): Name of the item, for convenience.
+        slot (simfantasy.enums.Slot): The slot where the item fits.
+        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the item.
     """
 
     def __init__(self, slot: Slot, stats: Tuple[Tuple[Attribute, int], ...], melds: Tuple[Materia, ...] = None,
@@ -57,18 +58,25 @@ class Item:
 
 
 class Weapon(Item):
-    """An :class:`~simfantasy.simulator.Item` that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`.
+    """An Item that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`.
 
     Arguments:
-        magic_damage (:obj:`int`): Magic damage inflicted by the weapon. May be hidden for non-casters.
-        physical_damage (:obj:`int`): Physical damage inflicted by the weapon. May be hidden for casters.
-        delay (:obj:`float`): Weapon attack delay.
-        auto_attack (:obj:`float`): Auto attack value.
-        stats (:obj:`tuple` [:obj:`tuple` [:class:`~simfantasy.enums.Attribute`, :obj:`int`], ...]): Attributes added
-            by the item.
-        melds (Optional[:obj:`tuple` [:class:`~simfantasy.simulator.Materia`]]):  :class:`~simfantasy.simulator.Materia`
-            affixed to the item.
-        name (Optional[:obj:`str`]): Name of the materia, for convenience.
+        magic_damage (int): Magic damage inflicted by the weapon. May be hidden for non-casters.
+        physical_damage (int): Physical damage inflicted by the weapon. May be hidden for casters.
+        delay (float): Weapon attack delay.
+        auto_attack (float): Auto attack value.
+        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the weapon.
+        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the weapon.
+        name (Optional[str]): Name of the weapon, for convenience.
+
+    Attributes:
+        auto_attack (float): Auto attack value.
+        delay (float): Weapon attack delay.
+        magic_damage (int): Magic damage inflicted by the weapon. May be hidden for non-casters.
+        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the weapon.
+        name (Optional[str]): Name of the weapon, for convenience.
+        physical_damage (int): Physical damage inflicted by the weapon. May be hidden for casters.
+        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the weapon.
     """
 
     def __init__(self, magic_damage: int, physical_damage: int, delay: float, auto_attack: float,
