@@ -25,6 +25,12 @@ class Materia:
     Arguments:
         attribute (simfantasy.enums.Attribute): The attribute that will be modified.
         bonus (int): Amount of the attribute added.
+        name (Optional[str]): Name of the materia, for convenience.
+
+    Attributes:
+        attribute (simfantasy.enums.Attribute): The attribute that will be modified.
+        bonus (int): Amount of the attribute added.
+        name (Optional[str]): Name of the item, for convenience.
     """
 
     def __init__(self, attribute: Attribute, bonus: int, name: str = None):
@@ -37,23 +43,26 @@ class Item:
     """A piece of equipment that can be worn.
 
     Arguments:
+        item_level (int): Level of the item.
         slot (simfantasy.enums.Slot): The slot where the item fits.
-        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the item.
-        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the item.
+        stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
+        melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the item, for convenience.
 
     Attributes:
-        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the item.
+        item_level (int): Level of the item.
+        melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the item, for convenience.
         slot (simfantasy.enums.Slot): The slot where the item fits.
-        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the item.
+        stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
     """
 
-    def __init__(self, slot: Slot, stats: Tuple[Tuple[Attribute, int], ...], melds: Tuple[Materia, ...] = None,
+    def __init__(self, item_level: int, slot: Slot, stats: Dict[Attribute, int], melds: List[Materia] = None,
                  name: str = None):
+        self.item_level = item_level
         self.slot: Slot = slot
-        self.stats: Tuple[Tuple[Attribute, int], ...] = stats
-        self.melds: Tuple[Materia, ...] = melds
+        self.stats: Dict[Attribute, int] = stats
+        self.melds: List[Materia] = melds
         self.name: str = name
 
 
@@ -61,27 +70,29 @@ class Weapon(Item):
     """An Item that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`.
 
     Arguments:
+        item_level (int): Level of the item.
         magic_damage (int): Magic damage inflicted by the weapon. May be hidden for non-casters.
         physical_damage (int): Physical damage inflicted by the weapon. May be hidden for casters.
         delay (float): Weapon attack delay.
         auto_attack (float): Auto attack value.
-        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the weapon.
-        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the weapon.
+        stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
+        melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the weapon, for convenience.
 
     Attributes:
         auto_attack (float): Auto attack value.
         delay (float): Weapon attack delay.
+        item_level (int): Level of the item.
         magic_damage (int): Magic damage inflicted by the weapon. May be hidden for non-casters.
-        melds (Optional[Tuple[Materia, ...]]): Materia affixed to the weapon.
+        melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the weapon, for convenience.
         physical_damage (int): Physical damage inflicted by the weapon. May be hidden for casters.
-        stats (Tuple[Tuple[~simfantasy.enums.Attribute, int], ...]): Attributes added by the weapon.
+        stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
     """
 
-    def __init__(self, magic_damage: int, physical_damage: int, delay: float, auto_attack: float,
-                 stats: Tuple[Tuple[Attribute, int], ...], melds: Tuple[Materia, ...] = None, name: str = None):
-        super().__init__(Slot.WEAPON, stats, melds, name)
+    def __init__(self, item_level: int, magic_damage: int, physical_damage: int, delay: float, auto_attack: float,
+                 stats: Dict[Attribute, int], melds: List[Materia] = None, name: str = None):
+        super().__init__(item_level, Slot.WEAPON, stats, melds, name)
 
         self.magic_damage: int = magic_damage
         self.physical_damage: int = physical_damage
@@ -646,7 +657,7 @@ class Actor:
         level (int): Level of the actor.
         target (simfantasy.simulator.Actor): The enemy that the actor is targeting.
         name (str): Name of the actor.
-        gear (Tuple[Tuple[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]]):
+        gear (Optional[Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]]):
             Collection of equipment that the actor is wearing.
 
     Attributes:
@@ -659,8 +670,8 @@ class Actor:
         auras (List[simfantasy.simulator.Aura]): Auras, both friendly and hostile, that exist on the actor.
         gcd_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute GCD actions again without
             being inhibited by GCD lockout.
-        gear (Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]): Mapping of
-            equipment slot to the item contained within.
+        gear (Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]):
+            Collection of equipment that the actor is wearing.
         job (simfantasy.enums.Job): The actor's job specialization.
         level (int): Level of the actor.
         name (str): Name of the actor.
@@ -680,12 +691,12 @@ class Actor:
 
     # TODO Get rid of level?
     def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
-                 gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
+                 gear: Dict[Slot, Union[Item, Weapon]] = None):
         if level is None:
             level = 70
 
         if gear is None:
-            gear = ()
+            gear = {}
 
         if name is None:
             name = humanfriendly.text.random_string(length=10)
@@ -832,9 +843,9 @@ class Actor:
         """
         return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
-    def equip_gear(self, gear: Tuple[Tuple[Slot, Union[Weapon, Item]], ...]):
+    def equip_gear(self, gear: Dict[Slot, Union[Weapon, Item]]):
         """Equip items in the appropriate slots."""
-        for slot, item in gear:
+        for slot, item in gear.items():
             if not slot & item.slot:
                 raise Exception('Tried to place equipment in an incorrect slot.')
 
@@ -876,7 +887,7 @@ class Actor:
             https://na.finalfantasyxiv.com/lodestone/playguide/db/item/81019e5dbd4/
         """
         for slot, item in self.gear.items():
-            for gear_stat, bonus in item.stats:
+            for gear_stat, bonus in item.stats.items():
                 if gear_stat not in self.stats:
                     self.stats[gear_stat] = 0
 

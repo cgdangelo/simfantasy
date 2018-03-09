@@ -14,8 +14,8 @@ class Bard(Actor):
     role = Role.DPS
     target_data: 'BardTargetData'
 
-    def __init__(self, sim: Simulation, race: Race, level: int = None, target: Actor = None, name: str = None,
-                 gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
+    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
+                 gear: Dict[Slot, Union[Item, Weapon]] = None):
         super().__init__(sim, race, level, target, name, gear)
 
         self._target_data_class = BardTargetData
