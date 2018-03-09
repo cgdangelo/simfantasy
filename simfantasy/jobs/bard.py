@@ -63,7 +63,7 @@ class Bard(Actor):
             yield self.actions.straight_shot
 
         # TODO Error for unusable actions unrelated to cooldowns.
-        if self.song is self.buffs.wanderers_minuet and current_rep > 0 \
+        if self.song is self.buffs.wanderers_minuet \
                 and (current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)):
             yield self.actions.pitch_perfect
 

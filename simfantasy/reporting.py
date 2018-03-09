@@ -50,7 +50,7 @@ class TerminalReporter(Reporter):
                 .join(group['critical', 'direct'].mean() * 100) \
                 .sort_values(by='sum', ascending=False)
 
-        mean_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'].isna()], ['source', 'action'])
+        mean_dmg_per_action_df = get_damage_grouping(self.damage, ['source', 'action'])
         self.sim.logger.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
 
         mean_tick_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'] == True],
