@@ -1,5 +1,6 @@
 import logging
 from argparse import ArgumentParser
+from datetime import timedelta
 from sys import argv
 
 from simfantasy.actor import Actor
@@ -11,6 +12,7 @@ from simfantasy.simulator import Simulation
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--combat-length', action='store', type=float, default=300)
     parser.add_argument('--log-event-filter', action='store')
     parser.add_argument('--iterations', action='store', type=int, default=100)
     parser.add_argument('--log-action-attempts', action='store_true', default=False, dest='log_action_attempts')
@@ -26,7 +28,8 @@ if __name__ == '__main__':
                      log_pushes=args.log_pushes,
                      log_pops=args.log_pops,
                      iterations=args.iterations,
-                     log_action_attempts=args.log_action_attempts)
+                     log_action_attempts=args.log_action_attempts,
+                     combat_length=timedelta(seconds=args.combat_length))
 
     enemy = Actor(sim=sim, race=Race.ENEMY)
 
