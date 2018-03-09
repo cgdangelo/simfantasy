@@ -433,12 +433,9 @@ class Aura(ABC):
     """
 
     duration: timedelta = None
-
-    refresh_behavior: RefreshBehavior = None
-
-    refresh_extension: timedelta = None
-
     max_stacks: int = 1
+    refresh_behavior: RefreshBehavior = None
+    refresh_extension: timedelta = None
 
     def __init__(self) -> None:
         self.application_event = None
