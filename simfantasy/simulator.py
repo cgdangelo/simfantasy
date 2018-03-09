@@ -59,6 +59,9 @@ class Item:
 
     def __init__(self, item_level: int, slot: Slot, stats: Dict[Attribute, int], melds: List[Materia] = None,
                  name: str = None):
+        if melds is None:
+            melds = []
+
         self.item_level = item_level
         self.slot: Slot = slot
         self.stats: Dict[Attribute, int] = stats
@@ -857,31 +860,33 @@ class Actor:
         Examples:
             Consider the `Kujakuo Kai`_ bow for Bards:
 
-            >>> kujakuo_kai = Weapon(name='Kujakuo Kai', magic_damage=70, physical_damage=104, auto_attack=105.38, delay=3.04,
-            ...                      stats=((Attribute.DEXTERITY, 347), (Attribute.VITALITY, 380),
-            ...                             (Attribute.DIRECT_HIT, 311), (Attribute.CRITICAL_HIT, 218)))
+            >>> kujakuo_kai = Weapon(item_level=370, name='Kujakuo Kai', physical_damage=104, magic_damage=70,
+            ...                      auto_attack=105.38, delay=3.04,
+            ...                      stats={
+            ...                          Attribute.DEXTERITY: 347,
+            ...                          Attribute.VITALITY: 380,
+            ...                          Attribute.CRITICAL_HIT: 218,
+            ...                          Attribute.DIRECT_HIT: 311,
+            ...                      })
 
             Equipping this item will add its stat bonuses to the actor:
 
             >>> sim = Simulation()
             >>> actor = Actor(sim, Race.ENEMY)
-            >>> base_dexterity = actor.stats[Attribute.DEXTERITY]
-            >>> actor.equip_gear(((Slot.WEAPON, kujakuo_kai),))
+            >>> actor.equip_gear({Slot.WEAPON: kujakuo_kai})
             >>> actor.apply_gear_attribute_bonuses()
-            >>> actor.stats[Attribute.DEXTERITY] == base_dexterity + 347
+            >>> actor.stats[Attribute.DEXTERITY] == 347
             True
 
             Bonuses from melded materia are also applied:
 
             >>> savage_aim_vi = Materia(Attribute.CRITICAL_HIT, 40)
-            >>> kujakuo_kai = Weapon(name='Kujakuo Kai', magic_damage=70, physical_damage=104, auto_attack=105.38, delay=3.04,
-            ...                      melds=(savage_aim_vi, savage_aim_vi))
-            >>> sim = Simulation()
-            >>> actor = Actor(sim, Race.ENEMY)
-            >>> base_dexterity = actor.stats[Attribute.DEXTERITY]
-            >>> actor.equip_gear(((Slot.WEAPON, kujakuo_kai),))
+            >>> kujakuo_kai.melds = [savage_aim_vi, savage_aim_vi]
+            >>> actor.stats = {}
+            >>> actor.equip_gear({Slot.WEAPON: kujakuo_kai})
             >>> actor.apply_gear_attribute_bonuses()
-            >>> actor.stats[Attribute.DEXTERITY] == base_dexterity + 40
+            >>> actor.stats[Attribute.CRITICAL_HIT] == 218 + 40 + 40
+            True
 
         .. _Kujakuo Kai:
             https://na.finalfantasyxiv.com/lodestone/playguide/db/item/81019e5dbd4/
