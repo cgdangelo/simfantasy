@@ -12,6 +12,7 @@ from simfantasy.simulator import Actor, Aura, Item, Simulation, TargetData, Tick
 class Bard(Actor):
     job = Job.BARD
     role = Role.DPS
+    target_data: 'BardTargetData'
 
     def __init__(self, sim: Simulation, race: Race, level: int = None, target: Actor = None, name: str = None,
                  gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
