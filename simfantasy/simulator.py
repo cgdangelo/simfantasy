@@ -15,6 +15,12 @@ from simfantasy.enums import Attribute, Job, Race, RefreshBehavior, Resource, Ro
 from simfantasy.reporting import TerminalReporter
 
 
+class TargetData(ABC):
+    pass
+
+
+# TODO NamedTuple has been nothing but problematic. Kill these fucking things ASAP.
+
 class Materia(NamedTuple):
     """Provides a bonus to a specific stat.
 
@@ -198,8 +204,12 @@ class Simulation:
             True
             >>> event.unscheduled
             True
+            >>> event in sim.events
+            True
 
-            However, unscheduling a past event will fail:
+            Note that, as stated above, the event is not actually removed.
+
+            Unscheduling an event without a timestamp, or an event that has already occurred will fail:
 
             >>> event = MyEvent(sim)
             >>> sim.schedule(event, timedelta(seconds=-30))
@@ -371,11 +381,16 @@ class Simulation:
             str: A string, with precision to the thousandths.
 
         Examples:
+            For a simulation that has been running for 5 minutes (300 seconds):
+
             >>> sim = Simulation()
             >>> sim.start_time = datetime.now()
             >>> sim.current_time = sim.start_time + timedelta(minutes=5)
             >>> sim.relative_timestamp
             '300.000'
+
+            And in another 30 seconds:
+
             >>> sim.current_time += timedelta(seconds=30)
             >>> sim.relative_timestamp
             '330.000'
@@ -625,8 +640,10 @@ class Actor:
             Collection of equipment that the actor is wearing.
 
     Attributes:
-        _target_data_class (Type[object]): Reference to class type that is used to track target data.
-        __target_data (object): Contains the actor's state in the context of a particular target.
+        _target_data_class (Type[simfantasy.simulator.TargetData]): Reference to class type that is used to track target
+            data.
+        __target_data (Dict[~simfantasy.simulator.Actor, ~simfantasy.simulator.TargetData): Mapping of actors to any
+            available target state data.
         animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
             being inhibited by animation lockout.
         auras (List[simfantasy.simulator.Aura]): Auras, both friendly and hostile, that exist on the actor.
@@ -649,7 +666,7 @@ class Actor:
 
     job: Job = None
     role: Role = None
-    _target_data_class: ClassVar = None
+    _target_data_class: ClassVar[TargetData] = None
 
     # TODO Get rid of level?
     def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
@@ -688,6 +705,7 @@ class Actor:
         self.sim.logger.debug('Initialized: %s', self)
 
     def arise(self):
+        """Prepare the actor for combat."""
         self.__target_data = {}
         self.animation_unlock_at = None
         self.gcd_unlock_at = None
@@ -704,6 +722,10 @@ class Actor:
         }
 
     def calculate_resources(self):
+        """Determine the resource levels for the actor.
+
+        In particular, sets the HP, MP and TP resource levels.
+        """
         main_stat = main_stat_per_level[self.level]
         job_resources = get_base_resources_by_job(self.job)
 
@@ -721,18 +743,85 @@ class Actor:
         }
 
     @property
-    def target_data(self):
+    def target_data(self) -> TargetData:
+        """Return target state data.
+
+        For new targets, or at least ones that the actor has never switched to before, there will not be any target data
+        available. In that scenario, this property initializes a new instance of the target data class and returns it.
+        If there is already target state data, it will be returned directly.
+
+        Returns:
+            simfantasy.simulator.TargetData: Contains all the target state data from the source actor to the target.
+        """
         if self.target not in self.__target_data:
             self.__target_data[self.target] = self._target_data_class(source=self)
 
         return self.__target_data[self.target]
 
     @property
-    def gcd_up(self):
+    def gcd_up(self) -> bool:
+        """Determine if the actor is GCD locked.
+
+        The global cooldown, or GCD, is a 2.5s lockout that prevents other GCD actions from being performed. Actions
+        on the GCD are limited by their "execute time", or :math:`\\max{GCD, CastTime}`.
+
+        simultaneously. This lockout is tracked and can inhibit actions from being performed accordingly.
+
+        Examples:
+            Consider an actor that has just performed some action, and is thus gcd locked for 0.75s:
+
+            >>> sim = Simulation()
+            >>> sim.current_time = datetime.now()
+            >>> actor = Actor(sim, Race.ENEMY)
+            >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=0.75)
+
+            During this period, the actor will be unable to perform actions that also have gcd timings:
+
+            >>> actor.gcd_up
+            False
+
+            However, once the simulation's game clock advances past the gcd lockout timestamp, the actor can once
+            again perform actions:
+
+            >>> sim.current_time = actor.gcd_unlock_at + timedelta(seconds=1)
+            >>> actor.gcd_up
+            True
+
+        Returns:
+            bool: True if the actor is still gcd locked, False otherwise.
+        """
         return self.gcd_unlock_at is None or self.gcd_unlock_at <= self.sim.current_time
 
     @property
-    def animation_up(self):
+    def animation_up(self) -> bool:
+        """Determine if the actor is animation locked.
+
+        Many actions have an animation timing of 0.75s. This locks out the actor from performing multiple oGCD actions
+        simultaneously. This lockout is tracked and can inhibit actions from being performed accordingly.
+
+        Examples:
+            Consider an actor that has just performed some action, and is thus animation locked for 0.75s:
+
+            >>> sim = Simulation()
+            >>> sim.current_time = datetime.now()
+            >>> actor = Actor(sim, Race.ENEMY)
+            >>> actor.animation_unlock_at = sim.current_time + timedelta(seconds=0.75)
+
+            During this period, the actor will be unable to perform actions that also have animation timings:
+
+            >>> actor.animation_up
+            False
+
+            However, once the simulation's game clock advances past the animation lockout timestamp, the actor can once
+            again perform actions:
+
+            >>> sim.current_time = actor.animation_unlock_at + timedelta(seconds=1)
+            >>> actor.animation_up
+            True
+
+        Returns:
+            bool: True if the actor is still animation locked, False otherwise.
+        """
         return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
     def equip_gear(self, gear: Tuple[Tuple[Slot, Union[Weapon, Item]], ...]):

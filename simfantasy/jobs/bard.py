@@ -6,7 +6,7 @@ import numpy
 from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent, ShotAction
-from simfantasy.simulator import Actor, Aura, Item, Simulation, TickingAura, Weapon
+from simfantasy.simulator import Actor, Aura, Item, Simulation, TargetData, TickingAura, Weapon
 
 
 class Bard(Actor):
@@ -17,7 +17,7 @@ class Bard(Actor):
                  gear: Tuple[Tuple[Slot, Union[Item, Weapon]], ...] = None):
         super().__init__(sim, race, level, target, name, gear)
 
-        self._target_data_class = TargetData
+        self._target_data_class = BardTargetData
         self.actions = None
         self.buffs = None
 
@@ -242,7 +242,7 @@ class Buffs:
         self.wanderers_minuet = WanderersMinuetBuff()
 
 
-class TargetData:
+class BardTargetData(TargetData):
     def __init__(self, source: Bard):
         self.foe_requiem = FoeRequiemDebuff()
         self.venomous_bite = VenomousBiteDebuff(source)
@@ -568,6 +568,7 @@ class FoeRequiemBuff(Aura):
 
 class FoeRequiemAction(BardAction):
     base_cast_time = timedelta(seconds=1.5)
+    hastened_by = None
     name = "Foe's Requiem"
 
     def perform(self):
