@@ -367,7 +367,7 @@ class MiserysEndAction(BardAction):
 
 
 class BloodletterAction(BardAction):
-    base_recast_time = timedelta(seconds=8)
+    base_recast_time = timedelta(seconds=15)
     is_off_gcd = True
     name = 'Bloodletter'
     potency = 130
