@@ -144,6 +144,11 @@ class ActorReadyEvent(Event):
         self.actor = actor
 
     def execute(self) -> None:
+        # FIXME No point even trying to do anything if we're animation locked... right?
+        if self.actor.animation_unlock_at is not None \
+                and self.actor.animation_unlock_at > self.sim.current_time:
+            return
+
         decision_engine = self.actor.decide()
 
         for decision in decision_engine:
@@ -186,7 +191,6 @@ class RefreshAuraEvent(AuraEvent):
         self.aura.expire(self.target)
         self.aura.apply(self.target)
 
-        self.sim.unschedule(self.aura.expiration_event)
         self.aura.expiration_event = ExpireAuraEvent(self.sim, self.target, self.aura)
         self.sim.schedule(self.aura.expiration_event, delta)
 
@@ -576,7 +580,7 @@ class Action:
             self.source.gcd_unlock_at = self.sim.current_time + self.gcd
             self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.cast_time, self.gcd))
 
-        self.set_recast_at(self.recast_time)
+        self.set_recast_at(max(self.animation, self.cast_time) + self.recast_time)
 
         self.schedule_resource_consumption()
 
@@ -585,7 +589,8 @@ class Action:
     def schedule_resource_consumption(self):
         if self.cost is not None:
             resource, amount = self.cost
-            self.sim.schedule(ResourceEvent(self.sim, self.source, resource, -amount))
+            self.sim.schedule(ResourceEvent(self.sim, self.source, resource, -amount),
+                              max(self.animation, self.cast_time))
 
     def schedule_damage_event(self):
         if self.potency > 0:
@@ -602,15 +607,17 @@ class Action:
             self.shares_recast_with.can_recast_at = recast_at
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
+        delta = max(self.animation, self.cast_time)
+
         if aura.expiration_event is not None:
-            self.sim.schedule(RefreshAuraEvent(self.sim, target, aura))
+            self.sim.schedule(RefreshAuraEvent(self.sim, target, aura), delta)
             self.sim.unschedule(aura.expiration_event)
         else:
             aura.application_event = ApplyAuraEvent(self.sim, target, aura)
             aura.expiration_event = ExpireAuraEvent(self.sim, target, aura)
 
-            self.sim.schedule(aura.application_event)
-            self.sim.schedule(aura.expiration_event, aura.duration)
+            self.sim.schedule(aura.application_event, delta)
+            self.sim.schedule(aura.expiration_event, delta + aura.duration)
 
     def schedule_dot(self, dot: TickingAura):
         self.schedule_aura_events(self.source.target, dot)
@@ -622,7 +629,7 @@ class Action:
 
         dot.tick_event = tick_event
 
-        self.sim.schedule(tick_event, timedelta(seconds=3))
+        self.sim.schedule(tick_event, max(self.animation, self.cast_time) + timedelta(seconds=3))
 
     @property
     def on_cooldown(self):
@@ -771,9 +778,13 @@ class AutoAttackAction(Action):
 
     # TODO Would like to avoid having to duplicate so much code here.
     def perform(self):
+        animation_unlock = self.source.animation_unlock_at
+
         super().perform()
 
         self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.recast_time)
+
+        self.source.animation_unlock_at = animation_unlock
 
     @property
     def base_recast_time(self):

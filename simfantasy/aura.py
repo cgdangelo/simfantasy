@@ -148,6 +148,9 @@ class Aura(ABC):
             >>> aura.remains == timedelta(seconds=20)
             True
         """
+        if self.application_event is None or self.application_event.timestamp > self.application_event.sim.current_time:
+            return timedelta()
+
         if self.expiration_event is None or self.expiration_event.timestamp < self.expiration_event.sim.current_time:
             return timedelta()
 

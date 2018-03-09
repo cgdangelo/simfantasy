@@ -79,6 +79,8 @@ class Bard(Actor):
 
         if self.buffs.straighter_shot.up and self.buffs.raging_strikes.up:
             yield self.actions.barrage
+
+        if self.buffs.straighter_shot.up:
             yield self.actions.refulgent_arrow
 
         if self.song is not self.buffs.wanderers_minuet or current_rep < max_rep or self.buffs.barrage.up:
