@@ -2,10 +2,11 @@ import logging
 from argparse import ArgumentParser
 from sys import argv
 
+from simfantasy.actor import Actor
 from simfantasy.enums import Attribute, Race, Slot
+from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.jobs.bard import Bard
-from simfantasy.simulator import Actor, Simulation
-from simfantasy.equipment import Materia, Item, Weapon
+from simfantasy.simulator import Simulation
 
 if __name__ == '__main__':
     parser = ArgumentParser()

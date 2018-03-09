@@ -5,10 +5,12 @@ from typing import List, Tuple
 
 import numpy
 
+from simfantasy.actor import Actor
+from simfantasy.auras import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enums import Attribute, Job, RefreshBehavior, Resource, Slot
-from simfantasy.simulator import Actor, Aura, Simulation, TickingAura
+from simfantasy.simulator import Simulation
 
 
 class Event(metaclass=ABCMeta):
