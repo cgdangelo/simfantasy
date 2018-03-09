@@ -14,9 +14,6 @@ Welcome to SimFantasy's documentation!
    simulator
    events
 
-   jobs
-      ass
-
 Indices and tables
 ==================
 
