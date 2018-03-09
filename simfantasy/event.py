@@ -591,7 +591,7 @@ class Action:
         if self.potency > 0:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit), self.cast_time)
+                            self._buff_multipliers, self.guarantee_crit), max(self.animation, self.cast_time))
 
     def set_recast_at(self, delta: timedelta):
         recast_at = self.sim.current_time + delta
