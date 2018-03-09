@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from simfantasy.enums import Attribute, Job, Race, Resource
+from simfantasy.enum import Attribute, Job, Race, Resource
 
 main_stat_per_level: List[int] = [
     None, 20, 21, 22, 24, 26, 27, 29, 31, 33, 35, 36, 38, 41, 44, 46, 49, 52, 54, 57, 60, 63, 67, 71, 74, 78, 81, 85,

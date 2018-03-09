@@ -4,10 +4,10 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy
 
 from simfantasy.actor import Actor, TargetData
-from simfantasy.auras import Aura, TickingAura
-from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
+from simfantasy.aura import Aura, TickingAura
+from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.equipment import Item, Weapon
-from simfantasy.events import Action, ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
+from simfantasy.event import Action, ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent, ShotAction
 from simfantasy.simulator import Simulation
 

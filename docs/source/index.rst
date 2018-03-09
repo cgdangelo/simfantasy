@@ -7,15 +7,35 @@ SimFantasy
 
 .. contents:: :local:
 
-Simulator API
+Simulator
 -------------
 
 .. automodule:: simfantasy.simulator
 
+Actor
+------
+
+.. automodule:: simfantasy.actor
+
+Aura
+----
+
+.. automodule:: simfantasy.aura
+
+Equipment
+---------
+
+.. automodule:: simfantasy.equipment
+
 Events
 ------
 
-.. automodule:: simfantasy.events
+.. automodule:: simfantasy.event
+
+Enumerations
+------------
+
+.. automodule:: simfantasy.enum
 
 Indices and tables
 ==================

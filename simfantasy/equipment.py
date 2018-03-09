@@ -1,18 +1,18 @@
 from typing import Dict, List
 
-from simfantasy.enums import Attribute, Slot
+from simfantasy.enum import Attribute, Slot
 
 
 class Materia:
     """Provides a bonus to a specific stat.
 
     Arguments:
-        attribute (simfantasy.enums.Attribute): The attribute that will be modified.
+        attribute (simfantasy.enum.Attribute): The attribute that will be modified.
         bonus (int): Amount of the attribute added.
         name (Optional[str]): Name of the materia, for convenience.
 
     Attributes:
-        attribute (simfantasy.enums.Attribute): The attribute that will be modified.
+        attribute (simfantasy.enum.Attribute): The attribute that will be modified.
         bonus (int): Amount of the attribute added.
         name (Optional[str]): Name of the item, for convenience.
     """
@@ -28,7 +28,7 @@ class Item:
 
     Arguments:
         item_level (int): Level of the item.
-        slot (simfantasy.enums.Slot): The slot where the item fits.
+        slot (simfantasy.enum.Slot): The slot where the item fits.
         stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
         melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the item, for convenience.
@@ -37,7 +37,7 @@ class Item:
         item_level (int): Level of the item.
         melds (Optional[List[Materia]]): Materia affixed to the item.
         name (Optional[str]): Name of the item, for convenience.
-        slot (simfantasy.enums.Slot): The slot where the item fits.
+        slot (simfantasy.enum.Slot): The slot where the item fits.
         stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
     """
 

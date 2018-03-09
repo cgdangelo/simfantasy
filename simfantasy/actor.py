@@ -5,10 +5,10 @@ from typing import ClassVar, Dict, Iterable, List, Tuple, Union
 
 import humanfriendly
 
-from simfantasy.auras import Aura
+from simfantasy.aura import Aura
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
     main_stat_per_level, piety_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, Race, Resource, Role, Slot
+from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.simulator import Simulation
 
@@ -28,7 +28,7 @@ class Actor:
 
     Arguments:
         sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
-        race (simfantasy.enums.Race): Race and clan of the actor.
+        race (simfantasy.enum.Race): Race and clan of the actor.
         level (int): Level of the actor.
         target (simfantasy.actor.Actor): The enemy that the actor is targeting.
         name (str): Name of the actor.
@@ -36,28 +36,28 @@ class Actor:
             Collection of equipment that the actor is wearing.
 
     Attributes:
-        _target_data_class (Type[simfantasy.simulator.TargetData]): Reference to class type that is used to track target
+        _target_data_class (Type[simfantasy.actor.TargetData]): Reference to class type that is used to track target
             data.
-        __target_data (Dict[~simfantasy.simulator.Actor, ~simfantasy.simulator.TargetData): Mapping of actors to any
+        __target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors to any
             available target state data.
         animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
             being inhibited by animation lockout.
-        auras (List[simfantasy.auras.Aura]): Auras, both friendly and hostile, that exist on the actor.
+        auras (List[simfantasy.aura.Aura]): Auras, both friendly and hostile, that exist on the actor.
         gcd_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute GCD actions again without
             being inhibited by GCD lockout.
         gear (Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]):
             Collection of equipment that the actor is wearing.
-        job (simfantasy.enums.Job): The actor's job specialization.
+        job (simfantasy.enum.Job): The actor's job specialization.
         level (int): Level of the actor.
         name (str): Name of the actor.
-        race (simfantasy.enums.Race): Race and clan of the actor.
+        race (simfantasy.enum.Race): Race and clan of the actor.
         resources (Dict[~simfantasy.enums.Resource, Tuple[int, int]]): Mapping of resource type to a tuple containing
             the current amount and maximum capacity.
         sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
         statistics (Dict[str, List[Dict[Any, Any]]]): Collection of different event occurrences that are used for
             reporting and visualizations.
         stats (Dict[~simfantasy.enums.Attribute, int]): Mapping of attribute type to amount.
-        target (simfantasy.simulator.Actor): The enemy that the actor is targeting.
+        target (simfantasy.actor.Actor): The enemy that the actor is targeting.
     """
 
     job: Job = None
@@ -282,16 +282,16 @@ class Actor:
 
         The "decision engine" for each actor is a generator function that yields the desired actions. This method should
         be constructed as a priority list, where more important actions are towards the top, and less important actions
-        towards the bottom. A notable exception is for filler spells, i.e. :class:`~simfantasy.events.MeleeAttackAction`
+        towards the bottom. A notable exception is for filler spells, i.e. :class:`~simfantasy.event.MeleeAttackAction`
         and :class:`~simfantasy.melee.ShotAction`. Auto-attack actions don't interfere with other skills and happen at
         regular intervals, so they can (and should) be safely placed at top priority.
 
         See Also:
-            Refer to :func:`simfantasy.events.ActorReadyEvent.execute` for clarification on what happens with actions
+            Refer to :func:`simfantasy.event.ActorReadyEvent.execute` for clarification on what happens with actions
             yielded from the decision engine.
 
         Yields:
-            Optional[simfantasy.events.Action]: An instance of an action that will attempt to be performed. If None is
+            Optional[simfantasy.event.Action]: An instance of an action that will attempt to be performed. If None is
             yielded, no further attempts to find a suitable action will be made until the actor is ready again.
         """
         yield

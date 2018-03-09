@@ -23,7 +23,7 @@ class Simulation:
         log_pushes (Optional[bool]): True to show events being placed on the queue. Default: True.
         log_pops (Optional[bool]): True to show events being popped off the queue. Default: True.
         iterations (Optional[int]): Number of encounters to simulate. Default: 100.
-        log_action_attempts (Optional[bool]): True to log actions attempted by :class:`~simfantasy.simulator.Actor`
+        log_action_attempts (Optional[bool]): True to log actions attempted by :class:`~simfantasy.actor.Actor`
             decision engines.
 
     Attributes:
@@ -31,10 +31,10 @@ class Simulation:
         combat_length (datetime.timedelta): Length of the encounter.
         current_iteration (int): Current iteration index.
         current_time (datetime.datetime): "In game" timestamp.
-        events (List[simfantasy.events.Event]): Heapified list of upcoming events.
+        events (List[simfantasy.event.Event]): Heapified list of upcoming events.
         execute_time (datetime.timedelta): Length of time to allow jobs to use "execute" actions.
         iterations (int): Number of encounters to simulate. Default: 100.
-        log_action_attempts (bool): True to log actions attempted by :class:`~simfantasy.simulator.Actor` decision
+        log_action_attempts (bool): True to log actions attempted by :class:`~simfantasy.actor.Actor` decision
             engines.
         log_event_filter (Optional[Pattern]): Pattern for filtering logging output to only matching class names.
         log_pops (bool): True to show events being popped off the queue. Default: True.
@@ -116,14 +116,14 @@ class Simulation:
         resort the events list and subsequently recalculate the heap invariant.
 
         Arguments:
-            event (simfantasy.events.Event): The event to unschedule.
+            event (simfantasy.event.Event): The event to unschedule.
 
         Returns:
             bool: True if the event was unscheduled without issue. False if an error occurred, specifically a
             desync bug between the game clock and the event loop.
 
         Examples:
-            >>> from simfantasy.events import Event
+            >>> from simfantasy.event import Event
             >>> sim = Simulation()
             >>> sim.start_time = sim.current_time = datetime.now()
             >>> class MyEvent(Event):
@@ -180,13 +180,13 @@ class Simulation:
         """Schedule an event to occur in the future.
 
         Arguments:
-            event (simfantasy.events.Event): The event to schedule.
+            event (simfantasy.event.Event): The event to schedule.
             delta (Optional[datetime.timedelta]): An optional amount of time to wait before the event should be
                 executed. When delta is None, the event will be scheduled for the current timestamp, and executed after
                 any preexisting events already scheduled for the current timestamp are finished.
 
         Examples:
-            >>> from simfantasy.events import Event
+            >>> from simfantasy.event import Event
             >>> sim = Simulation()
             >>> sim.start_time = sim.current_time = datetime.now()
             >>> class MyEvent(Event):
@@ -214,7 +214,7 @@ class Simulation:
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        from simfantasy.events import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
+        from simfantasy.event import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
 
         auras_df = pd.DataFrame()
         damage_df = pd.DataFrame()

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from math import floor
 
-from simfantasy.enums import RefreshBehavior
+from simfantasy.enum import RefreshBehavior
 from simfantasy.simulator import Simulation
 
 
@@ -11,13 +11,13 @@ class Aura(ABC):
     """A buff or debuff that can be applied to a target.
 
     Attributes:
-        application_event (simfantasy.events.ApplyAuraEvent): Pointer to the scheduled event that will apply the aura
+        application_event (simfantasy.event.ApplyAuraEvent): Pointer to the scheduled event that will apply the aura
             to the target.
         duration (datetime.timedelta): Initial duration of the aura.
-        expiration_event (simfantasy.events.ExpireAuraEvent): Pointer to the scheduled event that will remove the aura
+        expiration_event (simfantasy.event.ExpireAuraEvent): Pointer to the scheduled event that will remove the aura
             from the target.
         max_stacks (int): The maximum number of stacks that the aura can accumulate.
-        refresh_behavior (simfantasy.enums.RefreshBehavior): Defines how the aura behaves when refreshes, i.e., what
+        refresh_behavior (simfantasy.enum.RefreshBehavior): Defines how the aura behaves when refreshes, i.e., what
             happens when reapplying an aura that already exists on the target.
         refresh_extension (datetime.timedelta): For :class:`simfantasy.enums.RefreshBehavior.EXTEND_TO_MAX`, this defines
             the amount of time that should be added to the aura's current remaining time.
@@ -64,7 +64,7 @@ class Aura(ABC):
         """Apply the aura to the target.
 
         Arguments:
-            target (simfantasy.simulator.Actor): The target that the aura will be applied to.
+            target (simfantasy.actor.Actor): The target that the aura will be applied to.
 
         Examples:
             >>> class FakeActor:
@@ -133,7 +133,7 @@ class Aura(ABC):
 
             >>> sim = Simulation()
             >>> sim.current_time = datetime.now()
-            >>> from simfantasy.events import ExpireAuraEvent
+            >>> from simfantasy.event import ExpireAuraEvent
             >>> aura.expiration_event = ExpireAuraEvent(sim, None, aura)
             >>> aura.expiration_event.timestamp = sim.current_time + timedelta(seconds=30)
 
@@ -161,7 +161,7 @@ class TickingAura(Aura):
     """An aura that ticks on the target, e.g., a damage-over-time spell.
 
     Attributes:
-        tick_event (simfantasy.events.DotTickEvent): Pointer to the event that will apply the next tick.
+        tick_event (simfantasy.event.DotTickEvent): Pointer to the event that will apply the next tick.
     """
 
     @property

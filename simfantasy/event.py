@@ -6,10 +6,10 @@ from typing import List, Tuple
 import numpy
 
 from simfantasy.actor import Actor
-from simfantasy.auras import Aura, TickingAura
+from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
-from simfantasy.enums import Attribute, Job, RefreshBehavior, Resource, Slot
+from simfantasy.enum import Attribute, Job, RefreshBehavior, Resource, Slot
 from simfantasy.simulator import Simulation
 
 
@@ -69,7 +69,7 @@ class CombatEndEvent(Event):
 class AuraEvent(Event, metaclass=ABCMeta):
     """
     An event that deals with an "aura", i.e., a buff or debuff that can be applied to an
-    :class:`~simfantasy.simulator.Actor`.
+    :class:`~simfantasy.actor.Actor`.
     """
 
     def __init__(self, sim: Simulation, target: Actor, aura: Aura):
@@ -77,7 +77,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
         Create a new event.
 
         :param sim: The simulation that the event is fired within.
-        :param target: The :class:`~simfantasy.simulator.Actor` context in which to evaluate the aura.
+        :param target: The :class:`~simfantasy.actor.Actor` context in which to evaluate the aura.
         :param aura: The aura that will interact with the target.
         """
         super().__init__(sim)
@@ -95,7 +95,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
 
 
 class ApplyAuraEvent(AuraEvent):
-    """An event indicating that an aura should be added to an :class:`~simfantasy.simulator.Actor`."""
+    """An event indicating that an aura should be added to an :class:`~simfantasy.actor.Actor`."""
 
     def execute(self) -> None:
         """Add the aura to the target and fire any post-application hooks from the aura itself."""
@@ -111,7 +111,7 @@ class ApplyAuraEvent(AuraEvent):
 
 
 class ExpireAuraEvent(AuraEvent):
-    """An event indicating that an aura should be removed from an :class:`~simfantasy.simulator.Actor`."""
+    """An event indicating that an aura should be removed from an :class:`~simfantasy.actor.Actor`."""
 
     def execute(self) -> None:
         """Remove the aura if still present on the target and fire any post-expiration hooks from the aura itself."""
@@ -128,14 +128,14 @@ class ExpireAuraEvent(AuraEvent):
 
 
 class ActorReadyEvent(Event):
-    """An event indicating that an :class:`~simfantasy.simulator.Actor` is ready to perform new actions."""
+    """An event indicating that an :class:`~simfantasy.actor.Actor` is ready to perform new actions."""
 
     def __init__(self, sim: Simulation, actor: Actor):
         """
         Create a new event.
 
         :param sim: The simulation that the event is fired within.
-        :param actor: The :class:`~simfantasy.simulator.Actor` context, i.e, the one recovering from nonready state.
+        :param actor: The :class:`~simfantasy.actor.Actor` context, i.e, the one recovering from nonready state.
         """
         super().__init__(sim)
 

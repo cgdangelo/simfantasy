@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from sys import argv
 
 from simfantasy.actor import Actor
-from simfantasy.enums import Attribute, Race, Slot
+from simfantasy.enum import Attribute, Race, Slot
 from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.jobs.bard import Bard
 from simfantasy.simulator import Simulation
