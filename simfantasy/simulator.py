@@ -763,9 +763,7 @@ class Actor:
         """Determine if the actor is GCD locked.
 
         The global cooldown, or GCD, is a 2.5s lockout that prevents other GCD actions from being performed. Actions
-        on the GCD are limited by their "execute time", or :math:`\\max{GCD, CastTime}`.
-
-        simultaneously. This lockout is tracked and can inhibit actions from being performed accordingly.
+        on the GCD are constrained by their "execute time", or :math:`\\max_{GCD, CastTime}`.
 
         Examples:
             Consider an actor that has just performed some action, and is thus gcd locked for 0.75s:
@@ -775,20 +773,20 @@ class Actor:
             >>> actor = Actor(sim, Race.ENEMY)
             >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=0.75)
 
-            During this period, the actor will be unable to perform actions that also have gcd timings:
+            During this period, the actor will be unable to perform actions that are also on the GCD:
 
             >>> actor.gcd_up
             False
 
-            However, once the simulation's game clock advances past the gcd lockout timestamp, the actor can once
-            again perform actions:
+            However, once the simulation's game clock advances past the GCD lockout timestamp, the actor can once
+            again perform GCD actions:
 
             >>> sim.current_time = actor.gcd_unlock_at + timedelta(seconds=1)
             >>> actor.gcd_up
             True
 
         Returns:
-            bool: True if the actor is still gcd locked, False otherwise.
+            bool: True if the actor is still GCD locked, False otherwise.
         """
         return self.gcd_unlock_at is None or self.gcd_unlock_at <= self.sim.current_time
 
@@ -825,6 +823,7 @@ class Actor:
         return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
     def equip_gear(self, gear: Tuple[Tuple[Slot, Union[Weapon, Item]], ...]):
+        """Equip items in the appropriate slots."""
         for slot, item in gear:
             if not slot & item.slot:
                 raise Exception('Tried to place equipment in an incorrect slot.')
@@ -832,6 +831,40 @@ class Actor:
             self.gear[slot] = item
 
     def apply_gear_attribute_bonuses(self):
+        """Apply stat bonuses gained from items and melds.
+
+        Examples:
+            Consider the `Kujakuo Kai`_ bow for Bards:
+
+            >>> kujakuo_kai = Weapon(name='Kujakuo Kai', magic_damage=70, physical_damage=104, auto_attack=105.38, delay=3.04,
+            ...                      stats=((Attribute.DEXTERITY, 347), (Attribute.VITALITY, 380),
+            ...                             (Attribute.DIRECT_HIT, 311), (Attribute.CRITICAL_HIT, 218)))
+
+            Equipping this item will add its stat bonuses to the actor:
+
+            >>> sim = Simulation()
+            >>> actor = Actor(sim, Race.ENEMY)
+            >>> base_dexterity = actor.stats[Attribute.DEXTERITY]
+            >>> actor.equip_gear(((Slot.WEAPON, kujakuo_kai),))
+            >>> actor.apply_gear_attribute_bonuses()
+            >>> actor.stats[Attribute.DEXTERITY] == base_dexterity + 347
+            True
+
+            Bonuses from melded materia are also applied:
+
+            >>> savage_aim_vi = Materia(Attribute.CRITICAL_HIT, 40)
+            >>> kujakuo_kai = Weapon(name='Kujakuo Kai', magic_damage=70, physical_damage=104, auto_attack=105.38, delay=3.04,
+            ...                      melds=(savage_aim_vi, savage_aim_vi))
+            >>> sim = Simulation()
+            >>> actor = Actor(sim, Race.ENEMY)
+            >>> base_dexterity = actor.stats[Attribute.DEXTERITY]
+            >>> actor.equip_gear(((Slot.WEAPON, kujakuo_kai),))
+            >>> actor.apply_gear_attribute_bonuses()
+            >>> actor.stats[Attribute.DEXTERITY] == base_dexterity + 40
+
+        .. _Kujakuo Kai:
+            https://na.finalfantasyxiv.com/lodestone/playguide/db/item/81019e5dbd4/
+        """
         for slot, item in self.gear.items():
             for gear_stat, bonus in item.stats:
                 if gear_stat not in self.stats:
@@ -847,20 +880,40 @@ class Actor:
 
     @abstractmethod
     def decide(self) -> Iterable:
-        """Given current simulation environment, decide what action should be performed, if any."""
+        """Given current simulation environment, decide what action should be performed, if any.
+
+        The "decision engine" for each actor is a generator function that yields the desired actions. This method should
+        be constructed as a priority list, where more important actions are towards the top, and less important actions
+        towards the bottom. A notable exception is for filler spells, i.e. :class:`~simfantasy.events.MeleeAttackAction`
+        and :class:`~simfantasy.melee.ShotAction`. Auto-attack actions don't interfere with other skills and happen at
+        regular intervals, so they can (and should) be safely placed at top priority.
+
+        See Also:
+            Refer to :func:`simfantasy.events.ActorReadyEvent.execute` for clarification on what happens with actions
+            yielded from the decision engine.
+
+        Yields:
+            Optional[simfantasy.events.Action]: An instance of an action that will attempt to be performed. If None is
+            yielded, no further attempts to find a suitable action will be made until the actor is ready again.
+        """
         yield
 
     def has_aura(self, aura: Aura) -> bool:
-        """
-        Determine if the aura exists on the actor.
+        """Determine if the aura exists on the actor.
 
-        :param aura: The aura to check for.
-        :return: True if the aura is presence.
+        Warnings:
+            Probably deprecated in favor of :func:`simfantasy.simulator.Aura.up`.
         """
         return aura in self.auras
 
     def calculate_base_stats(self) -> Dict[Attribute, int]:
-        """Calculate and set base primary and secondary stats."""
+        """Calculate and set base primary and secondary stats.
+
+        Base stats are determined by a combination of level, job and race/clan affiliation.
+
+        Returns:
+            Dict[Attribute, int]: Mapping of attributes to amounts.
+        """
         base_main_stat = main_stat_per_level[self.level]
         base_sub_stat = sub_stat_per_level[self.level]
 
