@@ -574,29 +574,33 @@ class Action:
                               self.source, self)
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
-        self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.animation, self.cast_time))
+        self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.animation_execute_time)
 
         if not self.is_off_gcd:
             self.source.gcd_unlock_at = self.sim.current_time + self.gcd
             self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.cast_time, self.gcd))
 
-        self.set_recast_at(max(self.animation, self.cast_time) + self.recast_time)
+        self.set_recast_at(self.animation_execute_time + self.recast_time)
 
         self.schedule_resource_consumption()
 
         self.schedule_damage_event()
 
+    @property
+    def animation_execute_time(self):
+        return max(self.animation, self.cast_time)
+
     def schedule_resource_consumption(self):
         if self.cost is not None:
             resource, amount = self.cost
             self.sim.schedule(ResourceEvent(self.sim, self.source, resource, -amount),
-                              max(self.animation, self.cast_time))
+                              self.animation_execute_time)
 
     def schedule_damage_event(self):
         if self.potency > 0:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit), max(self.animation, self.cast_time))
+                            self._buff_multipliers, self.guarantee_crit), self.animation_execute_time)
 
     def set_recast_at(self, delta: timedelta):
         recast_at = self.sim.current_time + delta
@@ -607,7 +611,7 @@ class Action:
             self.shares_recast_with.can_recast_at = recast_at
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
-        delta = max(self.animation, self.cast_time)
+        delta = self.animation_execute_time
 
         if aura.expiration_event is not None:
             self.sim.schedule(RefreshAuraEvent(self.sim, target, aura), delta)
@@ -629,7 +633,7 @@ class Action:
 
         dot.tick_event = tick_event
 
-        self.sim.schedule(tick_event, max(self.animation, self.cast_time) + timedelta(seconds=3))
+        self.sim.schedule(tick_event, self.animation_execute_time + timedelta(seconds=3))
 
     @property
     def on_cooldown(self):
