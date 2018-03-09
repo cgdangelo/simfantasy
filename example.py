@@ -4,7 +4,8 @@ from sys import argv
 
 from simfantasy.enums import Attribute, Race, Slot
 from simfantasy.jobs.bard import Bard
-from simfantasy.simulator import Actor, Item, Materia, Simulation, Weapon
+from simfantasy.simulator import Actor, Simulation
+from simfantasy.equipment import Materia, Item, Weapon
 
 if __name__ == '__main__':
     parser = ArgumentParser()

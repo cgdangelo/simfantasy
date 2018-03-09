@@ -30,7 +30,8 @@ class TerminalReporter(Reporter):
         pd.set_option('display.width', None)
 
         # @formatter:off
-        mean_dps = (self.damage.groupby([self.damage.index, 'source'])['damage'].sum()) / self.sim.combat_length.total_seconds()
+        mean_dps = (self.damage.groupby([self.damage.index, 'source'])[
+                        'damage'].sum()) / self.sim.combat_length.total_seconds()
         mean_dps = mean_dps.groupby('source').mean().to_frame()
         self.sim.logger.info('Average DPS:\n\n%s\n', mean_dps)
 
@@ -52,7 +53,8 @@ class TerminalReporter(Reporter):
         mean_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'].isna()], ['source', 'action'])
         self.sim.logger.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
 
-        mean_tick_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'] == True], ['source', 'action'])
+        mean_tick_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'] == True],
+                                                          ['source', 'action'])
         self.sim.logger.info('Tick Damage Dealt by Action\n\n%s\n', mean_tick_dmg_per_action_df)
 
         mean_dmg_per_target_df = get_damage_grouping(self.damage, ['source', 'target'])
