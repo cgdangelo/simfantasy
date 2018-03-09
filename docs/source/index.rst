@@ -7,22 +7,15 @@ Welcome to SimFantasy's documentation!
 ======================================
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: simfantasy.simulator
+   simulator
+   events
 
-.. automodule:: simfantasy.events
-
-.. automodule:: simfantasy.common_math
-
-.. automodule:: simfantasy.enums
-
-Jobs
-====
-
-.. automodule:: simfantasy.jobs.bard
-
+   jobs
+      ass
 
 Indices and tables
 ==================
