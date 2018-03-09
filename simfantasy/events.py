@@ -630,7 +630,10 @@ class Action:
 
     @property
     def cast_time(self):
-        return self._speed(self.base_cast_time)
+        if self.hastened_by is not None:
+            return self._speed(self.base_cast_time)
+
+        return self.base_cast_time
 
     @property
     def recast_time(self):
@@ -641,7 +644,10 @@ class Action:
 
     @property
     def gcd(self):
-        return self._speed(timedelta(seconds=2.5))
+        if self.hastened_by is not None:
+            return self._speed(timedelta(seconds=2.5))
+
+        return timedelta(seconds=2.5)
 
     @property
     def type_ii_speed_mod(self):

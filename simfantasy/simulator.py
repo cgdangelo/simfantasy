@@ -21,7 +21,7 @@ class TargetData(ABC):
 
 # TODO NamedTuple has been nothing but problematic. Kill these fucking things ASAP.
 
-class Materia(NamedTuple):
+class Materia:
     """Provides a bonus to a specific stat.
 
     Arguments:
@@ -29,12 +29,14 @@ class Materia(NamedTuple):
         bonus (int): Amount of the attribute added.
         name (Optional[str]): Name of the materia, for convenience.
     """
-    attribute: Attribute
-    bonus: int
-    name: str = None
+
+    def __init__(self, attribute: Attribute, bonus: int, name: str = None):
+        self.attribute: Attribute = attribute
+        self.bonus: int = bonus
+        self.name: str = name
 
 
-class Item(NamedTuple):
+class Item:
     """A piece of equipment that can be worn.
 
     Arguments:
@@ -45,13 +47,16 @@ class Item(NamedTuple):
             affixed to the item.
         name (Optional[str]): Name of the materia, for convenience.
     """
-    slot: Slot
-    stats: Tuple[Tuple[Attribute, int], ...]
-    melds: Tuple[Materia, ...] = None
-    name: str = None
+
+    def __init__(self, slot: Slot, stats: Tuple[Tuple[Attribute, int], ...], melds: Tuple[Materia, ...] = None,
+                 name: str = None):
+        self.slot: Slot = slot
+        self.stats: Tuple[Tuple[Attribute, int], ...] = stats
+        self.melds: Tuple[Materia, ...] = melds
+        self.name: str = name
 
 
-class Weapon(NamedTuple):
+class Weapon(Item):
     """An :class:`~simfantasy.simulator.Item` that only fits in :data:`~simfantasy.enums.Slot.SLOT_WEAPON`.
 
     Arguments:
@@ -59,21 +64,21 @@ class Weapon(NamedTuple):
         physical_damage (:obj:`int`): Physical damage inflicted by the weapon. May be hidden for casters.
         delay (:obj:`float`): Weapon attack delay.
         auto_attack (:obj:`float`): Auto attack value.
-        slot (:class:`~simfantasy.enums.Slot`): The slot where the item fits.
         stats (:obj:`tuple` [:obj:`tuple` [:class:`~simfantasy.enums.Attribute`, :obj:`int`], ...]): Attributes added
             by the item.
         melds (Optional[:obj:`tuple` [:class:`~simfantasy.simulator.Materia`]]):  :class:`~simfantasy.simulator.Materia`
             affixed to the item.
         name (Optional[:obj:`str`]): Name of the materia, for convenience.
     """
-    magic_damage: int
-    physical_damage: int
-    delay: float
-    auto_attack: float
-    stats: Tuple[Tuple[Attribute, int], ...]
-    slot = Slot.WEAPON
-    melds: Tuple[Materia, ...] = None
-    name: str = None
+
+    def __init__(self, magic_damage: int, physical_damage: int, delay: float, auto_attack: float,
+                 stats: Tuple[Tuple[Attribute, int], ...], melds: Tuple[Materia, ...] = None, name: str = None):
+        super().__init__(Slot.WEAPON, stats, melds, name)
+
+        self.magic_damage: int = magic_damage
+        self.physical_damage: int = physical_damage
+        self.delay: float = delay
+        self.auto_attack: float = auto_attack
 
 
 class Simulation:
