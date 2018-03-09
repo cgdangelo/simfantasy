@@ -10,6 +10,8 @@ from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, RefreshBehavior, Resource, Slot
+from simfantasy.errors import ActionOnCooldownError, ActorAnimationLockedError, ActorGCDLockedError, \
+    FailedActionAttemptError
 from simfantasy.simulator import Simulation
 
 
@@ -840,27 +842,3 @@ class AutoAttackEvent(DamageEvent):
         self._damage = int(damage)
 
         return self._damage
-
-
-class FailedActionAttemptError(Exception):
-    pass
-
-
-class ActionOnCooldownError(FailedActionAttemptError):
-    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
-        super().__init__('%s tried to use %s, but on cooldown for %.3f' %
-                         (source, action, action.cooldown_remains.total_seconds()), *args, **kwargs)
-
-
-class ActorAnimationLockedError(FailedActionAttemptError):
-    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
-        super().__init__('%s tried to use %s, but animation locked for %.3f' %
-                         (source, action, (source.animation_unlock_at - sim.current_time).total_seconds()), *args,
-                         **kwargs)
-
-
-class ActorGCDLockedError(FailedActionAttemptError):
-    def __init__(self, sim: Simulation, source: Actor, action: Action, *args: object, **kwargs: object) -> None:
-        super().__init__('%s tried to use %s, but GCD locked for %.3f' %
-                         (source, action, (source.gcd_unlock_at - sim.current_time).total_seconds()), *args,
-                         **kwargs)

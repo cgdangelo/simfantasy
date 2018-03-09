@@ -32,10 +32,23 @@ Events
 
 .. automodule:: simfantasy.event
 
-Enumerations
+Miscellany
 ------------
 
+Common math and constants
++++++++++++++++++++++++++
+
+.. automodule:: simfantasy.common_math
+
+Enumerations
+++++++++++++
+
 .. automodule:: simfantasy.enum
+
+Errors
+++++++
+
+.. automodule:: simfantasy.errors
 
 Indices and tables
 ==================
