@@ -1,4 +1,0 @@
-Events
-======
-
-.. automodule:: simfantasy.events

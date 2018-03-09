@@ -1,4 +1,0 @@
-Simulator
-=========
-
-.. automodule:: simfantasy.simulator
