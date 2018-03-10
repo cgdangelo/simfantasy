@@ -38,7 +38,7 @@ class Actor:
     Attributes:
         _target_data_class (Type[simfantasy.actor.TargetData]): Reference to class type that is used to track target
             data.
-        __target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors to any
+        _target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors to any
             available target state data.
         animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
             being inhibited by animation lockout.
@@ -82,7 +82,7 @@ class Actor:
         self.target: 'Actor' = target
         self.name = name
 
-        self.__target_data = {}
+        self._target_data = {}
 
         self.animation_unlock_at: datetime = None
         self.gcd_unlock_at: datetime = None
@@ -102,7 +102,7 @@ class Actor:
 
     def arise(self):
         """Prepare the actor for combat."""
-        self.__target_data = {}
+        self._target_data = {}
         self.animation_unlock_at = None
         self.gcd_unlock_at = None
         self.auras.clear()
@@ -149,10 +149,14 @@ class Actor:
         Returns:
             simfantasy.actor.TargetData: Contains all the target state data from the source actor to the target.
         """
-        if self.target not in self.__target_data:
-            self.__target_data[self.target] = self._target_data_class(source=self)
+        try:
+            target_data = self._target_data[self.target]
+        except KeyError:
+            target_data = self._target_data_class(source=self)
 
-        return self.__target_data[self.target]
+            self._target_data[self.target] = target_data
+
+        return target_data
 
     @property
     def gcd_up(self) -> bool:
