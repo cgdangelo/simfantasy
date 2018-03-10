@@ -351,7 +351,9 @@ class DamageEvent(Event):
         base_stats = get_base_stats_by_job(self.source.job)
 
         if self.action.powered_by is Attribute.ATTACK_POWER:
-            if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+            if self.source.job is Job.BARD \
+                    or self.source.job is Job.MACHINIST \
+                    or self.source.job is Job.NINJA:
                 job_attribute_modifier = base_stats[Attribute.DEXTERITY]
                 attack_rating = self.source.stats[Attribute.DEXTERITY]
             else:
@@ -360,7 +362,9 @@ class DamageEvent(Event):
 
             weapon_damage = self.source.gear[Slot.WEAPON].physical_damage
         elif self.action.powered_by is Attribute.ATTACK_MAGIC_POTENCY:
-            if self.source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
+            if self.source.job is Job.ASTROLOGIAN \
+                    or self.source.job is Job.SCHOLAR \
+                    or self.source.job is Job.WHITE_MAGE:
                 job_attribute_modifier = base_stats[Attribute.MIND]
                 attack_rating = self.source.stats[Attribute.MIND]
             else:
@@ -466,7 +470,9 @@ class DotTickEvent(DamageEvent):
         base_stats = get_base_stats_by_job(self.source.job)
 
         if self.action.powered_by is Attribute.ATTACK_POWER:
-            if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+            if self.source.job is Job.BARD \
+                    or self.source.job is Job.MACHINIST \
+                    or self.source.job is Job.NINJA:
                 job_attribute_modifier = base_stats[Attribute.DEXTERITY]
                 attack_rating = self.source.stats[Attribute.DEXTERITY]
             else:
@@ -475,7 +481,9 @@ class DotTickEvent(DamageEvent):
 
             weapon_damage = self.source.gear[Slot.WEAPON].physical_damage
         elif self.action.powered_by is Attribute.ATTACK_MAGIC_POTENCY:
-            if self.source.job in [Job.ASTROLOGIAN, Job.SCHOLAR, Job.WHITE_MAGE]:
+            if self.source.job is Job.ASTROLOGIAN \
+                    or self.source.job is Job.SCHOLAR \
+                    or self.source.job is Job.WHITE_MAGE:
                 job_attribute_modifier = base_stats[Attribute.MIND]
                 attack_rating = self.source.stats[Attribute.MIND]
             else:
