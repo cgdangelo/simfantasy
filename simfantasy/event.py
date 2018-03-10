@@ -826,7 +826,9 @@ class AutoAttackEvent(DamageEvent):
 
         base_stats = get_base_stats_by_job(self.source.job)
 
-        if self.source.job in [Job.BARD, Job.MACHINIST, Job.NINJA]:
+        if self.source.job is Job.BARD \
+                or self.source.job is Job.MACHINIST \
+                or self.source.job is Job.NINJA:
             job_attribute_modifier = base_stats[Attribute.DEXTERITY]
             attack_rating = self.source.stats[Attribute.DEXTERITY]
         else:

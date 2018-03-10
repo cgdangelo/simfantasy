@@ -166,11 +166,7 @@ class BardAction(Action):
     def _buff_multipliers(self) -> List[float]:
         _buff_multipliers = super()._buff_multipliers
 
-        # TODO Make this possible.
-        # if self.source.target_data.foe_requiem.up:
-        #     yield 1.1
-
-        if self.source.target_data.foe_requiem in self.source.target.auras:
+        if self.source.target_data.foe_requiem.up:
             _buff_multipliers += [1.1]
 
         if self.source.buffs.raging_strikes.up:
