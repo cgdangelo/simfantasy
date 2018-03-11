@@ -232,10 +232,10 @@ class Action:
 
     @property
     def recast_time(self):
-        if self.base_recast_time > timedelta(seconds=2.5):
-            return self._speed(self.base_recast_time)
+        if self.base_recast_time == timedelta(seconds=2.5):
+            return self.gcd
 
-        return self.gcd
+        return self.base_recast_time
 
     @property
     def gcd(self):
