@@ -3,12 +3,13 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 
+from simfantasy.action import Action, ShotAction
 from simfantasy.actor import Actor, TargetData
 from simfantasy.aura import Aura, TickingAura
 from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.equipment import Item, Weapon
-from simfantasy.event import Action, ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
-    Event, ExpireAuraEvent, ResourceEvent, ShotAction
+from simfantasy.event import ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
+    Event, ExpireAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
 
 
