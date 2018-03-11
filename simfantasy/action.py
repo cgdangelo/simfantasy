@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from math import ceil, floor
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from simfantasy.actor import Actor
 from simfantasy.aura import Aura, TickingAura
@@ -32,7 +32,8 @@ class Action:
         is_off_gcd (bool): True for actions that are not bound to the GCD, False otherwise. Default: False.
         potency (int): Potency of the action's impact, i.e., damage healed or inflicted. Default: None.
         powered_by (Attribute): The attribute that contributes to the total impact of the action. Default: None.
-        shares_recast_with: (simfantasy.action.Action): Action(s) that are on the same recast timer. Default: None.
+        shares_recast_with: (Union[simfantasy.action.Action, List[~simfantasy.action.Action]]): Action(s) that are on
+            the same recast timer. Default: None.
         sim (simfantasy.simulator.Simulation): The simulation where the action is performed.
         source (simfantasy.actor.Actor): The actor that performed the action.
     """
@@ -45,7 +46,7 @@ class Action:
     is_off_gcd: bool = False
     potency: int = None
     powered_by: Attribute = None
-    shares_recast_with: 'Action' = None
+    shares_recast_with: Union['Action', List['Action']] = None
 
     def __init__(self, sim: Simulation, source: Actor):
         self.sim = sim
@@ -132,27 +133,62 @@ class Action:
 
     @property
     def animation_execute_time(self):
+        """Helper function to return whatever is longer, the action's animation or cast time.
+
+        Returns:
+            datetime.timedelta
+        """
         return max(self.animation, self.cast_time)
 
     def schedule_resource_consumption(self):
+        """Schedules an event to consume the resource needed to perform the action.
+
+        Notes:
+            The cost must not be None.
+
+        When the action is performed, i.e., after its :attr:`~simfantasy.action.Action.animation_execute_time` has
+        passed, a :class:`simfantasy.event.ResourceEvent` will occur that consumes the resource cost defined in the
+        :attr:`~simfantasy.action.Action.cost`.
+        """
         if self.cost is not None:
             resource, amount = self.cost
             self.sim.schedule(ResourceEvent(self.sim, self.source, resource, -amount),
                               self.animation_execute_time)
 
     def schedule_damage_event(self):
+        """Schedules an event to inflict damage.
+
+        Notes:
+            The potency must not be None.
+
+        When the action is performed, i.e., after its :attr:`~simfantasy.action.Action.animation_execute_time` has
+        passed, a :class:`simfantasy.event.ResourceEvent` will inflict damage based on the amount defined in the
+        :attr:`~simfantasy.action.Action.potency`.
+        """
         if self.potency is not None:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
                             self._buff_multipliers, self.guarantee_crit), self.animation_execute_time)
 
     def set_recast_at(self, delta: timedelta):
+        """Sets the timestamp when the action can be performed again.
+
+        Based on the given delta, sets the recast timestamp by adding it to the simulation's current timestamp. If the
+        action shares a recast with one or more other actions, those will have their recast timestamps set as well.
+
+        Arguments:
+            delta (datetime.timedelta): The amount of time that must pass to perform this action again.
+        """
         recast_at = self.sim.current_time + delta
 
         self.can_recast_at = recast_at
 
         if self.shares_recast_with is not None:
-            self.shares_recast_with.can_recast_at = recast_at
+            if type(self.shares_recast_with) is list:
+                for shared_action in self.shares_recast_with:
+                    shared_action.can_recast_at = recast_at
+            else:
+                self.shares_recast_with.can_recast_at = recast_at
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
         delta = self.animation_execute_time
