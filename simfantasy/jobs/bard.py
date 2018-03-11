@@ -666,6 +666,10 @@ class EmpyrealArrowAction(BardAction):
     name = 'Empyreal Arrow'
     potency = 230
 
+    @property
+    def recast_time(self):
+        return self._speed(self.base_recast_time)
+
     def perform(self):
         super().perform()
 
