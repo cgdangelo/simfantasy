@@ -29,9 +29,9 @@ class Actor:
     Arguments:
         sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
         race (simfantasy.enum.Race): Race and clan of the actor.
-        level (int): Level of the actor.
-        target (simfantasy.actor.Actor): The enemy that the actor is targeting.
-        name (str): Name of the actor.
+        level (Optional[int]): Level of the actor.
+        target (Optional[simfantasy.actor.Actor]): The enemy that the actor is targeting.
+        name (Optional[str]): Name of the actor.
         gear (Optional[Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]]):
             Collection of equipment that the actor is wearing.
 

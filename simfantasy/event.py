@@ -10,7 +10,7 @@ from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, RefreshBehavior, Resource, Slot
-from simfantasy.errors import FailedActionAttemptError
+from simfantasy.error import FailedActionAttemptError
 from simfantasy.simulator import Simulation
 
 

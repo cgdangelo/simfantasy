@@ -1,26 +1,49 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from math import ceil, floor
 from typing import List, Tuple
 
 from simfantasy.actor import Actor
 from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, sub_stat_per_level
-from simfantasy.enum import Attribute, Resource, Slot
-from simfantasy.errors import ActionOnCooldownError, ActorAnimationLockedError, ActorGCDLockedError
+from simfantasy.enum import Attribute, Race, Resource, Slot
+from simfantasy.error import ActionOnCooldownError, ActorAnimationLockedError, ActorGCDLockedError
 from simfantasy.event import ActorReadyEvent, ApplyAuraEvent, AutoAttackEvent, DamageEvent, DotTickEvent, \
     ExpireAuraEvent, RefreshAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
 
 
 class Action:
-    animation = timedelta(seconds=0.75)
+    """An ability that can be performed by an actor.
+
+    Arguments:
+        sim (simfantasy.simulator.Simulation): The simulation where the action is performed.
+        source (simfantasy.actor.Actor): The actor that performed the action.
+
+    Attributes:
+        animation (datetime.timedelta): Length of the animation delay caused by the action. Default: 0.75 seconds.
+        base_cast_time (datetime.timedelta): Length of the action's cast time. Default: Instant cast.
+        base_recast_time (datetime.timedelta): Length of time until the ability can be used again. Default: base
+            GCD length, 2.5 seconds.
+        can_recast_at (datetime.datetime): Timestamp when the action can be performed again.
+        cost (Tuple[simfantasy.enum.Resource, int]): The resource type and amount needed to perform the action.
+        guarantee_crit (bool): Ensures the damage will be a critical hit. Default: False.
+        hastened_by (simfantasy.enum.Attribute): The attribute that contributes to lowering the cast/recast time of
+            the action. Default: None.
+        is_off_gcd (bool): True for actions that are not bound to the GCD, False otherwise. Default: False.
+        potency (int): Potency of the action's impact, i.e., damage healed or inflicted. Default: None.
+        powered_by (Attribute): The attribute that contributes to the total impact of the action. Default: None.
+        shares_recast_with: (simfantasy.action.Action): Action(s) that are on the same recast timer. Default: None.
+        sim (simfantasy.simulator.Simulation): The simulation where the action is performed.
+        source (simfantasy.actor.Actor): The actor that performed the action.
+    """
+    animation: timedelta = timedelta(seconds=0.75)
     base_cast_time: timedelta = timedelta()
     base_recast_time: timedelta = timedelta(seconds=2.5)
     cost: Tuple[Resource, int] = None
     guarantee_crit: bool = None
     hastened_by: Attribute = None
     is_off_gcd: bool = False
-    potency: int = 0
+    potency: int = None
     powered_by: Attribute = None
     shares_recast_with: 'Action' = None
 
@@ -31,9 +54,53 @@ class Action:
 
     @property
     def name(self):
+        """Name of the action.
+
+        Should be overridden with a friendlier name. Returns the class name by default.
+
+        Returns:
+            string: Name of the action.
+        """
         return self.__class__.__name__
 
     def perform(self):
+        """Perform the action.
+
+        Examples:
+            Actions that are still on cooldown will raise an error:
+
+            >>> sim = Simulation()
+            >>> sim.current_time = datetime.now()
+            >>> actor = Actor(sim, Race.ENEMY, name='You')
+            >>> action = Action(sim, actor)
+            >>> action.can_recast_at = sim.current_time + timedelta(seconds=30)
+            >>> action.perform()
+            Traceback (most recent call last):
+            ...
+            simfantasy.error.ActionOnCooldownError: <Actor name=You> tried to use <Action>, but on cooldown for 30.000
+
+            Actions performed by actors that are not yet able to do so will raise errors:
+
+            >>> action.can_recast_at = sim.current_time
+            >>> actor.animation_unlock_at = sim.current_time + timedelta(seconds=0.75)
+            >>> action.perform()
+            Traceback (most recent call last):
+            ...
+            simfantasy.error.ActorAnimationLockedError: <Actor name=You> tried to use <Action>, but animation locked for 0.750
+            >>> actor.animation_unlock_at = sim.current_time
+            >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=2.5)
+            >>> action.perform()
+            Traceback (most recent call last):
+            ...
+            simfantasy.error.ActorGCDLockedError: <Actor name=You> tried to use <Action>, but GCD locked for 2.500
+
+        Raises:
+            simfantasy.error.ActionOnCooldownError: Raised when the recast time for the action has not passed yet.
+            simfantasy.error.ActorAnimationLockedError: Raised when the actor attempts to perform an action during the
+                animation lockout window.
+            simfantasy.error.ActorGCDLockedError: Raised when the actor attempts to perform an action during the GCD
+                lockout window.
+        """
         if self.on_cooldown:
             raise ActionOnCooldownError(self.sim, self.source, self)
 
@@ -74,7 +141,7 @@ class Action:
                               self.animation_execute_time)
 
     def schedule_damage_event(self):
-        if self.potency > 0:
+        if self.potency is not None:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency, self._trait_multipliers,
                             self._buff_multipliers, self.guarantee_crit), self.animation_execute_time)

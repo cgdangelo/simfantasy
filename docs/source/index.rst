@@ -8,12 +8,17 @@ SimFantasy
 .. contents:: :local:
 
 Simulator
--------------
+---------
 
 .. automodule:: simfantasy.simulator
 
-Actor
+Action
 ------
+
+.. automodule:: simfantasy.action
+
+Actor
+-----
 
 .. automodule:: simfantasy.actor
 
@@ -33,7 +38,7 @@ Events
 .. automodule:: simfantasy.event
 
 Miscellany
-------------
+----------
 
 Common math and constants
 +++++++++++++++++++++++++
@@ -48,7 +53,7 @@ Enumerations
 Errors
 ++++++
 
-.. automodule:: simfantasy.errors
+.. automodule:: simfantasy.error
 
 Indices and tables
 ==================
