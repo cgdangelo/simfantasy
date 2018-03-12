@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from datetime import datetime, timedelta
 from math import floor
 from typing import ClassVar, Dict, Iterable, List, Tuple, Union
@@ -13,8 +13,19 @@ from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.simulator import Simulation
 
 
-class TargetData(ABC):
-    pass
+class TargetData:
+    def __init__(self, sim, source):
+        pass
+
+
+class Actions:
+    def __init__(self, sim, source):
+        pass
+
+
+class Buffs:
+    def __init__(self, sim, source):
+        pass
 
 
 class Actor:
@@ -83,28 +94,24 @@ class Actor:
         self.name = name
 
         self._target_data = {}
-
+        self.actions = None
+        self.auras: List[Aura] = []
+        self.buffs = None
         self.animation_unlock_at: datetime = None
         self.gcd_unlock_at: datetime = None
-        self.auras: List[Aura] = []
+        self.statistics = {}
 
         self.stats: Dict[Attribute, int] = {}
         self.gear: Dict[Slot, Union[Item, Weapon]] = {}
-        self.resources: Dict[Resource, Tuple[int, int]] = {}
-
         self.equip_gear(gear)
 
-        self.statistics = {}
+        self.resources: Dict[Resource, Tuple[int, int]] = {}
 
         self.sim.actors.append(self)
-
         self.sim.logger.debug('Initialized: %s', self)
 
     def arise(self):
         """Prepare the actor for combat."""
-        self._target_data = {}
-        self.animation_unlock_at = None
-        self.gcd_unlock_at = None
         self.auras.clear()
 
         self.stats = self.calculate_base_stats()
@@ -116,6 +123,22 @@ class Actor:
             'damage': [],
             'resources': [],
         }
+
+        self.animation_unlock_at = None
+        self.gcd_unlock_at = None
+
+        self._target_data.clear()
+        self.create_actions()
+        self.create_buffs()
+
+    def create_actions(self):
+        self.actions = Actions(self.sim, self)
+
+    def create_buffs(self):
+        self.buffs = Buffs(self.sim, self)
+
+    def create_target_data(self):
+        self._target_data[self.target] = TargetData(self.sim, self)
 
     def calculate_resources(self):
         """Determine the resource levels for the actor.
@@ -150,13 +173,11 @@ class Actor:
             simfantasy.actor.TargetData: Contains all the target state data from the source actor to the target.
         """
         try:
-            target_data = self._target_data[self.target]
+            return self._target_data[self.target]
         except KeyError:
-            target_data = self._target_data_class(source=self)
+            self.create_target_data()
 
-            self._target_data[self.target] = target_data
-
-        return target_data
+            return self.target_data
 
     @property
     def gcd_up(self) -> bool:

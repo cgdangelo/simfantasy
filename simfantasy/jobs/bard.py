@@ -1,13 +1,12 @@
 from datetime import timedelta
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy
 
 from simfantasy.action import Action, ShotAction
-from simfantasy.actor import Actor, TargetData
+from simfantasy.actor import Actor, TargetData as BaseTargetData
 from simfantasy.aura import Aura, TickingAura
-from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
-from simfantasy.equipment import Item, Weapon
+from simfantasy.enum import Attribute, Job, Race, Resource, Role
 from simfantasy.event import ApplyAuraEvent, ConsumeAuraEvent, DotTickEvent, \
     Event, ExpireAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
@@ -16,21 +15,49 @@ from simfantasy.simulator import Simulation
 class Bard(Actor):
     job = Job.BARD
     role = Role.DPS
-    target_data: 'BardTargetData'
 
-    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
-                 gear: Dict[Slot, Union[Item, Weapon]] = None):
-        super().__init__(sim, race, level, target, name, gear)
+    def create_actions(self):
+        super().create_actions()
 
-        self._target_data_class = BardTargetData
-        self.actions = None
-        self.buffs = None
+        self.actions.shot = BardShotAction(self.sim, self)
 
-    def arise(self):
-        super().arise()
+        self.actions.armys_paeon = ArmysPaeonAction(self.sim, self)
+        self.actions.barrage = BarrageAction(self.sim, self)
+        self.actions.bloodletter = BloodletterAction(self.sim, self)
+        self.actions.empyreal_arrow = EmpyrealArrowAction(self.sim, self)
+        self.actions.foe_requiem = FoeRequiemAction(self.sim, self)
+        self.actions.heavy_shot = HeavyShotAction(self.sim, self)
+        self.actions.iron_jaws = IronJawsAction(self.sim, self)
+        self.actions.mages_ballad = MagesBalladAction(self.sim, self)
+        self.actions.miserys_end = MiserysEndAction(self.sim, self)
+        self.actions.pitch_perfect = PitchPerfectAction(self.sim, self)
+        self.actions.raging_strikes = RagingStrikesAction(self.sim, self)
+        self.actions.rain_of_death = RainOfDeathAction(self.sim, self)
+        self.actions.refulgent_arrow = RefulgentArrowAction(self.sim, self)
+        self.actions.sidewinder = SidewinderAction(self.sim, self)
+        self.actions.straight_shot = StraightShotAction(self.sim, self)
+        self.actions.venomous_bite = VenomousBiteAction(self.sim, self)
+        self.actions.wanderers_minuet = WanderersMinuetAction(self.sim, self)
+        self.actions.windbite = WindbiteAction(self.sim, self)
 
-        self.actions = Actions(self.sim, self)
-        self.buffs = Buffs(self.sim, self)
+    def create_buffs(self):
+        super().create_buffs()
+
+        self.buffs.armys_paeon = ArmysPaeonBuff()
+        self.buffs.barrage = BarrageBuff()
+        self.buffs.foe_requiem = FoeRequiemBuff(self)
+        self.buffs.mages_ballad = MagesBalladBuff()
+        self.buffs.raging_strikes = RagingStrikesBuff()
+        self.buffs.straight_shot = StraightShotBuff()
+        self.buffs.straighter_shot = StraighterShotBuff()
+        self.buffs.wanderers_minuet = WanderersMinuetBuff()
+
+    def create_target_data(self):
+        super().create_target_data()
+
+        self.target_data.foe_requiem = FoeRequiemDebuff()
+        self.target_data.venomous_bite = VenomousBiteDebuff(self)
+        self.target_data.windbite = WindbiteDebuff(self)
 
     def calculate_resources(self) -> Dict[Resource, Tuple[int, int]]:
         resources = super().calculate_resources()
@@ -209,44 +236,8 @@ class BardShotAction(BardAction, ShotAction):
     pass
 
 
-class Actions:
-    def __init__(self, sim: Simulation, source: Bard):
-        self.shot = BardShotAction(sim, source)
-
-        self.armys_paeon = ArmysPaeonAction(sim, source)
-        self.barrage = BarrageAction(sim, source)
-        self.bloodletter = BloodletterAction(sim, source)
-        self.empyreal_arrow = EmpyrealArrowAction(sim, source)
-        self.foe_requiem = FoeRequiemAction(sim, source)
-        self.heavy_shot = HeavyShotAction(sim, source)
-        self.iron_jaws = IronJawsAction(sim, source)
-        self.mages_ballad = MagesBalladAction(sim, source)
-        self.miserys_end = MiserysEndAction(sim, source)
-        self.pitch_perfect = PitchPerfectAction(sim, source)
-        self.raging_strikes = RagingStrikesAction(sim, source)
-        self.rain_of_death = RainOfDeathAction(sim, source)
-        self.refulgent_arrow = RefulgentArrowAction(sim, source)
-        self.sidewinder = SidewinderAction(sim, source)
-        self.straight_shot = StraightShotAction(sim, source)
-        self.venomous_bite = VenomousBiteAction(sim, source)
-        self.wanderers_minuet = WanderersMinuetAction(sim, source)
-        self.windbite = WindbiteAction(sim, source)
-
-
-class Buffs:
-    def __init__(self, sim: Simulation, source: Bard):
-        self.armys_paeon = ArmysPaeonBuff()
-        self.barrage = BarrageBuff()
-        self.foe_requiem = FoeRequiemBuff(source)
-        self.mages_ballad = MagesBalladBuff()
-        self.raging_strikes = RagingStrikesBuff()
-        self.straight_shot = StraightShotBuff()
-        self.straighter_shot = StraighterShotBuff()
-        self.wanderers_minuet = WanderersMinuetBuff()
-
-
-class BardTargetData(TargetData):
-    def __init__(self, source: Bard):
+class TargetData(BaseTargetData):
+    def __init__(self, sim, source):
         self.foe_requiem = FoeRequiemDebuff()
         self.venomous_bite = VenomousBiteDebuff(source)
         self.windbite = WindbiteDebuff(source)
