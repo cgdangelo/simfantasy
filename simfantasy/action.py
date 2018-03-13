@@ -54,6 +54,12 @@ class Action:
         self.can_recast_at = None
 
     @property
+    def ready(self):
+        return not self.on_cooldown \
+               and (self.source.animation_up or self.animation == timedelta()) \
+               and (self.is_off_gcd or self.source.gcd_up)
+
+    @property
     def name(self):
         """Name of the action.
 

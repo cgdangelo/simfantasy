@@ -10,7 +10,6 @@ from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, RefreshBehavior, Resource, Slot
-from simfantasy.error import FailedActionAttemptError
 from simfantasy.simulator import Simulation
 
 
@@ -152,14 +151,12 @@ class ActorReadyEvent(Event):
         for decision in decision_engine:
             if decision is not None:
                 try:
-                    decision.perform()
-                    break
-                except FailedActionAttemptError as e:
-                    if self.sim.log_action_attempts:
-                        self.sim.logger.warning('[%s] %s %s',
-                                                self.sim.current_iteration, self.sim.relative_timestamp, e)
+                    decision_action, decision_options = decision
+                except TypeError:
+                    decision_action, decision_options = decision, lambda: True
 
-                    continue
+                if decision_action.ready and decision_options() is True:
+                    decision_action.perform()
             else:
                 break
 

@@ -72,64 +72,59 @@ class Bard(Actor):
         current_mp, max_mp = self.resources[Resource.MP]
         current_rep, max_rep = self.resources[Resource.REPERTOIRE]
 
-        if not self.buffs.foe_requiem.up and current_mp == max_mp:
-            yield self.actions.foe_requiem
+        yield self.actions.foe_requiem, lambda: not self.buffs.foe_requiem.up and current_mp == max_mp
 
-        if self.actions.raging_strikes.cooldown_remains < timedelta(seconds=5):
-            if self.target_data.windbite.up and self.target_data.venomous_bite.up:
-                if self.target_data.windbite.remains <= self.buffs.raging_strikes.duration \
-                        or self.target_data.venomous_bite.remains <= self.buffs.raging_strikes.duration:
-                    yield self.actions.iron_jaws
+        yield self.actions.iron_jaws, lambda: (
+                self.actions.raging_strikes.cooldown_remains <= timedelta(seconds=5) and
+                self.target_data.windbite.up and self.target_data.venomous_bite.up and (
+                        self.target_data.windbite.remains <=
+                        self.target_data.venomous_bite.remains <=
+                        self.buffs.raging_strikes.duration
+                )
+        )
 
-        if not self.buffs.raging_strikes.up:
-            yield self.actions.raging_strikes
+        yield self.actions.raging_strikes, lambda: not self.buffs.raging_strikes.up
+        yield self.actions.barrage, lambda: (
+                self.buffs.raging_strikes.up and
+                (self.buffs.straighter_shot.up or self.buffs.raging_strikes.remains < timedelta(seconds=3))
+        )
 
-        if self.buffs.raging_strikes.up and self.buffs.raging_strikes.remains < timedelta(seconds=3):
-            yield self.actions.barrage
+        yield self.actions.straight_shot, lambda: self.buffs.straight_shot.remains < timedelta(seconds=3)
 
-        if self.buffs.straight_shot.remains < timedelta(seconds=3):
-            yield self.actions.straight_shot
+        yield self.actions.pitch_perfect, lambda: (
+                current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)
+        )
 
-        # TODO Error for unusable actions unrelated to cooldowns.
-        if self.song is self.buffs.wanderers_minuet \
-                and (current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)):
-            yield self.actions.pitch_perfect
+        yield self.actions.wanderers_minuet, lambda: not self.song
+        yield self.actions.mages_ballad, lambda: not self.song
+        yield self.actions.armys_paeon, lambda: not self.song
 
-        if not self.song:
-            yield self.actions.wanderers_minuet
-            yield self.actions.mages_ballad
-            yield self.actions.armys_paeon
+        yield self.actions.iron_jaws, lambda: (
+                self.target_data.windbite.up and
+                self.target_data.venomous_bite.up and (
+                        self.target_data.windbite.remains <= timedelta(seconds=3) or
+                        self.target_data.venomous_bite.remains <= timedelta(seconds=3)
+                )
+        )
 
-        if self.target_data.windbite.up and self.target_data.venomous_bite.up:
-            if self.target_data.windbite.remains <= timedelta(seconds=3) \
-                    or self.target_data.venomous_bite.remains <= timedelta(seconds=3):
-                yield self.actions.iron_jaws
+        yield self.actions.barrage, lambda: self.buffs.straighter_shot.up and self.buffs.raging_strikes.up
+        yield self.actions.refulgent_arrow
+        yield self.actions.empyreal_arrow, lambda: (
+                self.song is not self.buffs.wanderers_minuet or
+                current_rep < max_rep or
+                self.buffs.barrage.up
+        )
 
-        if self.buffs.straighter_shot.up and self.buffs.raging_strikes.up:
-            yield self.actions.barrage
+        yield self.actions.empyreal_arrow, lambda: (
+                self.actions.raging_strikes.cooldown_remains > self.actions.empyreal_arrow.recast_time
+        )
 
-        if self.buffs.straighter_shot.up:
-            yield self.actions.refulgent_arrow
-
-        if self.song is not self.buffs.wanderers_minuet or current_rep < max_rep or self.buffs.barrage.up:
-            yield self.actions.empyreal_arrow
-
-        if self.actions.raging_strikes.cooldown_remains > self.actions.empyreal_arrow.recast_time:
-            yield self.actions.empyreal_arrow
-
-        if not self.target_data.windbite.up:
-            yield self.actions.windbite
-
-        if not self.target_data.venomous_bite.up:
-            yield self.actions.venomous_bite
-
+        yield self.actions.windbite, lambda: not self.target_data.windbite.up
+        yield self.actions.venomous_bite, lambda: not self.target_data.venomous_bite.up
         yield self.actions.bloodletter
+        yield self.actions.miserys_end
 
-        if self.sim.in_execute:
-            yield self.actions.miserys_end
-
-        if self.target_data.windbite.up and self.target_data.venomous_bite.up:
-            yield self.actions.sidewinder
+        yield self.actions.sidewinder, lambda: self.target_data.windbite.up and self.target_data.venomous_bite.up
 
         yield self.actions.heavy_shot
 
@@ -355,6 +350,10 @@ class MiserysEndAction(BardAction):
     name = "Misery's End"
     potency = 190
 
+    @property
+    def ready(self):
+        return super().ready and self.sim.in_execute
+
 
 class BloodletterAction(BardAction):
     base_recast_time = timedelta(seconds=15)
@@ -494,6 +493,10 @@ class RefulgentArrowAction(BardAction):
     name = 'Refulgent Arrow'
     potency = 300
 
+    @property
+    def ready(self):
+        return super().ready and self.source.buffs.straighter_shot.up
+
     def perform(self):
         super().perform()
 
@@ -625,6 +628,10 @@ class PitchPerfectAction(BardAction):
     base_recast_time = timedelta(seconds=3)
     is_off_gcd = True
     name = 'Pitch Perfect'
+
+    @property
+    def ready(self):
+        return super().ready and self.source.song is self.source.buffs.wanderers_minuet
 
     def perform(self):
         super().perform()
