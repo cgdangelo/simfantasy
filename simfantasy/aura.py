@@ -30,7 +30,9 @@ class Aura(ABC):
     refresh_behavior: RefreshBehavior = None
     refresh_extension: timedelta = None
 
-    def __init__(self) -> None:
+    def __init__(self, sim, source) -> None:
+        self.sim = sim
+        self.source = source
         self.application_event = None
         self.expiration_event = None
         self.stacks = 0
@@ -177,8 +179,8 @@ class TickingAura(Aura):
         """
         pass
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, sim, source) -> None:
+        super().__init__(sim, source)
 
         self.tick_event = None
 

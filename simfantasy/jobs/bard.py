@@ -43,21 +43,21 @@ class Bard(Actor):
     def create_buffs(self):
         super().create_buffs()
 
-        self.buffs.armys_paeon = ArmysPaeonBuff()
-        self.buffs.barrage = BarrageBuff()
-        self.buffs.foe_requiem = FoeRequiemBuff(self)
-        self.buffs.mages_ballad = MagesBalladBuff()
-        self.buffs.raging_strikes = RagingStrikesBuff()
-        self.buffs.straight_shot = StraightShotBuff()
-        self.buffs.straighter_shot = StraighterShotBuff()
-        self.buffs.wanderers_minuet = WanderersMinuetBuff()
+        self.buffs.armys_paeon = ArmysPaeonBuff(self.sim, self)
+        self.buffs.barrage = BarrageBuff(self.sim, self)
+        self.buffs.foe_requiem = FoeRequiemBuff(self.sim, self)
+        self.buffs.mages_ballad = MagesBalladBuff(self.sim, self)
+        self.buffs.raging_strikes = RagingStrikesBuff(self.sim, self)
+        self.buffs.straight_shot = StraightShotBuff(self.sim, self)
+        self.buffs.straighter_shot = StraighterShotBuff(self.sim, self)
+        self.buffs.wanderers_minuet = WanderersMinuetBuff(self.sim, self)
 
     def create_target_data(self):
         super().create_target_data()
 
-        self.target_data.foe_requiem = FoeRequiemDebuff()
-        self.target_data.venomous_bite = VenomousBiteDebuff(self)
-        self.target_data.windbite = WindbiteDebuff(self)
+        self.target_data.foe_requiem = FoeRequiemDebuff(self.sim, self)
+        self.target_data.venomous_bite = VenomousBiteDebuff(self.sim, self)
+        self.target_data.windbite = WindbiteDebuff(self.sim, self)
 
     def calculate_resources(self) -> Dict[Resource, Tuple[int, int]]:
         resources = super().calculate_resources()
@@ -307,11 +307,6 @@ class RagingStrikesAction(BardAction):
 
 
 class VenomousBiteDebuff(TickingAura):
-    def __init__(self, source: Bard):
-        super().__init__()
-
-        self.source = source
-
     @property
     def name(self):
         return '%s Bite' % ('Venomous' if self.source.level < 64 else 'Caustic')
@@ -370,11 +365,6 @@ class BloodletterAction(BardAction):
 
 
 class WindbiteDebuff(TickingAura):
-    def __init__(self, source: Bard):
-        super().__init__()
-
-        self.source = source
-
     @property
     def name(self):
         return '%sbite' % ('Wind' if self.source.level < 64 else 'Storm')
@@ -552,11 +542,6 @@ class FoeRequiemDebuff(Aura):
 
 class FoeRequiemBuff(Aura):
     name = "Foe's Requiem"
-
-    def __init__(self, source: Actor) -> None:
-        super().__init__()
-
-        self.source = source
 
     @property
     def up(self):
