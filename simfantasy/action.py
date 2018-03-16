@@ -129,7 +129,6 @@ class Action:
 
         if not self.is_off_gcd:
             self.source.gcd_unlock_at = self.sim.current_time + self.gcd
-            self.sim.schedule(ActorReadyEvent(self.sim, self.source), max(self.cast_time, self.gcd))
 
         self.set_recast_at(self.animation_execute_time + self.recast_time)
 

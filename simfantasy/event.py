@@ -141,11 +141,6 @@ class ActorReadyEvent(Event):
         self.actor = actor
 
     def execute(self) -> None:
-        # FIXME No point even trying to do anything if we're animation locked... right?
-        if self.actor.animation_unlock_at is not None \
-                and self.actor.animation_unlock_at > self.sim.current_time:
-            return
-
         decision_engine = self.actor.decide()
 
         for decision in decision_engine:
