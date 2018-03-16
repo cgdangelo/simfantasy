@@ -107,6 +107,8 @@ class Actor:
 
         self.resources: Dict[Resource, Tuple[int, int]] = {}
 
+        self.invalidate_speed_cache = False
+
         self.sim.actors.append(self)
         self.sim.logger.debug('Initialized: %s', self)
 
@@ -130,6 +132,8 @@ class Actor:
         self._target_data.clear()
         self.create_actions()
         self.create_buffs()
+
+        self.invalidate_speed_cache = True
 
     def create_actions(self):
         self.actions = Actions(self.sim, self)

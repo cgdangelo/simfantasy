@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import lru_cache
 from math import ceil, floor
 from typing import List, Tuple, Union
 
@@ -253,7 +254,12 @@ class Action:
     def type_ii_speed_mod(self):
         return 0
 
+    @lru_cache(maxsize=None)
     def _speed(self, action_delay: timedelta) -> timedelta:
+        if self.source.invalidate_speed_cache is True:
+            self._speed.cache_clear()
+            self.source.invalidate_speed_cache = False
+
         speed = self.source.stats[self.hastened_by]
 
         sub_stat = sub_stat_per_level[self.source.level]

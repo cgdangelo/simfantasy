@@ -581,6 +581,13 @@ class ArmysPaeonBuff(BardSongBuff):
 
         target.resources[Resource.REPERTOIRE] = (0, 4)
 
+        target.invalidate_speed_cache = True
+
+    def expire(self, target: Actor):
+        super().expire(target)
+
+        target.invalidate_speed_cache = True
+
 
 class ArmysPaeonAction(BardSongAction):
     name = "Army's Paeon"
