@@ -200,9 +200,9 @@ class Simulation:
             True
         """
         if delta is None:
-            delta = timedelta()
-
-        event.timestamp = self.current_time + delta
+            event.timestamp = self.current_time
+        else:
+            event.timestamp = self.current_time + delta
 
         heappush(self.events, event)
 
