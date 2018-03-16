@@ -148,9 +148,9 @@ class ActorReadyEvent(Event):
                 try:
                     decision_action, decision_options = decision
                 except TypeError:
-                    decision_action, decision_options = decision, lambda: True
+                    decision_action, decision_options = decision, None
 
-                if decision_action.ready and decision_options() is True:
+                if decision_action.ready and (decision_options is None or decision_options() is True):
                     decision_action.perform()
             else:
                 return
