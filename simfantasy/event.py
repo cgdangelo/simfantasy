@@ -153,7 +153,10 @@ class ActorReadyEvent(Event):
                 if decision_action.ready and decision_options() is True:
                     decision_action.perform()
             else:
-                break
+                return
+
+        # Got nothing from the actor, so try again in 100ms.
+        self.sim.schedule(self, timedelta(seconds=0.1))
 
     def __str__(self):
         """String representation of the object."""
