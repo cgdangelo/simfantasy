@@ -74,6 +74,9 @@ class Bard(Actor):
 
         yield self.actions.foe_requiem, lambda: not self.buffs.foe_requiem.up and current_mp == max_mp
 
+        yield self.actions.windbite, lambda: not self.target_data.windbite.up
+        yield self.actions.venomous_bite, lambda: not self.target_data.venomous_bite.up
+
         yield self.actions.iron_jaws, lambda: (
                 self.actions.raging_strikes.cooldown_remains <= timedelta(seconds=5) and
                 self.target_data.windbite.up and self.target_data.venomous_bite.up and (
@@ -119,8 +122,6 @@ class Bard(Actor):
                 self.actions.raging_strikes.cooldown_remains > self.actions.empyreal_arrow.recast_time
         )
 
-        yield self.actions.windbite, lambda: not self.target_data.windbite.up
-        yield self.actions.venomous_bite, lambda: not self.target_data.venomous_bite.up
         yield self.actions.bloodletter
         yield self.actions.miserys_end
 
@@ -453,10 +454,10 @@ class IronJawsAction(BardAction):
         super().perform()
 
         if self.source.target_data.windbite.up:
-            self.schedule_aura_events(self.source.target, self.source.target_data.windbite)
+            self.schedule_dot(self.source.target_data.windbite)
 
         if self.source.target_data.venomous_bite.up:
-            self.schedule_aura_events(self.source.target, self.source.target_data.venomous_bite)
+            self.schedule_dot(self.source.target_data.venomous_bite)
 
 
 class SidewinderAction(BardAction):
