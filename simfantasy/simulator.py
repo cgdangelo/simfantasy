@@ -279,12 +279,23 @@ class Simulation:
 
                     # Build statistical dataframes for the completed iteration.
                     for actor in self.actors:
-                        auras_df = auras_df.append(pd.DataFrame.from_records(actor.statistics['auras']))
-                        damage_df = damage_df.append(pd.DataFrame.from_records(actor.statistics['damage']))
-                        resources_df = resources_df.append(pd.DataFrame.from_records(actor.statistics['resources']))
+                        auras_df = auras_df.append(pd.DataFrame(actor.statistics['auras']))
+                        damage_df = damage_df.append(pd.DataFrame(actor.statistics['damage']))
+                        resources_df = resources_df.append(pd.DataFrame(actor.statistics['resources']))
 
                     # Add the iteration runtime to the collection.
                     iteration_runtimes.append(datetime.now() - iteration_start)
+
+                    auras_df = auras_df.astype(dtype={
+                        'aura': 'category',
+                        'target': 'category',
+                    })
+
+                    damage_df = damage_df.astype(dtype={
+                        'action': 'category',
+                        'source': 'category',
+                        'target': 'category',
+                    })
 
                     # Update our fancy progress indicator with the runtime estimation.
                     spinner.label = 'Simulating ({0})'.format(
@@ -296,6 +307,17 @@ class Simulation:
         except KeyboardInterrupt:  # Handle SIGINT.
             self.logger.critical('Interrupted at %s / %s iterations after %s.\n', self.current_iteration,
                                  self.iterations, pd_runtimes.sum())
+
+        if self.logger.level <= logging.DEBUG:
+            # https://www.dataquest.io/blog/pandas-big-data/
+            for df in [auras_df, damage_df]:
+                df.info(verbose=True, memory_usage='deep')
+
+                for dtype in ['float', 'int', 'object', 'bool', 'category', 'datetime']:
+                    selected_dtype = df.select_dtypes(include=[dtype])
+                    mean_usage_b = selected_dtype.memory_usage(deep=True).mean()
+                    mean_usage_mb = mean_usage_b / 1024 ** 2
+                    print('Average memory usage for {} columns: {:03.2f} MB'.format(dtype, mean_usage_mb))
 
         # TODO Everything.
         auras_df.set_index('iteration', inplace=True)

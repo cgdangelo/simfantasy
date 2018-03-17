@@ -106,6 +106,9 @@ class ApplyAuraEvent(AuraEvent):
             'target': self.target.name,
             'aura': self.aura.name,
             'application': True,
+            'expiration': False,
+            'consumption': False,
+            'refresh': False,
         })
 
 
@@ -122,7 +125,10 @@ class ExpireAuraEvent(AuraEvent):
             'timestamp': self.sim.current_time,
             'target': self.target.name,
             'aura': self.aura.name,
+            'application': False,
             'expiration': True,
+            'consumption': False,
+            'refresh': False,
         })
 
 
@@ -192,6 +198,9 @@ class RefreshAuraEvent(AuraEvent):
             'timestamp': self.sim.current_time,
             'target': self.target.name,
             'aura': self.aura.name,
+            'application': False,
+            'expiration': False,
+            'consumption': False,
             'refresh': True,
         })
 
@@ -221,7 +230,10 @@ class ConsumeAuraEvent(AuraEvent):
             'timestamp': self.sim.current_time,
             'target': self.target.name,
             'aura': self.aura.name,
+            'application': False,
+            'expiration': False,
             'consumption': True,
+            'refresh': False,
         })
 
 
@@ -267,7 +279,8 @@ class DamageEvent(Event):
             'action': self.action.name,
             'damage': self.damage,
             'critical': self.is_critical_hit,
-            'direct': self.is_direct_hit
+            'direct': self.is_direct_hit,
+            'dot': False,
         })
 
     @property
