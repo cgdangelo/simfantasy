@@ -47,8 +47,6 @@ class Actor:
             Collection of equipment that the actor is wearing.
 
     Attributes:
-        _target_data_class (Type[simfantasy.actor.TargetData]): Reference to class type that is used to track target
-            data.
         _target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors to any
             available target state data.
         animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
@@ -73,7 +71,6 @@ class Actor:
 
     job: Job = None
     role: Role = None
-    _target_data_class: ClassVar[TargetData] = None
 
     # TODO Get rid of level?
     def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
