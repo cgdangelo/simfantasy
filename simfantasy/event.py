@@ -158,6 +158,7 @@ class ActorReadyEvent(Event):
 
                 if decision_action.ready and (decision_options is None or decision_options() is True):
                     decision_action.perform()
+                    return
             else:
                 return
 
