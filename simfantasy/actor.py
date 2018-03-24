@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from math import floor
-from typing import ClassVar, Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 import humanfriendly
 

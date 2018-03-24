@@ -5,7 +5,6 @@ from typing import List
 
 import numpy
 
-from simfantasy.actor import Actor
 from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
@@ -71,7 +70,7 @@ class AuraEvent(Event, metaclass=ABCMeta):
     :class:`~simfantasy.actor.Actor`.
     """
 
-    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+    def __init__(self, sim: Simulation, target, aura: Aura):
         """
         Create a new event.
 
@@ -135,7 +134,7 @@ class ExpireAuraEvent(AuraEvent):
 class ActorReadyEvent(Event):
     """An event indicating that an :class:`~simfantasy.actor.Actor` is ready to perform new actions."""
 
-    def __init__(self, sim: Simulation, actor: Actor):
+    def __init__(self, sim: Simulation, actor):
         """
         Create a new event.
 
@@ -159,11 +158,47 @@ class ActorReadyEvent(Event):
                 if decision_action.ready and (decision_options is None or decision_options() is True):
                     decision_action.perform()
                     return
+                elif self.sim.log_action_attempts is True:
+                    if decision_action.can_recast_at is not None and decision_action.can_recast_at > self.sim.current_time:
+                        self.sim.logger.debug('[%s] ## %s %s attempted %s but on cooldown (recast=%s)',
+                                              self.sim.current_iteration,
+                                              self.sim.relative_timestamp,
+                                              self.actor,
+                                              decision_action,
+                                              decision_action.can_recast_at - self.sim.start_time)
+                    elif self.actor.animation_unlock_at > self.sim.current_time:
+                        self.sim.logger.debug('[%s] ## %s %s attempted %s but animation locked (unlock=%s)',
+                                              self.sim.current_iteration,
+                                              self.sim.relative_timestamp,
+                                              self.actor,
+                                              decision_action,
+                                              self.actor.animation_unlock_at - self.sim.start_time)
+                    elif not decision_action.is_off_gcd and self.actor.gcd_unlock_at > self.sim.current_time:
+                        self.sim.logger.debug('[%s] ## %s %s attempted %s but gcd locked (unlock=%s)',
+                                              self.sim.current_iteration,
+                                              self.sim.relative_timestamp,
+                                              self.actor,
+                                              decision_action,
+                                              self.actor.gcd_unlock_at - self.sim.start_time)
+                    elif decision_options is not None and decision_options() is False:
+                        self.sim.logger.debug('[%s] ## %s %s attempted %s but failed conditions',
+                                              self.sim.current_iteration,
+                                              self.sim.relative_timestamp,
+                                              self.actor,
+                                              decision_action)
             else:
                 return
 
         # Got nothing from the actor, so try again in 100ms.
         self.sim.schedule(self, timedelta(seconds=0.1))
+
+        if self.sim.log_action_attempts is True:
+            self.sim.logger.debug('[%s] ## %s No decision by %s (animation_unlock_at=%s gcd_unlock_at=%s)',
+                                  self.sim.current_iteration,
+                                  self.sim.relative_timestamp,
+                                  self.actor,
+                                  self.actor.animation_unlock_at - self.sim.start_time,
+                                  self.actor.gcd_unlock_at - self.sim.start_time)
 
     def __str__(self):
         """String representation of the object."""
@@ -174,7 +209,7 @@ class ActorReadyEvent(Event):
 
 
 class RefreshAuraEvent(AuraEvent):
-    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+    def __init__(self, sim: Simulation, target, aura: Aura):
         super().__init__(sim, target, aura)
 
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
@@ -216,7 +251,7 @@ class RefreshAuraEvent(AuraEvent):
 
 
 class ConsumeAuraEvent(AuraEvent):
-    def __init__(self, sim: Simulation, target: Actor, aura: Aura):
+    def __init__(self, sim: Simulation, target, aura: Aura):
         super().__init__(sim, target, aura)
 
         self.remains = self.aura.expiration_event.timestamp - self.sim.current_time
@@ -239,7 +274,7 @@ class ConsumeAuraEvent(AuraEvent):
 
 
 class DamageEvent(Event):
-    def __init__(self, sim: Simulation, source: Actor, target: Actor, action, potency: int,
+    def __init__(self, sim: Simulation, source, target, action, potency: int,
                  trait_multipliers: List[float] = None, buff_multipliers: List[float] = None,
                  guarantee_crit: bool = None):
         super().__init__(sim)
@@ -432,7 +467,7 @@ class DamageEvent(Event):
 
 
 class DotTickEvent(DamageEvent):
-    def __init__(self, sim: Simulation, source: Actor, target: Actor, action, potency: int, aura: TickingAura,
+    def __init__(self, sim: Simulation, source, target, action, potency: int, aura: TickingAura,
                  ticks_remain: int = None, trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
@@ -544,7 +579,7 @@ class DotTickEvent(DamageEvent):
 
 
 class ResourceEvent(Event):
-    def __init__(self, sim: Simulation, target: Actor, resource: Resource, amount: int):
+    def __init__(self, sim: Simulation, target, resource: Resource, amount: int):
         super().__init__(sim)
 
         self.target = target
