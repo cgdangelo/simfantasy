@@ -109,33 +109,18 @@ class Action:
             simfantasy.error.ActorGCDLockedError: Raised when the actor attempts to perform an action during the GCD
                 lockout window.
         """
-        if self.on_cooldown:
-            raise ActionOnCooldownError(self.sim, self.source, self)
-
-        if self.animation > timedelta() and \
-                self.source.animation_unlock_at is not None and \
-                self.source.animation_unlock_at > self.sim.current_time:
-            raise ActorAnimationLockedError(self.sim, self.source, self)
-
-        if not self.is_off_gcd and \
-                self.source.gcd_unlock_at is not None and \
-                self.source.gcd_unlock_at > self.sim.current_time:
-            raise ActorGCDLockedError(self.sim, self.source, self)
-
         self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp,
                               self.source, self)
+
+        self.set_recast_at(self.animation_execute_time + self.recast_time)
+        self.schedule_resource_consumption()
+        self.schedule_damage_event()
 
         self.source.animation_unlock_at = self.sim.current_time + self.animation
         self.sim.schedule(ActorReadyEvent(self.sim, self.source), self.animation_execute_time)
 
         if not self.is_off_gcd:
             self.source.gcd_unlock_at = self.sim.current_time + self.gcd
-
-        self.set_recast_at(self.animation_execute_time + self.recast_time)
-
-        self.schedule_resource_consumption()
-
-        self.schedule_damage_event()
 
     @property
     def animation_execute_time(self):
