@@ -7,7 +7,6 @@ from simfantasy.actor import Actor
 from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Race, Resource, Slot
-from simfantasy.error import ActionOnCooldownError, ActorAnimationLockedError, ActorGCDLockedError
 from simfantasy.event import ActorReadyEvent, ApplyAuraEvent, AutoAttackEvent, DamageEvent, DotTickEvent, \
     ExpireAuraEvent, RefreshAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
@@ -53,6 +52,7 @@ class Action:
         self.sim = sim
         self.source = source
         self.can_recast_at = None
+        self._speed = lru_cache(maxsize=None)(self._speed)
 
     @property
     def ready(self):
@@ -239,7 +239,6 @@ class Action:
     def type_ii_speed_mod(self):
         return 0
 
-    @lru_cache(maxsize=None)
     def _speed(self, action_delay: timedelta) -> timedelta:
         if self.source.invalidate_speed_cache is True:
             self._speed.cache_clear()
