@@ -238,6 +238,8 @@ class AuraApplied(AuraEvent):
     def execute(self):
         super().execute()
 
+        self.aura.apply()
+
         print('   {time} {target} gains {aura}'.format(
             time=self.timestamp,
             target=self.aura.target.name,
@@ -248,6 +250,8 @@ class AuraApplied(AuraEvent):
 class AuraExpired(AuraEvent):
     def execute(self):
         super().execute()
+
+        self.aura.expire()
 
         print('   {time} {target} loses {aura}'.format(
             time=self.timestamp,
@@ -263,6 +267,12 @@ class Aura:
         self.duration = None
         self.applied = AuraApplied(source.sim, self)
         self.expired = AuraExpired(source.sim, self)
+
+    def apply(self):
+        pass
+
+    def expire(self):
+        pass
 
     @property
     def remains(self):
@@ -287,7 +297,35 @@ class RagingStrikesAura(Aura):
         self.duration = timedelta(seconds=20)
 
 
-class StormbiteAura(Aura):
+class DotTick(DamageDealt):
+    def __init__(self, sim, aura):
+        super().__init__(sim)
+
+        self.aura = aura
+        self.ticks_remain = None
+
+    def execute(self):
+        super().execute()
+
+        if self.ticks_remain > 0:
+            self.ticks_remain -= 1
+            self.schedule(timedelta(seconds=3))
+
+
+class DotAura(Aura):
+    def __init__(self, source, target=None):
+        super().__init__(source, target)
+
+        self.dot = DotTick(source.sim, self)
+
+    def apply(self):
+        super().apply()
+
+        self.dot.ticks_remain = self.duration.total_seconds() / 3
+        self.dot.schedule(timedelta(seconds=3))
+
+
+class StormbiteAura(DotAura):
     def __init__(self, source, target=None):
         super().__init__(source, target)
 
@@ -340,6 +378,6 @@ class Actor:
 
 if __name__ == '__main__':
     s = Simulation(combat_length=timedelta(minutes=5))
-    target = Actor(s, name='Boss', target=None)
-    bard = Actor(s, name='Dikembe', target=target)
+    enemy = Actor(s, name='Boss', target=None)
+    bard = Actor(s, name='Dikembe', target=enemy)
     s.run()
