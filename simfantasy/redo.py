@@ -16,12 +16,10 @@ class Simulation:
         self.actors.append(actor)
 
     def push_event(self, event):
-        # print('=>', event.timestamp, event.__class__.__name__)
         self.events.put((event.timestamp, datetime.now(), event))
 
     def pop_event(self):
         _, _, event = self.events.get()
-        # print('<=', event.timestamp, event.__class__.__name__)
         return event
 
     @property
@@ -65,8 +63,6 @@ class Event:
         self.entry_time = None
 
     def schedule(self, delta=None):
-        # self.entry_time = datetime.now()
-
         if delta is None:
             self.timestamp = self.sim.current_time
         else:
@@ -78,12 +74,18 @@ class Event:
         self.unscheduled = True
 
     def execute(self):
-        print('>> {time} Executing {event}'.format(time=self.timestamp, event=self.__class__.__name__))
+        print('>> {time} Executing {event}'.format(time=self.timestamp, event=self))
 
         self.unscheduled = False
 
     def __lt__(self, other):
         return self.timestamp < other.timestamp
+
+    def __repr__(self):
+        return '{cls}(timestamp={timestamp})'.format(
+            cls=self.__class__.__name__,
+            timestamp=self.timestamp,
+        )
 
 
 class CombatEnded(Event):
@@ -130,6 +132,12 @@ class ActorReadied(Event):
                 return
 
         self.schedule(timedelta(milliseconds=100))
+
+    def __repr__(self):
+        return 'ActorReadied(timestamp={timestamp} actor={actor})'.format(
+            timestamp=self.timestamp,
+            actor=self.actor,
+        )
 
 
 class DamageDealt(Event):
