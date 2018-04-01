@@ -2,7 +2,7 @@
 A combat simulator for [Final Fantasy XIV](https://www.finalfantasyxiv.com/).
 
 ## Usage
-Coming soon! For now, refer to [example.py](example.py).
+Coming soon! For now, refer to [example.py](example.py) and the [API documentation](http://simfantasy.readthedocs.io/en/latest/).
 
 ## Job Support
 ### DPS
