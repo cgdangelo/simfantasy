@@ -1,3 +1,4 @@
+import queue
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from math import floor
@@ -61,7 +62,7 @@ class CombatEndEvent(Event):
 
     def execute(self) -> None:
         """Clear any remaining events in the heap."""
-        self.sim.events.clear()
+        self.sim.events = queue.PriorityQueue()
 
 
 class AuraEvent(Event, metaclass=ABCMeta):

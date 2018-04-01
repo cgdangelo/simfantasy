@@ -1,7 +1,7 @@
 import logging
+import queue
 import re
 from datetime import datetime, timedelta
-from heapq import heapify, heappop, heappush
 from typing import List, Pattern
 
 import humanfriendly
@@ -31,7 +31,7 @@ class Simulation:
         combat_length (datetime.timedelta): Length of the encounter.
         current_iteration (int): Current iteration index.
         current_time (datetime.datetime): "In game" timestamp.
-        events (List[simfantasy.event.Event]): Heapified list of upcoming events.
+        events (queue.PriorityQueue[simfantasy.event.Event]): Heapified list of upcoming events.
         execute_time (datetime.timedelta): Length of time to allow jobs to use "execute" actions.
         iterations (int): Number of encounters to simulate. Default: 100.
         log_action_attempts (bool): True to log actions attempted by :class:`~simfantasy.actor.Actor` decision
@@ -77,9 +77,8 @@ class Simulation:
         self.actors = []
         self.start_time: datetime = None
         self.current_time: datetime = None
-        self.events = []
 
-        heapify(self.events)
+        self.events = queue.PriorityQueue()
 
         self.__set_logger(log_level)
 
@@ -138,10 +137,6 @@ class Simulation:
             True
             >>> event.unscheduled
             True
-            >>> event in sim.events
-            True
-
-            Note that, as stated above, the event is not actually removed.
 
             Unscheduling an event without a timestamp, or an event that has already occurred will fail:
 
@@ -193,10 +188,10 @@ class Simulation:
             ...     def execute(self):
             ...         pass
             >>> event = MyEvent(sim)
-            >>> event in sim.events
-            False
+            >>> event.timestamp is None
+            True
             >>> sim.schedule(event)
-            >>> event in sim.events
+            >>> event.timestamp is sim.current_time
             True
         """
         if delta is None:
@@ -204,7 +199,7 @@ class Simulation:
         else:
             event.timestamp = self.current_time + delta
 
-        heappush(self.events, event)
+        self.events.put((event.timestamp, datetime.now(), event))
 
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
@@ -246,11 +241,12 @@ class Simulation:
                         self.schedule(ActorReadyEvent(sim=self, actor=actor))
 
                     # Start the event loop.
-                    while len(self.events) > 0:
-                        event = heappop(self.events)
+                    while not self.events.empty():
+                        _, _, event = self.events.get()
 
                         # Ignore events that are flagged as unscheduled.
                         if event.unscheduled is True:
+                            self.events.task_done()
                             continue
 
                         # Some event desync clearly happened.
@@ -276,6 +272,9 @@ class Simulation:
 
                         # Handle the event.
                         event.execute()
+
+                        if not self.events.all_tasks_done:
+                            self.events.task_done()
 
                     # Build statistical dataframes for the completed iteration.
                     for actor in self.actors:
