@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from functools import lru_cache
 from math import ceil, floor
 from typing import List, Tuple, Union
@@ -6,7 +6,7 @@ from typing import List, Tuple, Union
 from simfantasy.actor import Actor
 from simfantasy.aura import Aura, TickingAura
 from simfantasy.common_math import divisor_per_level, sub_stat_per_level
-from simfantasy.enum import Attribute, Race, Resource, Slot
+from simfantasy.enum import Attribute, Resource, Slot
 from simfantasy.event import ActorReadyEvent, ApplyAuraEvent, AutoAttackEvent, DamageEvent, DotTickEvent, \
     ExpireAuraEvent, RefreshAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
@@ -68,46 +68,45 @@ class Action:
 
         Returns:
             string: Name of the action.
+
+        Examples:
+            >>> class MyAction(Action): pass
+            >>> MyAction(None, None).name
+            'MyAction'
+            >>> class MyNamedAction(Action):
+            ...     @property
+            ...     def name(self):
+            ...         return 'CustomName'
+            >>> MyNamedAction(None, None).name
+            'CustomName'
         """
         return self.__class__.__name__
 
     def perform(self):
         """Perform the action.
 
+        Automatically schedules common action side effects when appropriate.
+
         Examples:
-            Actions that are still on cooldown will raise an error:
+            .. testsetup::
+                >>> from datetime import datetime
+                >>> sim = Simulation(); sim.start_time = sim.current_time = datetime.now()
+                >>> actor = Actor(sim, None)
+                >>> class Bloodletter(Action): pass
+                >>> class RainOfDeath(Action): pass
+                >>> bloodletter = Bloodletter(sim, actor)
+                >>> rain_of_death = RainOfDeath(sim, actor)
 
-            >>> sim = Simulation()
-            >>> sim.current_time = datetime.now()
-            >>> actor = Actor(sim, Race.ENEMY, name='You')
-            >>> action = Action(sim, actor)
-            >>> action.can_recast_at = sim.current_time + timedelta(seconds=30)
-            >>> action.perform()
-            Traceback (most recent call last):
-            ...
-            simfantasy.error.ActionOnCooldownError: <Actor name=You> tried to use <Action>, but on cooldown for 30.000
+            Actions that share a recast timer will have their recast times set:
 
-            Actions performed by actors that are not yet able to do so will raise errors:
-
-            >>> action.can_recast_at = sim.current_time
-            >>> actor.animation_unlock_at = sim.current_time + timedelta(seconds=0.75)
-            >>> action.perform()
-            Traceback (most recent call last):
-            ...
-            simfantasy.error.ActorAnimationLockedError: <Actor name=You> tried to use <Action>, but animation locked for 0.750
-            >>> actor.animation_unlock_at = sim.current_time
-            >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=2.5)
-            >>> action.perform()
-            Traceback (most recent call last):
-            ...
-            simfantasy.error.ActorGCDLockedError: <Actor name=You> tried to use <Action>, but GCD locked for 2.500
-
-        Raises:
-            simfantasy.error.ActionOnCooldownError: Raised when the recast time for the action has not passed yet.
-            simfantasy.error.ActorAnimationLockedError: Raised when the actor attempts to perform an action during the
-                animation lockout window.
-            simfantasy.error.ActorGCDLockedError: Raised when the actor attempts to perform an action during the GCD
-                lockout window.
+            >>> bloodletter.shares_recast_with = rain_of_death
+            >>> rain_of_death.can_recast_at is None
+            True
+            >>> bloodletter.perform()
+            >>> bloodletter.can_recast_at is not None
+            True
+            >>> bloodletter.can_recast_at == rain_of_death.can_recast_at
+            True
         """
         self.sim.logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration, self.sim.relative_timestamp,
                               self.source, self)

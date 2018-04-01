@@ -39,7 +39,7 @@ class Actor:
 
     Arguments:
         sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
-        race (simfantasy.enum.Race): Race and clan of the actor.
+        race (Optional[simfantasy.enum.Race]): Race and clan of the actor.
         level (Optional[int]): Level of the actor.
         target (Optional[simfantasy.actor.Actor]): The enemy that the actor is targeting.
         name (Optional[str]): Name of the actor.
@@ -73,7 +73,7 @@ class Actor:
     role: Role = None
 
     # TODO Get rid of level?
-    def __init__(self, sim: Simulation, race: Race, level: int = None, target: 'Actor' = None, name: str = None,
+    def __init__(self, sim: Simulation, race: Race = None, level: int = None, target: 'Actor' = None, name: str = None,
                  gear: Dict[Slot, Union[Item, Weapon]] = None):
         if level is None:
             level = 70
@@ -187,28 +187,28 @@ class Actor:
         The global cooldown, or GCD, is a 2.5s lockout that prevents other GCD actions from being performed. Actions
         on the GCD are constrained by their "execute time", or :math:`\\max_{GCD, CastTime}`.
 
+        Returns:
+            bool: True if the actor is still GCD locked, False otherwise.
+
         Examples:
-            Consider an actor that has just performed some action, and is thus gcd locked for 0.75s:
+            .. testsetup::
+                >>> sim = Simulation()
+                >>> sim.current_time = datetime.now()
+                >>> actor = Actor(sim)
 
-            >>> sim = Simulation()
-            >>> sim.current_time = datetime.now()
-            >>> actor = Actor(sim, Race.ENEMY)
-            >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=0.75)
+            Consider an actor that has just performed some action, and is thus gcd locked for 2.5s. During this period,
+            the actor will be unable to perform actions that are also on the GCD:
 
-            During this period, the actor will be unable to perform actions that are also on the GCD:
-
+            >>> actor.gcd_unlock_at = sim.current_time + timedelta(seconds=2.5)
             >>> actor.gcd_up
             False
 
             However, once the simulation's game clock advances past the GCD lockout timestamp, the actor can once
             again perform GCD actions:
 
-            >>> sim.current_time = actor.gcd_unlock_at + timedelta(seconds=1)
+            >>> sim.current_time += timedelta(seconds=3)
             >>> actor.gcd_up
             True
-
-        Returns:
-            bool: True if the actor is still GCD locked, False otherwise.
         """
         return self.gcd_unlock_at is None or self.gcd_unlock_at <= self.sim.current_time
 
@@ -219,28 +219,28 @@ class Actor:
         Many actions have an animation timing of 0.75s. This locks out the actor from performing multiple oGCD actions
         simultaneously. This lockout is tracked and can inhibit actions from being performed accordingly.
 
+        Returns:
+            bool: True if the actor is still animation locked, False otherwise.
+
         Examples:
-            Consider an actor that has just performed some action, and is thus animation locked for 0.75s:
+            .. testsetup::
+                >>> sim = Simulation()
+                >>> sim.current_time = datetime.now()
+                >>> actor = Actor(sim)
 
-            >>> sim = Simulation()
-            >>> sim.current_time = datetime.now()
-            >>> actor = Actor(sim, Race.ENEMY)
+            Consider an actor that has just performed some action, and is thus animation locked for 0.75s. During this
+            period, the actor will be unable to perform actions that also have animation timings:
+
             >>> actor.animation_unlock_at = sim.current_time + timedelta(seconds=0.75)
-
-            During this period, the actor will be unable to perform actions that also have animation timings:
-
             >>> actor.animation_up
             False
 
             However, once the simulation's game clock advances past the animation lockout timestamp, the actor can once
             again perform actions:
 
-            >>> sim.current_time = actor.animation_unlock_at + timedelta(seconds=1)
+            >>> sim.current_time += timedelta(seconds=1)
             >>> actor.animation_up
             True
-
-        Returns:
-            bool: True if the actor is still animation locked, False otherwise.
         """
         return self.animation_unlock_at is None or self.animation_unlock_at <= self.sim.current_time
 
@@ -256,6 +256,10 @@ class Actor:
         """Apply stat bonuses gained from items and melds.
 
         Examples:
+            .. testsetup::
+                >>> sim = Simulation()
+                >>> actor = Actor(sim)
+
             Consider the `Kujakuo Kai`_ bow for Bards:
 
             >>> kujakuo_kai = Weapon(item_level=370, name='Kujakuo Kai', physical_damage=104, magic_damage=70,
@@ -269,8 +273,6 @@ class Actor:
 
             Equipping this item will add its stat bonuses to the actor:
 
-            >>> sim = Simulation()
-            >>> actor = Actor(sim, Race.ENEMY)
             >>> actor.equip_gear({Slot.WEAPON: kujakuo_kai})
             >>> actor.apply_gear_attribute_bonuses()
             >>> actor.stats[Attribute.DEXTERITY] == 347
@@ -317,7 +319,7 @@ class Actor:
             yielded from the decision engine.
 
         Yields:
-            Optional[simfantasy.event.Action]: An instance of an action that will attempt to be performed. If None is
+            Optional[simfantasy.action.Action]: An instance of an action that will attempt to be performed. If None is
             yielded, no further attempts to find a suitable action will be made until the actor is ready again.
         """
         yield

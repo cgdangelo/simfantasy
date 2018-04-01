@@ -102,7 +102,7 @@ class Simulation:
 
             And now, if we adjust the start time to force us halfway into the execute phase:
 
-            >>> sim.start_time = sim.current_time - timedelta(seconds=30)
+            >>> sim.start_time = sim.current_time - timedelta(seconds=45)
             >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
             Misery's End
         """
@@ -122,26 +122,38 @@ class Simulation:
             desync bug between the game clock and the event loop.
 
         Examples:
-            >>> from simfantasy.event import Event
-            >>> sim = Simulation()
-            >>> sim.start_time = sim.current_time = datetime.now()
-            >>> class MyEvent(Event):
-            ...     def execute(self):
-            ...         pass
+            .. testsetup::
+                >>> from simfantasy.event import Event
+                >>> sim = Simulation()
+                >>> sim.start_time = sim.current_time = datetime.now()
+                >>> class MyEvent(Event):
+                ...     def execute(self):
+                ...         pass
+                >>> event = MyEvent(sim)
 
             Unscheduling an upcoming event:
 
-            >>> event = MyEvent(sim)
             >>> sim.schedule(event)
+            >>> event.unscheduled
+            False
             >>> sim.unschedule(event)
             True
             >>> event.unscheduled
             True
 
-            Unscheduling an event without a timestamp, or an event that has already occurred will fail:
+            Rescheduling a previously-unscheduled event will reset its unscheduled flag:
 
-            >>> event = MyEvent(sim)
+            >>> event.unscheduled
+            True
+            >>> sim.schedule(event)
+            >>> event.unscheduled
+            False
+
+            Unscheduling an event that has already occurred will fail:
+
             >>> sim.schedule(event, timedelta(seconds=-30))
+            >>> event.timestamp < sim.current_time
+            True
             >>> sim.unschedule(event)
             False
             >>> event.unscheduled
@@ -149,9 +161,11 @@ class Simulation:
 
             With logging enabled, information about the current timings and the event will be displayed:
 
-            >>> sim.current_iteration = 1000
-            >>> sim.current_time = sim.start_time + timedelta(minutes=10)
-            >>> sim.logger.warning = lambda s, *args: print(s % args)
+            .. testsetup::
+                >>> sim.logger.warning = lambda s, *args: print(s % args)
+                >>> sim.current_iteration = 1000
+                >>> sim.current_time = sim.start_time + timedelta(minutes=10)
+
             >>> sim.unschedule(event)
             [1000] 600.000 Wanted to unschedule event past event <MyEvent> at 30.000
             False
@@ -181,13 +195,15 @@ class Simulation:
                 any preexisting events already scheduled for the current timestamp are finished.
 
         Examples:
-            >>> from simfantasy.event import Event
-            >>> sim = Simulation()
-            >>> sim.start_time = sim.current_time = datetime.now()
-            >>> class MyEvent(Event):
-            ...     def execute(self):
-            ...         pass
-            >>> event = MyEvent(sim)
+            .. testsetup::
+                >>> from simfantasy.event import Event
+                >>> sim = Simulation()
+                >>> sim.start_time = sim.current_time = datetime.now()
+                >>> class MyEvent(Event):
+                ...     def execute(self):
+                ...         pass
+                >>> event = MyEvent(sim)
+
             >>> event.timestamp is None
             True
             >>> sim.schedule(event)
@@ -200,6 +216,8 @@ class Simulation:
             event.timestamp = self.current_time + delta
 
         self.events.put((event.timestamp, datetime.now(), event))
+
+        event.unscheduled = False
 
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
@@ -336,10 +354,12 @@ class Simulation:
             str: A string, with precision to the thousandths.
 
         Examples:
+            .. testsetup::
+                >>> sim = Simulation()
+                >>> sim.start_time = datetime.now()
+
             For a simulation that has been running for 5 minutes (300 seconds):
 
-            >>> sim = Simulation()
-            >>> sim.start_time = datetime.now()
             >>> sim.current_time = sim.start_time + timedelta(minutes=5)
             >>> sim.relative_timestamp
             '300.000'
