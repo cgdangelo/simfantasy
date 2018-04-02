@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+"""Contains the primary classes and code required for running and managing simulations."""
+
 import logging
 import queue
 import re
 from datetime import datetime, timedelta
-from typing import List, Pattern
+from typing import Pattern
 
 import humanfriendly
 import pandas as pd
@@ -15,16 +18,17 @@ class Simulation:
 
     Arguments:
         combat_length (Optional[datetime.timedelta]): Desired combat length. Default: 5 minutes.
-        log_level (Optional[int]): Minimum message level necessary to see logger output. Default: :obj:`logging.INFO`.
-        log_event_filter (Optional[str]): Pattern for filtering logging output to only matching class names.
-            Default: None.
-        execute_time (Optional[datetime.timedelta]): Length of time to allow jobs to use "execute" actions.
-            Default: 1 minute.
+        log_level (Optional[int]): Minimum message level necessary to see logger output.
+            Default: :obj:`logging.INFO`.
+        log_event_filter (Optional[str]): Pattern for filtering logging output to only matching
+            class names. Default: None.
+        execute_time (Optional[datetime.timedelta]): Length of time to allow jobs to use "execute"
+            actions. Default: 1 minute.
         log_pushes (Optional[bool]): True to show events being placed on the queue. Default: True.
         log_pops (Optional[bool]): True to show events being popped off the queue. Default: True.
         iterations (Optional[int]): Number of encounters to simulate. Default: 100.
-        log_action_attempts (Optional[bool]): True to log actions attempted by :class:`~simfantasy.actor.Actor`
-            decision engines.
+        log_action_attempts (Optional[bool]): True to log actions attempted by
+            :class:`~simfantasy.actor.Actor` decision engines.
 
     Attributes:
         actors (List[simfantasy.actor.Actor]): Actors involved in the encounter.
@@ -34,17 +38,19 @@ class Simulation:
         events (queue.PriorityQueue[simfantasy.event.Event]): Heapified list of upcoming events.
         execute_time (datetime.timedelta): Length of time to allow jobs to use "execute" actions.
         iterations (int): Number of encounters to simulate. Default: 100.
-        log_action_attempts (bool): True to log actions attempted by :class:`~simfantasy.actor.Actor` decision
-            engines.
-        log_event_filter (Optional[Pattern]): Pattern for filtering logging output to only matching class names.
+        log_action_attempts (bool): True to log actions attempted by
+            :class:`~simfantasy.actor.Actor` decision engines.
+        log_event_filter (Optional[Pattern]): Pattern for filtering logging output to only matching
+            class names.
         log_pops (bool): True to show events being popped off the queue. Default: True.
         log_pushes (bool): True to show events being placed on the queue. Default: True.
         logger (logging.Logger): Logger instance to stdout/stderr.
         start_time (datetime.datetime): Time that combat started.
     """
 
-    def __init__(self, combat_length: timedelta = None, log_level: int = None, log_event_filter: str = None,
-                 execute_time: timedelta = None, log_pushes: bool = None, log_pops: bool = None, iterations: int = None,
+    def __init__(self, combat_length: timedelta = None, log_level: int = None,
+                 log_event_filter: str = None, execute_time: timedelta = None,
+                 log_pushes: bool = None, log_pops: bool = None, iterations: int = None,
                  log_action_attempts: bool = None):
         # FIXME Do I even need to set these here? They aren't mutable.
         if combat_length is None:
@@ -86,8 +92,8 @@ class Simulation:
     def in_execute(self) -> bool:
         """Indicate whether the encounter is currently in an "execute" phase.
 
-        "Execute" phases are usually when an enemy falls below a certain health percentage, allowing actions such as
-        :class:`simfantasy.jobs.bard.MiserysEndAction` to be used.
+        "Execute" phases are usually when an enemy falls below a certain health percentage,
+        allowing actions such as :class:`simfantasy.jobs.bard.MiserysEndAction` to be used.
 
         Returns:
             bool: True if the encounter is in an execute phase, False otherwise.
@@ -95,14 +101,17 @@ class Simulation:
         Examples:
             A fresh simulation that has just started a moment ago:
 
-            >>> sim = Simulation(combat_length=timedelta(seconds=60), execute_time=timedelta(seconds=30))
+            >>> sim = Simulation(
+            ...     combat_length=timedelta(seconds=60),
+            ...     execute_time=timedelta(seconds=30)
+            ... )
             >>> sim.start_time = sim.current_time = datetime.now()
             >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
             Heavy Shot
 
             And now, if we adjust the start time to force us halfway into the execute phase:
 
-            >>> sim.start_time = sim.current_time - timedelta(seconds=45)
+            >>> sim.current_time += timedelta(seconds=45)
             >>> print("Misery's End") if sim.in_execute else print('Heavy Shot')
             Misery's End
         """
@@ -111,15 +120,15 @@ class Simulation:
     def unschedule(self, event) -> bool:
         """Unschedule an event, ensuring that it is not executed.
 
-        Does not "remove" the event. In actuality, flags the event itself as unscheduled to prevent having to
-        resort the events list and subsequently recalculate the heap invariant.
+        Does not "remove" the event. In actuality, flags the event itself as unscheduled to prevent
+        having to resort the events list and subsequently recalculate the heap invariant.
 
         Arguments:
             event (simfantasy.event.Event): The event to unschedule.
 
         Returns:
-            bool: True if the event was unscheduled without issue. False if an error occurred, specifically a
-            desync bug between the game clock and the event loop.
+            bool: True if the event was unscheduled without issue. False if an error occurred,
+            specifically a desync bug between the game clock and the event loop.
 
         Examples:
             .. testsetup::
@@ -159,7 +168,8 @@ class Simulation:
             >>> event.unscheduled
             False
 
-            With logging enabled, information about the current timings and the event will be displayed:
+            With logging enabled, information about the current timings and the event will be
+            displayed:
 
             .. testsetup::
                 >>> sim.logger.warning = lambda s, *args: print(s % args)
@@ -173,13 +183,16 @@ class Simulation:
         if event.timestamp < self.current_time:  # Some event desync clearly happened.
             self.logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
                                 self.current_iteration, self.relative_timestamp, event,
-                                format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'))
+                                format(abs(event.timestamp - self.start_time).total_seconds(),
+                                       '.3f'))
 
             return False
 
-        if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+        if self.log_event_filter is None or self.log_event_filter.match(
+                event.__class__.__name__) is not None:
             self.logger.debug('[%s] XX %s %s', self.current_iteration,
-                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'), event)
+                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                              event)
 
         event.unscheduled = True
 
@@ -190,9 +203,10 @@ class Simulation:
 
         Arguments:
             event (simfantasy.event.Event): The event to schedule.
-            delta (Optional[datetime.timedelta]): An optional amount of time to wait before the event should be
-                executed. When delta is None, the event will be scheduled for the current timestamp, and executed after
-                any preexisting events already scheduled for the current timestamp are finished.
+            delta (Optional[datetime.timedelta]): An optional amount of time to wait before the
+                event should be executed. When delta is None, the event will be scheduled for the
+                current timestamp, and executed after any preexisting events already scheduled for
+                the current timestamp are finished.
 
         Examples:
             .. testsetup::
@@ -220,14 +234,17 @@ class Simulation:
         event.unscheduled = False
 
         if self.log_pushes is True:
-            if self.log_event_filter is None or self.log_event_filter.match(event.__class__.__name__) is not None:
+            if self.log_event_filter is None or self.log_event_filter.match(
+                    event.__class__.__name__) is not None:
                 self.logger.debug('[%s] => %s %s', self.current_iteration,
-                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                                  format(abs(event.timestamp - self.start_time).total_seconds(),
+                                         '.3f'),
                                   event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
-        from simfantasy.event import ActorReadyEvent, CombatStartEvent, CombatEndEvent, ServerTickEvent
+        from simfantasy.event import ActorReadyEvent, CombatStartEvent, CombatEndEvent, \
+            ServerTickEvent
 
         auras_df = pd.DataFrame()
         damage_df = pd.DataFrame()
@@ -283,10 +300,15 @@ class Simulation:
                         if self.log_pops is True:
                             if self.log_event_filter is None or self.log_event_filter.match(
                                     event.__class__.__name__) is not None:
-                                self.logger.debug('[%s] <= %s %s',
-                                                  self.current_iteration,
-                                                  format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
-                                                  event)
+                                self.logger.debug(
+                                    '[%s] <= %s %s',
+                                    self.current_iteration,
+                                    format(
+                                        abs(event.timestamp - self.start_time).total_seconds(),
+                                        '.3f'
+                                    ),
+                                    event
+                                )
 
                         # Handle the event.
                         event.execute()
@@ -298,7 +320,8 @@ class Simulation:
                     for actor in self.actors:
                         auras_df = auras_df.append(pd.DataFrame(actor.statistics['auras']))
                         damage_df = damage_df.append(pd.DataFrame(actor.statistics['damage']))
-                        resources_df = resources_df.append(pd.DataFrame(actor.statistics['resources']))
+                        resources_df = resources_df.append(
+                            pd.DataFrame(actor.statistics['resources']))
 
                     # Add the iteration runtime to the collection.
                     iteration_runtimes.append(datetime.now() - iteration_start)
@@ -319,10 +342,12 @@ class Simulation:
                         (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                     spinner.step(iteration)
 
-            self.logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations, pd_runtimes.sum(),
+            self.logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations,
+                             pd_runtimes.sum(),
                              pd_runtimes.mean())
         except KeyboardInterrupt:  # Handle SIGINT.
-            self.logger.critical('Interrupted at %s / %s iterations after %s.\n', self.current_iteration,
+            self.logger.critical('Interrupted at %s / %s iterations after %s.\n',
+                                 self.current_iteration,
                                  self.iterations, pd_runtimes.sum())
 
         if self.logger.level <= logging.DEBUG:
@@ -334,7 +359,8 @@ class Simulation:
                     selected_dtype = df.select_dtypes(include=[dtype])
                     mean_usage_b = selected_dtype.memory_usage(deep=True).mean()
                     mean_usage_mb = mean_usage_b / 1024 ** 2
-                    print('Average memory usage for {} columns: {:03.2f} MB'.format(dtype, mean_usage_mb))
+                    print('Average memory usage for {} columns: {:03.2f} MB'.format(dtype,
+                                                                                    mean_usage_mb))
 
         # TODO Everything.
         auras_df.set_index('iteration', inplace=True)
