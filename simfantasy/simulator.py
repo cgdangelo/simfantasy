@@ -31,7 +31,7 @@ def configure_logging(log_level: int = None) -> None:
     )
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class Simulation:
@@ -100,7 +100,9 @@ class Simulation:
         self.start_time: datetime = None
         self.current_time: datetime = None
 
-        self.events: queue.PriorityQueue[Tuple[datetime, datetime, Event]] = queue.PriorityQueue()
+        self.events: queue.PriorityQueue[  # pylint: disable=unsubscriptable-object
+            Tuple[datetime, datetime, Event]
+        ] = queue.PriorityQueue()
 
         self.log_event_filter: Pattern = None
         if log_event_filter is not None:
@@ -193,7 +195,7 @@ class Simulation:
             False
         """
         if event.timestamp < self.current_time:  # Some event desync clearly happened.
-            logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
+            LOGGER.warning('[%s] %s Wanted to unschedule event past event %s at %s',
                            self.current_iteration, self.relative_timestamp, event,
                            format(abs(event.timestamp - self.start_time).total_seconds(),
                                   '.3f'))
@@ -202,7 +204,7 @@ class Simulation:
 
         if self.log_event_filter is None or self.log_event_filter.match(
                 event.__class__.__name__) is not None:
-            logger.debug('[%s] XX %s %s', self.current_iteration,
+            LOGGER.debug('[%s] XX %s %s', self.current_iteration,
                          format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
                          event)
 
@@ -248,7 +250,7 @@ class Simulation:
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(
                     event.__class__.__name__) is not None:
-                logger.debug('[%s] => %s %s', self.current_iteration,
+                LOGGER.debug('[%s] => %s %s', self.current_iteration,
                              format(abs(event.timestamp - self.start_time).total_seconds(),
                                     '.3f'),
                              event)
@@ -298,7 +300,7 @@ class Simulation:
 
                         # Some event desync clearly happened.
                         if event.timestamp < self.current_time:
-                            logger.critical(
+                            LOGGER.critical(
                                 '[%s] %s %s timestamp %s before current timestamp',
                                 self.current_iteration,
                                 self.relative_timestamp,
@@ -312,7 +314,7 @@ class Simulation:
                         if self.log_pops is True:
                             if self.log_event_filter is None or self.log_event_filter.match(
                                     event.__class__.__name__) is not None:
-                                logger.debug(
+                                LOGGER.debug(
                                     '[%s] <= %s %s',
                                     self.current_iteration,
                                     format(
@@ -354,11 +356,11 @@ class Simulation:
                         (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                     spinner.step(iteration)
 
-            logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations,
+            LOGGER.info('Finished %s iterations in %s (mean %s).\n', self.iterations,
                         pd_runtimes.sum(),
                         pd_runtimes.mean())
         except KeyboardInterrupt:  # Handle SIGINT.
-            logger.critical('Interrupted at %s / %s iterations after %s.\n',
+            LOGGER.critical('Interrupted at %s / %s iterations after %s.\n',
                             self.current_iteration,
                             self.iterations, pd_runtimes.sum())
 
@@ -370,7 +372,7 @@ class Simulation:
         TerminalReporter(self, auras=auras_df, damage=damage_df, resources=resources_df).report()
         # HTMLReporter(self, df).report()
 
-        logger.info('Quitting!')
+        LOGGER.info('Quitting!')
 
     @property
     def relative_timestamp(self) -> str:

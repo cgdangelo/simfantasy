@@ -2,16 +2,18 @@ import logging
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from math import floor
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, TYPE_CHECKING, Tuple, Union
 
 import humanfriendly
 
-from simfantasy.aura import Aura
 from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, \
     get_racial_attribute_bonuses, main_stat_per_level, piety_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.simulator import Simulation
+
+if TYPE_CHECKING:
+    from simfantasy.aura import Aura
 
 logger = logging.getLogger(__name__)
 
@@ -330,14 +332,6 @@ class Actor:
             yielded, no further attempts to find a suitable action will be made until the actor is ready again.
         """
         yield
-
-    def has_aura(self, aura: Aura) -> bool:
-        """Determine if the aura exists on the actor.
-
-        Warnings:
-            Probably deprecated in favor of :func:`simfantasy.simulator.Aura.up`.
-        """
-        return aura in self.auras
 
     def calculate_base_stats(self) -> Dict[Attribute, int]:
         """Calculate and set base primary and secondary stats.
