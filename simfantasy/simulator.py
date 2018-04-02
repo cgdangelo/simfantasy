@@ -98,6 +98,7 @@ class Simulation:
 
         self.events = queue.PriorityQueue()
 
+        self.log_event_filter = None
         if log_event_filter is not None:
             self.log_event_filter: Pattern = re.compile(log_event_filter)
 
