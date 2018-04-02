@@ -1,10 +1,13 @@
 import datetime
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from math import floor
 
 from simfantasy.enum import RefreshBehavior
 from simfantasy.simulator import Simulation
+
+logger = logging.getLogger(__name__)
 
 
 class Aura(ABC):
@@ -81,7 +84,7 @@ class Aura(ABC):
             True
         """
         if self in target.auras:
-            target.sim.logger.critical(
+            logger.critical(
                 '[%s] %s Adding duplicate buff %s into %s',
                 target.sim.current_iteration,
                 target.sim.relative_timestamp, self, target
@@ -104,8 +107,8 @@ class Aura(ABC):
             self.stacks = 0
             target.auras.remove(self)
         except ValueError:
-            target.sim.logger.critical('[%s] %s Failed removing %s from %s', target.sim.current_iteration,
-                                       target.sim.relative_timestamp, self, target)
+            logger.critical('[%s] %s Failed removing %s from %s', target.sim.current_iteration,
+                            target.sim.relative_timestamp, self, target)
 
     @property
     def up(self) -> bool:

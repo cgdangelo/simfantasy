@@ -5,12 +5,29 @@ import logging
 import queue
 import re
 from datetime import datetime, timedelta
+from sys import stdout
 from typing import Pattern
 
 import humanfriendly
 import pandas as pd
 
 from simfantasy.reporting import TerminalReporter
+
+
+def configure_logging(log_level: int = None) -> None:
+    """Set logging options.
+
+    Arguments:
+        log_level (int): The minimum priority level a message needs to be shown.
+    """
+    logging.basicConfig(
+        level=log_level,
+        format='[%(levelname)s] %(message)s (%(name)s,%(lineno)d)',
+        stream=stdout,
+    )
+
+
+logger = logging.getLogger(__name__)
 
 
 class Simulation:
@@ -44,7 +61,6 @@ class Simulation:
             class names.
         log_pops (bool): True to show events being popped off the queue. Default: True.
         log_pushes (bool): True to show events being placed on the queue. Default: True.
-        logger (logging.Logger): Logger instance to stdout/stderr.
         start_time (datetime.datetime): Time that combat started.
     """
 
@@ -86,7 +102,7 @@ class Simulation:
 
         self.events = queue.PriorityQueue()
 
-        self.__set_logger(log_level)
+        configure_logging(log_level)
 
     @property
     def in_execute(self) -> bool:
@@ -167,32 +183,20 @@ class Simulation:
             False
             >>> event.unscheduled
             False
-
-            With logging enabled, information about the current timings and the event will be
-            displayed:
-
-            .. testsetup::
-                >>> sim.logger.warning = lambda s, *args: print(s % args)
-                >>> sim.current_iteration = 1000
-                >>> sim.current_time = sim.start_time + timedelta(minutes=10)
-
-            >>> sim.unschedule(event)
-            [1000] 600.000 Wanted to unschedule event past event <MyEvent> at 30.000
-            False
         """
         if event.timestamp < self.current_time:  # Some event desync clearly happened.
-            self.logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
-                                self.current_iteration, self.relative_timestamp, event,
-                                format(abs(event.timestamp - self.start_time).total_seconds(),
-                                       '.3f'))
+            logger.warning('[%s] %s Wanted to unschedule event past event %s at %s',
+                           self.current_iteration, self.relative_timestamp, event,
+                           format(abs(event.timestamp - self.start_time).total_seconds(),
+                                  '.3f'))
 
             return False
 
         if self.log_event_filter is None or self.log_event_filter.match(
                 event.__class__.__name__) is not None:
-            self.logger.debug('[%s] XX %s %s', self.current_iteration,
-                              format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
-                              event)
+            logger.debug('[%s] XX %s %s', self.current_iteration,
+                         format(abs(event.timestamp - self.start_time).total_seconds(), '.3f'),
+                         event)
 
         event.unscheduled = True
 
@@ -236,10 +240,10 @@ class Simulation:
         if self.log_pushes is True:
             if self.log_event_filter is None or self.log_event_filter.match(
                     event.__class__.__name__) is not None:
-                self.logger.debug('[%s] => %s %s', self.current_iteration,
-                                  format(abs(event.timestamp - self.start_time).total_seconds(),
-                                         '.3f'),
-                                  event)
+                logger.debug('[%s] => %s %s', self.current_iteration,
+                             format(abs(event.timestamp - self.start_time).total_seconds(),
+                                    '.3f'),
+                             event)
 
     def run(self) -> None:
         """Run the simulation and process all events."""
@@ -286,7 +290,7 @@ class Simulation:
 
                         # Some event desync clearly happened.
                         if event.timestamp < self.current_time:
-                            self.logger.critical(
+                            logger.critical(
                                 '[%s] %s %s timestamp %s before current timestamp',
                                 self.current_iteration,
                                 self.relative_timestamp,
@@ -300,7 +304,7 @@ class Simulation:
                         if self.log_pops is True:
                             if self.log_event_filter is None or self.log_event_filter.match(
                                     event.__class__.__name__) is not None:
-                                self.logger.debug(
+                                logger.debug(
                                     '[%s] <= %s %s',
                                     self.current_iteration,
                                     format(
@@ -342,15 +346,15 @@ class Simulation:
                         (pd_runtimes.mean() * (self.iterations - self.current_iteration)))
                     spinner.step(iteration)
 
-            self.logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations,
-                             pd_runtimes.sum(),
-                             pd_runtimes.mean())
+            logger.info('Finished %s iterations in %s (mean %s).\n', self.iterations,
+                        pd_runtimes.sum(),
+                        pd_runtimes.mean())
         except KeyboardInterrupt:  # Handle SIGINT.
-            self.logger.critical('Interrupted at %s / %s iterations after %s.\n',
-                                 self.current_iteration,
-                                 self.iterations, pd_runtimes.sum())
+            logger.critical('Interrupted at %s / %s iterations after %s.\n',
+                            self.current_iteration,
+                            self.iterations, pd_runtimes.sum())
 
-        if self.logger.level <= logging.DEBUG:
+        if logger.level <= logging.DEBUG:
             # https://www.dataquest.io/blog/pandas-big-data/
             for df in [auras_df, damage_df]:
                 df.info(verbose=True, memory_usage='deep')
@@ -370,7 +374,7 @@ class Simulation:
         TerminalReporter(self, auras=auras_df, damage=damage_df, resources=resources_df).report()
         # HTMLReporter(self, df).report()
 
-        self.logger.info('Quitting!')
+        logger.info('Quitting!')
 
     @property
     def relative_timestamp(self) -> str:
@@ -397,19 +401,3 @@ class Simulation:
             '330.000'
         """
         return format((self.current_time - self.start_time).total_seconds(), '.3f')
-
-    def __set_logger(self, log_level: int) -> None:
-        """Create and set the logger instance.
-
-        Arguments:
-            log_level (int): The minimum priority level a message needs to be shown.
-        """
-        logger = logging.getLogger()
-        logger.setLevel(log_level)
-
-        logstream = logging.StreamHandler()
-        logstream.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
-
-        logger.addHandler(logstream)
-
-        self.logger = logger

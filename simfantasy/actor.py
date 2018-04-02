@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from math import floor
@@ -6,11 +7,13 @@ from typing import Dict, Iterable, List, Tuple, Union
 import humanfriendly
 
 from simfantasy.aura import Aura
-from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, get_racial_attribute_bonuses, \
-    main_stat_per_level, piety_per_level, sub_stat_per_level
+from simfantasy.common_math import get_base_resources_by_job, get_base_stats_by_job, \
+    get_racial_attribute_bonuses, main_stat_per_level, piety_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, Race, Resource, Role, Slot
 from simfantasy.equipment import Item, Materia, Weapon
 from simfantasy.simulator import Simulation
+
+logger = logging.getLogger(__name__)
 
 
 class TargetData:
@@ -73,7 +76,8 @@ class Actor:
     role: Role = None
 
     # TODO Get rid of level?
-    def __init__(self, sim: Simulation, race: Race = None, level: int = None, target: 'Actor' = None, name: str = None,
+    def __init__(self, sim: Simulation, race: Race = None, level: int = None,
+                 target: 'Actor' = None, name: str = None,
                  gear: Dict[Slot, Union[Item, Weapon]] = None):
         if level is None:
             level = 70
@@ -107,7 +111,7 @@ class Actor:
         self.invalidate_speed_cache = False
 
         self.sim.actors.append(self)
-        self.sim.logger.debug('Initialized: %s', self)
+        logger.debug('Initialized: %s', self)
 
     def arise(self):
         """Prepare the actor for combat."""

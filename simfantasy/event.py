@@ -1,3 +1,4 @@
+import logging
 import queue
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
@@ -11,6 +12,8 @@ from simfantasy.common_math import divisor_per_level, get_base_stats_by_job, \
     main_stat_per_level, sub_stat_per_level
 from simfantasy.enum import Attribute, Job, RefreshBehavior, Resource, Slot
 from simfantasy.simulator import Simulation
+
+logger = logging.getLogger(__name__)
 
 
 class Event(metaclass=ABCMeta):
@@ -52,8 +55,9 @@ class CombatStartEvent(Event):
 
     def execute(self) -> None:
         for actor in self.sim.actors:
-            self.sim.logger.debug('[%s] ^^ %s %s arises', self.sim.current_iteration, self.sim.relative_timestamp,
-                                  actor)
+            logger.debug('[%s] ^^ %s %s arises', self.sim.current_iteration,
+                         self.sim.relative_timestamp,
+                         actor)
             actor.arise()
 
 
@@ -156,37 +160,38 @@ class ActorReadyEvent(Event):
                 except TypeError:
                     decision_action, decision_options = decision, None
 
-                if decision_action.ready and (decision_options is None or decision_options() is True):
+                if decision_action.ready and (
+                        decision_options is None or decision_options() is True):
                     decision_action.perform()
                     return
                 elif self.sim.log_action_attempts is True:
                     if decision_action.can_recast_at is not None and decision_action.can_recast_at > self.sim.current_time:
-                        self.sim.logger.debug('[%s] ## %s %s attempted %s but on cooldown (recast=%s)',
-                                              self.sim.current_iteration,
-                                              self.sim.relative_timestamp,
-                                              self.actor,
-                                              decision_action,
-                                              decision_action.can_recast_at - self.sim.start_time)
+                        logger.debug('[%s] ## %s %s attempted %s but on cooldown (recast=%s)',
+                                     self.sim.current_iteration,
+                                     self.sim.relative_timestamp,
+                                     self.actor,
+                                     decision_action,
+                                     decision_action.can_recast_at - self.sim.start_time)
                     elif self.actor.animation_unlock_at > self.sim.current_time:
-                        self.sim.logger.debug('[%s] ## %s %s attempted %s but animation locked (unlock=%s)',
-                                              self.sim.current_iteration,
-                                              self.sim.relative_timestamp,
-                                              self.actor,
-                                              decision_action,
-                                              self.actor.animation_unlock_at - self.sim.start_time)
+                        logger.debug('[%s] ## %s %s attempted %s but animation locked (unlock=%s)',
+                                     self.sim.current_iteration,
+                                     self.sim.relative_timestamp,
+                                     self.actor,
+                                     decision_action,
+                                     self.actor.animation_unlock_at - self.sim.start_time)
                     elif not decision_action.is_off_gcd and self.actor.gcd_unlock_at > self.sim.current_time:
-                        self.sim.logger.debug('[%s] ## %s %s attempted %s but gcd locked (unlock=%s)',
-                                              self.sim.current_iteration,
-                                              self.sim.relative_timestamp,
-                                              self.actor,
-                                              decision_action,
-                                              self.actor.gcd_unlock_at - self.sim.start_time)
+                        logger.debug('[%s] ## %s %s attempted %s but gcd locked (unlock=%s)',
+                                     self.sim.current_iteration,
+                                     self.sim.relative_timestamp,
+                                     self.actor,
+                                     decision_action,
+                                     self.actor.gcd_unlock_at - self.sim.start_time)
                     elif decision_options is not None and decision_options() is False:
-                        self.sim.logger.debug('[%s] ## %s %s attempted %s but failed conditions',
-                                              self.sim.current_iteration,
-                                              self.sim.relative_timestamp,
-                                              self.actor,
-                                              decision_action)
+                        logger.debug('[%s] ## %s %s attempted %s but failed conditions',
+                                     self.sim.current_iteration,
+                                     self.sim.relative_timestamp,
+                                     self.actor,
+                                     decision_action)
             else:
                 return
 
@@ -194,12 +199,12 @@ class ActorReadyEvent(Event):
         self.sim.schedule(self, timedelta(seconds=0.1))
 
         if self.sim.log_action_attempts is True:
-            self.sim.logger.debug('[%s] ## %s No decision by %s (animation_unlock_at=%s gcd_unlock_at=%s)',
-                                  self.sim.current_iteration,
-                                  self.sim.relative_timestamp,
-                                  self.actor,
-                                  self.actor.animation_unlock_at - self.sim.start_time,
-                                  self.actor.gcd_unlock_at - self.sim.start_time)
+            logger.debug('[%s] ## %s No decision by %s (animation_unlock_at=%s gcd_unlock_at=%s)',
+                         self.sim.current_iteration,
+                         self.sim.relative_timestamp,
+                         self.actor,
+                         self.actor.animation_unlock_at - self.sim.start_time,
+                         self.actor.gcd_unlock_at - self.sim.start_time)
 
     def __str__(self):
         """String representation of the object."""
@@ -329,7 +334,8 @@ class DamageEvent(Event):
         """
         sub_stat = sub_stat_per_level[self.source.level]
         divisor = divisor_per_level[self.source.level]
-        p_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 50) / 1000
+        p_chr = floor(
+            200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 50) / 1000
 
         return p_chr
 
@@ -429,9 +435,12 @@ class DamageEvent(Event):
         f_ptc = self.potency / 100
         f_wd = floor((main_stat * job_attribute_modifier / 1000) + weapon_damage)
         f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
-        f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
-        f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
-        f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+        f_det = floor(
+            130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+        f_tnc = floor(
+            100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+        f_chr = floor(
+            200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
 
         damage_randomization = numpy.random.uniform(0.95, 1.05)
 
@@ -469,7 +478,8 @@ class DamageEvent(Event):
 
 class DotTickEvent(DamageEvent):
     def __init__(self, sim: Simulation, source, target, action, potency: int, aura: TickingAura,
-                 ticks_remain: int = None, trait_multipliers: List[float] = None, buff_multipliers: List[float] = None):
+                 ticks_remain: int = None, trait_multipliers: List[float] = None,
+                 buff_multipliers: List[float] = None):
         super().__init__(sim, source, target, action, potency, trait_multipliers, buff_multipliers)
 
         self.aura = aura
@@ -541,10 +551,14 @@ class DotTickEvent(DamageEvent):
         f_ptc = self.potency / 100
         f_wd = floor((main_stat * job_attribute_modifier / 1000) + weapon_damage)
         f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
-        f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
-        f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
-        f_ss = floor(130 * (self.source.stats[self.action.hastened_by] - sub_stat) / divisor + 1000) / 1000
-        f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+        f_det = floor(
+            130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+        f_tnc = floor(
+            100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+        f_ss = floor(
+            130 * (self.source.stats[self.action.hastened_by] - sub_stat) / divisor + 1000) / 1000
+        f_chr = floor(
+            200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
 
         damage_randomization = numpy.random.uniform(0.95, 1.05)
 
@@ -622,10 +636,12 @@ class ServerTickEvent(Event):
             if current_mp < max_mp:
                 mp_tick = int(floor(0.02 * max_mp))
 
-                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.MP, mp_tick))  # TODO Tick rate?
+                self.sim.schedule(
+                    ResourceEvent(self.sim, actor, Resource.MP, mp_tick))  # TODO Tick rate?
 
             if current_tp < max_tp:
-                self.sim.schedule(ResourceEvent(self.sim, actor, Resource.TP, 60))  # TODO Tick rate?
+                self.sim.schedule(
+                    ResourceEvent(self.sim, actor, Resource.TP, 60))  # TODO Tick rate?
 
 
 class ApplyAuraStackEvent(AuraEvent):
@@ -659,11 +675,15 @@ class AutoAttackEvent(DamageEvent):
         divisor = divisor_per_level[self.source.level]
 
         f_ptc = self.potency / 100
-        f_aa = floor(floor((main_stat * job_attribute_modifier / 1000) + weapon_damage) * (weapon_delay / 3))
+        f_aa = floor(
+            floor((main_stat * job_attribute_modifier / 1000) + weapon_damage) * (weapon_delay / 3))
         f_atk = floor((125 * (attack_rating - 292) / 292) + 100) / 100
-        f_det = floor(130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
-        f_tnc = floor(100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
-        f_chr = floor(200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
+        f_det = floor(
+            130 * (self.source.stats[Attribute.DETERMINATION] - main_stat) / divisor + 1000) / 1000
+        f_tnc = floor(
+            100 * (self.source.stats[Attribute.TENACITY] - sub_stat) / divisor + 1000) / 1000
+        f_chr = floor(
+            200 * (self.source.stats[Attribute.CRITICAL_HIT] - sub_stat) / divisor + 1400) / 1000
 
         damage_randomization = numpy.random.uniform(0.95, 1.05)
 
