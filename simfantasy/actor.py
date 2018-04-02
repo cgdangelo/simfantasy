@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from math import floor
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
 import humanfriendly
 
@@ -17,17 +17,17 @@ logger = logging.getLogger(__name__)
 
 
 class TargetData:
-    def __init__(self, sim, source):
+    def __init__(self, sim: Simulation, source: 'Actor') -> None:
         pass
 
 
 class Actions:
-    def __init__(self, sim, source):
+    def __init__(self, sim: Simulation, source: 'Actor') -> None:
         pass
 
 
 class Buffs:
-    def __init__(self, sim, source):
+    def __init__(self, sim: Simulation, source: 'Actor') -> None:
         pass
 
 
@@ -35,39 +35,42 @@ class Actor:
     """A participant in an encounter.
 
     Warnings:
-        Although level is accepted as an argument, many of the formulae only work at level 70. This argument may be
-        deprecated in the future, or at least restricted to max levels of each game version, i.e., 50, 60, 70 for
-        A Realm Reborn, Heavensward, and Stormblood respectively, where it's more likely that someone spent the time to
-        figure out all the math.
+        Although level is accepted as an argument, many of the formulae only work at level 70.
+        This argument may be deprecated in the future, or at least restricted to max levels of each
+        game version, i.e., 50, 60, 70 for A Realm Reborn, Heavensward, and Stormblood respectively,
+        where it's more likely that someone spent the time to figure out all the math.
 
     Arguments:
-        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
+        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is
+            participating in.
         race (Optional[simfantasy.enum.Race]): Race and clan of the actor.
         level (Optional[int]): Level of the actor.
         target (Optional[simfantasy.actor.Actor]): The enemy that the actor is targeting.
         name (Optional[str]): Name of the actor.
-        gear (Optional[Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]]):
+        gear (Optional[Dict[~simfantasy.enum.Slot, Union[~simfantasy.equipment.Item, ~simfantasy.equipment.Weapon]]]):
             Collection of equipment that the actor is wearing.
 
     Attributes:
-        _target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors to any
-            available target state data.
-        animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute actions again without
-            being inhibited by animation lockout.
-        auras (List[simfantasy.aura.Aura]): Auras, both friendly and hostile, that exist on the actor.
-        gcd_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute GCD actions again without
-            being inhibited by GCD lockout.
-        gear (Dict[~simfantasy.enums.Slot, Union[~simfantasy.simulator.Item, ~simfantasy.simulator.Weapon]]):
+        _target_data (Dict[~simfantasy.actor.Actor, ~simfantasy.actor.TargetData): Mapping of actors
+            to any available target state data.
+        animation_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute
+            actions again without being inhibited by animation lockout.
+        auras (List[simfantasy.aura.Aura]): Auras, both friendly and hostile, that exist on the
+            actor.
+        gcd_unlock_at (datetime.datetime): Timestamp when the actor will be able to execute GCD
+            actions again without being inhibited by GCD lockout.
+        gear (Optional[Dict[~simfantasy.enum.Slot, Union[~simfantasy.equipment.Item, ~simfantasy.equipment.Weapon]]]):
             Collection of equipment that the actor is wearing.
         job (simfantasy.enum.Job): The actor's job specialization.
         level (int): Level of the actor.
         name (str): Name of the actor.
         race (simfantasy.enum.Race): Race and clan of the actor.
-        resources (Dict[~simfantasy.enums.Resource, Tuple[int, int]]): Mapping of resource type to a tuple containing
-            the current amount and maximum capacity.
-        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is participating in.
-        statistics (Dict[str, List[Dict[Any, Any]]]): Collection of different event occurrences that are used for
-            reporting and visualizations.
+        resources (Dict[~simfantasy.enums.Resource, Tuple[int, int]]): Mapping of resource type to a
+            tuple containing the current amount and maximum capacity.
+        sim (simfantasy.simulator.Simulation): Pointer to the simulation that the actor is
+            participating in.
+        statistics (Dict[str, List[Dict[Any, Any]]]): Collection of different event occurrences that
+            are used for reporting and visualizations.
         stats (Dict[~simfantasy.enums.Attribute, int]): Mapping of attribute type to amount.
         target (simfantasy.actor.Actor): The enemy that the actor is targeting.
     """
@@ -78,7 +81,7 @@ class Actor:
     # TODO Get rid of level?
     def __init__(self, sim: Simulation, race: Race = None, level: int = None,
                  target: 'Actor' = None, name: str = None,
-                 gear: Dict[Slot, Union[Item, Weapon]] = None):
+                 gear: Dict[Slot, Union[Item, Weapon]] = None) -> None:
         if level is None:
             level = 70
 
@@ -92,15 +95,15 @@ class Actor:
         self.race: Race = race
         self.level: int = level
         self.target: 'Actor' = target
-        self.name = name
+        self.name: str = name
 
-        self._target_data = {}
+        self._target_data: Dict['Actor', TargetData] = {}
         self.actions = None
         self.auras: List[Aura] = []
-        self.buffs = None
+        self.buffs: Buffs = None
         self.animation_unlock_at: datetime = None
         self.gcd_unlock_at: datetime = None
-        self.statistics = {}
+        self.statistics: Dict[str, List[Dict[str, Any]]] = {}
 
         self.stats: Dict[Attribute, int] = {}
         self.gear: Dict[Slot, Union[Item, Weapon]] = {}
@@ -108,7 +111,7 @@ class Actor:
 
         self.resources: Dict[Resource, Tuple[int, int]] = {}
 
-        self.invalidate_speed_cache = False
+        self.invalidate_speed_cache: bool = False
 
         self.sim.actors.append(self)
         logger.debug('Initialized: %s', self)
