@@ -1,10 +1,10 @@
-import datetime
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from math import floor
 from typing import TYPE_CHECKING
 
+from simfantasy.actor import Actor
 from simfantasy.enum import RefreshBehavior
 from simfantasy.simulator import Simulation
 
@@ -18,18 +18,19 @@ class Aura(ABC):
     """A buff or debuff that can be applied to a target.
 
     Attributes:
-        application_event (simfantasy.event.ApplyAuraEvent): Pointer to the scheduled event that will apply the aura
-            to the target.
+        application_event (simfantasy.event.ApplyAuraEvent): Pointer to the scheduled event that
+            will apply the aura to the target.
         duration (datetime.timedelta): Initial duration of the aura.
-        expiration_event (simfantasy.event.ExpireAuraEvent): Pointer to the scheduled event that will remove the aura
-            from the target.
+        expiration_event (simfantasy.event.ExpireAuraEvent): Pointer to the scheduled event that
+            will remove the aura from the target.
         max_stacks (int): The maximum number of stacks that the aura can accumulate.
-        refresh_behavior (simfantasy.enum.RefreshBehavior): Defines how the aura behaves when refreshes, i.e., what
-            happens when reapplying an aura that already exists on the target.
-        refresh_extension (datetime.timedelta): For :class:`simfantasy.enums.RefreshBehavior.EXTEND_TO_MAX`, this defines
-            the amount of time that should be added to the aura's current remaining time.
-        stacks (int): The current number of stacks that the aura has accumulated. Should be less than or equal to
-            `max_stacks`.
+        refresh_behavior (simfantasy.enum.RefreshBehavior): Defines how the aura behaves when
+            refreshed, i.e., what happens when reapplying an aura that already exists on the target.
+        refresh_extension (datetime.timedelta): For :class:`simfantasy.enums.RefreshBehavior.EXTEND_TO_MAX`,
+            this defines the amount of time that should be added to the aura's current remaining
+            time.
+        stacks (int): The current number of stacks that the aura has accumulated. Should be less
+            than or equal to `max_stacks`.
     """
 
     duration: timedelta = None
@@ -37,12 +38,12 @@ class Aura(ABC):
     refresh_behavior: RefreshBehavior = None
     refresh_extension: timedelta = None
 
-    def __init__(self, sim, source) -> None:
-        self.sim = sim
-        self.source = source
+    def __init__(self, sim: Simulation, source: Actor) -> None:
+        self.sim: Simulation = sim
+        self.source: Actor = source
         self.application_event: ApplyAuraEvent = None
         self.expiration_event: ExpireAuraEvent = None
-        self.stacks = 0
+        self.stacks: int = 0
 
     @property
     def name(self) -> str:
