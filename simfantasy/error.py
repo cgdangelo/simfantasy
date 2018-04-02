@@ -13,12 +13,15 @@ class ActionOnCooldownError(FailedActionAttemptError):
 class ActorAnimationLockedError(FailedActionAttemptError):
     def __init__(self, sim, source, action, *args: object, **kwargs: object) -> None:
         super().__init__('%s tried to use %s, but animation locked for %.3f' %
-                         (source, action, (source.animation_unlock_at - sim.current_time).total_seconds()), *args,
+                         (source, action,
+                          (source.animation_unlock_at - sim.current_time).total_seconds()), *args,
                          **kwargs)
 
 
 class ActorGCDLockedError(FailedActionAttemptError):
     def __init__(self, sim, source, action, *args: object, **kwargs: object) -> None:
         super().__init__('%s tried to use %s, but GCD locked for %.3f' %
-                         (source, action, (source.gcd_unlock_at - sim.current_time).total_seconds()), *args,
+                         (
+                         source, action, (source.gcd_unlock_at - sim.current_time).total_seconds()),
+                         *args,
                          **kwargs)

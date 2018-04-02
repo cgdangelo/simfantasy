@@ -88,12 +88,8 @@ class Simulation:
             log_action_attempts = False
 
         self.combat_length: timedelta = combat_length
-        self.log_event_filter: Pattern = re.compile(log_event_filter) if log_event_filter else None
         self.execute_time: timedelta = execute_time
-        self.log_pushes: bool = log_pushes
-        self.log_pops: bool = log_pops
         self.iterations: int = iterations
-        self.log_action_attempts: bool = log_action_attempts
 
         self.current_iteration: int = None
         self.actors = []
@@ -101,6 +97,13 @@ class Simulation:
         self.current_time: datetime = None
 
         self.events = queue.PriorityQueue()
+
+        if log_event_filter is not None:
+            self.log_event_filter: Pattern = re.compile(log_event_filter)
+
+        self.log_pushes: bool = log_pushes
+        self.log_pops: bool = log_pops
+        self.log_action_attempts: bool = log_action_attempts
 
         configure_logging(log_level)
 

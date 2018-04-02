@@ -41,7 +41,8 @@ class Item:
         stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
     """
 
-    def __init__(self, item_level: int, slot: Slot, stats: Dict[Attribute, int], melds: List[Materia] = None,
+    def __init__(self, item_level: int, slot: Slot, stats: Dict[Attribute, int],
+                 melds: List[Materia] = None,
                  name: str = None):
         if melds is None:
             melds = []
@@ -77,7 +78,8 @@ class Weapon(Item):
         stats (Dict[~simfantasy.enums.Attribute, int]): Attributes added by the item.
     """
 
-    def __init__(self, item_level: int, magic_damage: int, physical_damage: int, delay: float, auto_attack: float,
+    def __init__(self, item_level: int, magic_damage: int, physical_damage: int, delay: float,
+                 auto_attack: float,
                  stats: Dict[Attribute, int], melds: List[Materia] = None, name: str = None):
         super().__init__(item_level, Slot.WEAPON, stats, melds, name)
 

@@ -89,10 +89,12 @@ class Bard(Actor):
         yield self.actions.raging_strikes, lambda: not self.buffs.raging_strikes.up
         yield self.actions.barrage, lambda: (
                 self.buffs.raging_strikes.up and
-                (self.buffs.straighter_shot.up or self.buffs.raging_strikes.remains < timedelta(seconds=3))
+                (self.buffs.straighter_shot.up or self.buffs.raging_strikes.remains < timedelta(
+                    seconds=3))
         )
 
-        yield self.actions.straight_shot, lambda: self.buffs.straight_shot.remains < timedelta(seconds=3)
+        yield self.actions.straight_shot, lambda: self.buffs.straight_shot.remains < timedelta(
+            seconds=3)
 
         yield self.actions.pitch_perfect, lambda: (
                 current_rep == max_rep or self.buffs.wanderers_minuet.remains < timedelta(seconds=3)
@@ -162,7 +164,8 @@ class BardAction(Action):
 
         # TODO Find a better way to do this, or hook into the DotTickEvent.
         self.sim.unschedule(dot.tick_event)
-        dot.tick_event = BardDotTickEvent(self.sim, self.source, self.source.target, self, dot.potency, dot, None,
+        dot.tick_event = BardDotTickEvent(self.sim, self.source, self.source.target, self,
+                                          dot.potency, dot, None,
                                           self._trait_multipliers, self._buff_multipliers)
         self.sim.schedule(dot.tick_event, timedelta(seconds=3))
 
@@ -286,7 +289,8 @@ class StraightShotAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
+            self.sim.schedule(
+                ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
 
         self.schedule_aura_events(self.source, self.source.buffs.straight_shot)
 
@@ -492,7 +496,8 @@ class RefulgentArrowAction(BardAction):
         super().perform()
 
         if self.source.buffs.straighter_shot.up:
-            self.sim.schedule(ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
+            self.sim.schedule(
+                ConsumeAuraEvent(self.sim, self.source, self.source.buffs.straighter_shot))
 
 
 class BarrageBuff(Aura):
@@ -529,8 +534,9 @@ class FoeTickEvent(ResourceEvent):
                 if actor.race is Race.ENEMY:
                     self.target.target = actor
 
-                    self.sim.schedule(ExpireAuraEvent(self.sim, actor, self.target.target_data.foe_requiem),
-                                      timedelta(seconds=6))
+                    self.sim.schedule(
+                        ExpireAuraEvent(self.sim, actor, self.target.target_data.foe_requiem),
+                        timedelta(seconds=6))
 
             self.target.target = original_target
 
@@ -557,7 +563,8 @@ class FoeRequiemAction(BardAction):
     def perform(self):
         super().perform()
 
-        self.sim.schedule(ApplyAuraEvent(self.sim, self.source, self.source.buffs.foe_requiem), self.cast_time)
+        self.sim.schedule(ApplyAuraEvent(self.sim, self.source, self.source.buffs.foe_requiem),
+                          self.cast_time)
 
         delta = self.cast_time + timedelta(seconds=3)
 
@@ -566,7 +573,8 @@ class FoeRequiemAction(BardAction):
         for actor in self.sim.actors:
             if actor.race is Race.ENEMY:
                 self.source.target = actor
-                self.sim.schedule(ApplyAuraEvent(self.sim, actor, self.source.target_data.foe_requiem), delta)
+                self.sim.schedule(
+                    ApplyAuraEvent(self.sim, actor, self.source.target_data.foe_requiem), delta)
 
         self.source.target = original_target
 
