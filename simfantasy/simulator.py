@@ -6,12 +6,16 @@ import queue
 import re
 from datetime import datetime, timedelta
 from sys import stdout
-from typing import Pattern
+from typing import List, Pattern, TYPE_CHECKING, Tuple
 
 import humanfriendly
 import pandas as pd
 
 from simfantasy.reporting import TerminalReporter
+
+if TYPE_CHECKING:
+    from simfantasy.actor import Actor
+    from simfantasy.event import Event
 
 
 def configure_logging(log_level: int = None) -> None:
@@ -67,7 +71,7 @@ class Simulation:
     def __init__(self, combat_length: timedelta = None, log_level: int = None,
                  log_event_filter: str = None, execute_time: timedelta = None,
                  log_pushes: bool = None, log_pops: bool = None, iterations: int = None,
-                 log_action_attempts: bool = None):
+                 log_action_attempts: bool = None) -> None:
         # FIXME Do I even need to set these here? They aren't mutable.
         if combat_length is None:
             combat_length = timedelta(minutes=5)
@@ -92,15 +96,15 @@ class Simulation:
         self.iterations: int = iterations
 
         self.current_iteration: int = None
-        self.actors = []
+        self.actors: List[Actor] = []
         self.start_time: datetime = None
         self.current_time: datetime = None
 
-        self.events = queue.PriorityQueue()
+        self.events: queue.PriorityQueue[Tuple[datetime, datetime, Event]] = queue.PriorityQueue()
 
-        self.log_event_filter = None
+        self.log_event_filter: Pattern = None
         if log_event_filter is not None:
-            self.log_event_filter: Pattern = re.compile(log_event_filter)
+            self.log_event_filter = re.compile(log_event_filter)
 
         self.log_pushes: bool = log_pushes
         self.log_pops: bool = log_pops
@@ -262,7 +266,7 @@ class Simulation:
             # Create a friendly progress indicator for the user.
             with humanfriendly.Spinner(label='Simulating', total=self.iterations) as spinner:
                 # Store iteration runtimes so we can predict overall runtime.
-                iteration_runtimes = []
+                iteration_runtimes: List[timedelta] = []
 
                 for iteration in range(self.iterations):
                     pd_runtimes = pd.Series(iteration_runtimes)
@@ -321,7 +325,7 @@ class Simulation:
                         # Handle the event.
                         event.execute()
 
-                        if not self.events.all_tasks_done:
+                        if not self.events.all_tasks_done:  # type: ignore
                             self.events.task_done()
 
                     # Build statistical dataframes for the completed iteration.
@@ -357,18 +361,6 @@ class Simulation:
             logger.critical('Interrupted at %s / %s iterations after %s.\n',
                             self.current_iteration,
                             self.iterations, pd_runtimes.sum())
-
-        if logger.level <= logging.DEBUG:
-            # https://www.dataquest.io/blog/pandas-big-data/
-            for df in [auras_df, damage_df]:
-                df.info(verbose=True, memory_usage='deep')
-
-                for dtype in ['float', 'int', 'object', 'bool', 'category', 'datetime']:
-                    selected_dtype = df.select_dtypes(include=[dtype])
-                    mean_usage_b = selected_dtype.memory_usage(deep=True).mean()
-                    mean_usage_mb = mean_usage_b / 1024 ** 2
-                    print('Average memory usage for {} columns: {:03.2f} MB'.format(dtype,
-                                                                                    mean_usage_mb))
 
         # TODO Everything.
         auras_df.set_index('iteration', inplace=True)
