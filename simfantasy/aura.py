@@ -3,9 +3,13 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from math import floor
+from typing import TYPE_CHECKING
 
 from simfantasy.enum import RefreshBehavior
 from simfantasy.simulator import Simulation
+
+if TYPE_CHECKING:
+    from simfantasy.event import ApplyAuraEvent, ExpireAuraEvent, DotTickEvent
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +40,8 @@ class Aura(ABC):
     def __init__(self, sim, source) -> None:
         self.sim = sim
         self.source = source
-        self.application_event = None
-        self.expiration_event = None
+        self.application_event: ApplyAuraEvent = None
+        self.expiration_event: ExpireAuraEvent = None
         self.stacks = 0
 
     @property
@@ -185,7 +189,7 @@ class TickingAura(Aura):
     def __init__(self, sim, source) -> None:
         super().__init__(sim, source)
 
-        self.tick_event = None
+        self.tick_event: DotTickEvent = None
 
     def apply(self, target) -> None:
         super().apply(target)

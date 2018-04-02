@@ -667,7 +667,7 @@ class EmpyrealArrowAction(BardAction):
 
     @property
     def recast_time(self):
-        return self._speed(self.base_recast_time)
+        return self.speed(self.base_recast_time)
 
     def perform(self):
         super().perform()

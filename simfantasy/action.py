@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 from math import ceil, floor
 from typing import List, Tuple, Union
@@ -23,20 +23,26 @@ class Action:
         source (simfantasy.actor.Actor): The actor that performed the action.
 
     Attributes:
-        animation (datetime.timedelta): Length of the animation delay caused by the action. Default: 0.75 seconds.
-        base_cast_time (datetime.timedelta): Length of the action's cast time. Default: Instant cast.
-        base_recast_time (datetime.timedelta): Length of time until the ability can be used again. Default: base
-            GCD length, 2.5 seconds.
+        animation (datetime.timedelta): Length of the animation delay caused by the action.
+            Default: 0.75 seconds.
+        base_cast_time (datetime.timedelta): Length of the action's cast time.
+            Default: Instant cast.
+        base_recast_time (datetime.timedelta): Length of time until the ability can be used again.
+            Default: base GCD length, 2.5 seconds.
         can_recast_at (datetime.datetime): Timestamp when the action can be performed again.
-        cost (Tuple[simfantasy.enum.Resource, int]): The resource type and amount needed to perform the action.
+        cost (Tuple[simfantasy.enum.Resource, int]): The resource type and amount needed to perform
+            the action.
         guarantee_crit (bool): Ensures the damage will be a critical hit. Default: False.
-        hastened_by (simfantasy.enum.Attribute): The attribute that contributes to lowering the cast/recast time of
-            the action. Default: None.
-        is_off_gcd (bool): True for actions that are not bound to the GCD, False otherwise. Default: False.
-        potency (int): Potency of the action's impact, i.e., damage healed or inflicted. Default: None.
-        powered_by (Attribute): The attribute that contributes to the total impact of the action. Default: None.
-        shares_recast_with: (Union[simfantasy.action.Action, List[~simfantasy.action.Action]]): Action(s) that are on
-            the same recast timer. Default: None.
+        hastened_by (simfantasy.enum.Attribute): The attribute that contributes to lowering the
+            cast/recast time of the action. Default: None.
+        is_off_gcd (bool): True for actions that are not bound to the GCD, False otherwise.
+            Default: False.
+        potency (int): Potency of the action's impact, i.e., damage healed or inflicted.
+            Default: None.
+        powered_by (Attribute): The attribute that contributes to the total impact of the action.
+            Default: None.
+        shares_recast_with: (Union[simfantasy.action.Action, List[~simfantasy.action.Action]]):
+            Action(s) that are on the same recast timer. Default: None.
         sim (simfantasy.simulator.Simulation): The simulation where the action is performed.
         source (simfantasy.actor.Actor): The actor that performed the action.
     """
@@ -51,11 +57,11 @@ class Action:
     powered_by: Attribute = None
     shares_recast_with: Union['Action', List['Action']] = None
 
-    def __init__(self, sim: Simulation, source: Actor):
-        self.sim = sim
-        self.source = source
-        self.can_recast_at = None
-        self._speed = lru_cache(maxsize=None)(self._speed)
+    def __init__(self, sim: Simulation, source: Actor) -> None:
+        self.sim: Simulation = sim
+        self.source: Actor = source
+        self.can_recast_at: datetime = None
+        self.speed = lru_cache(maxsize=None)(self._speed)
 
     @property
     def ready(self):
@@ -140,9 +146,10 @@ class Action:
         Notes:
             The cost must not be None.
 
-        When the action is performed, i.e., after its :attr:`~simfantasy.action.Action.animation_execute_time` has
-        passed, a :class:`simfantasy.event.ResourceEvent` will occur that consumes the resource cost defined in the
-        :attr:`~simfantasy.action.Action.cost`.
+        When the action is performed, i.e., after its
+        :attr:`~simfantasy.action.Action.animation_execute_time` has passed, a
+        :class:`simfantasy.event.ResourceEvent` will occur that consumes the resource cost defined
+        in the :attr:`~simfantasy.action.Action.cost`.
         """
         if self.cost is not None:
             resource, amount = self.cost
@@ -155,8 +162,9 @@ class Action:
         Notes:
             The potency must not be None.
 
-        When the action is performed, i.e., after its :attr:`~simfantasy.action.Action.animation_execute_time` has
-        passed, a :class:`simfantasy.event.ResourceEvent` will inflict damage based on the amount defined in the
+        When the action is performed, i.e., after its
+        :attr:`~simfantasy.action.Action.animation_execute_time` has passed, a
+        :class:`simfantasy.event.DamageEvent` will inflict damage based on the amount defined in the
         :attr:`~simfantasy.action.Action.potency`.
         """
         if self.potency is not None:
@@ -169,18 +177,20 @@ class Action:
     def set_recast_at(self, delta: timedelta):
         """Sets the timestamp when the action can be performed again.
 
-        Based on the given delta, sets the recast timestamp by adding it to the simulation's current timestamp. If the
-        action shares a recast with one or more other actions, those will have their recast timestamps set as well.
+        Based on the given delta, sets the recast timestamp by adding it to the simulation's
+        current timestamp. If the action shares a recast with one or more other actions, those will
+        have their recast timestamps set as well.
 
         Arguments:
-            delta (datetime.timedelta): The amount of time that must pass to perform this action again.
+            delta (datetime.timedelta): The amount of time that must pass to perform this action
+                again.
         """
         recast_at = self.sim.current_time + delta
 
         self.can_recast_at = recast_at
 
         if self.shares_recast_with is not None:
-            if type(self.shares_recast_with) is list:
+            if isinstance(self.shares_recast_with, list):
                 for shared_action in self.shares_recast_with:
                     shared_action.can_recast_at = recast_at
             else:
@@ -222,7 +232,7 @@ class Action:
     @property
     def cast_time(self):
         if self.hastened_by is not None:
-            return self._speed(self.base_cast_time)
+            return self.speed(self.base_cast_time)
 
         return self.base_cast_time
 
@@ -236,7 +246,7 @@ class Action:
     @property
     def gcd(self):
         if self.hastened_by is not None:
-            return self._speed(timedelta(seconds=2.5))
+            return self.speed(timedelta(seconds=2.5))
 
         return timedelta(seconds=2.5)
 
@@ -246,7 +256,7 @@ class Action:
 
     def _speed(self, action_delay: timedelta) -> timedelta:
         if self.source.invalidate_speed_cache is True:
-            self._speed.cache_clear()
+            self.speed.cache_clear()
             self.source.invalidate_speed_cache = False
 
         speed = self.source.stats[self.hastened_by]
