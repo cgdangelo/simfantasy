@@ -5,7 +5,6 @@ import logging
 import queue
 import re
 from datetime import datetime, timedelta
-from sys import stdout
 from typing import List, Pattern, TYPE_CHECKING, Tuple
 
 import humanfriendly
@@ -22,12 +21,14 @@ def configure_logging(log_level: int = None) -> None:
     """Set logging options.
 
     Arguments:
-        log_level (int): The minimum priority level a message needs to be shown.
+        log_level (Optional[int]): The minimum priority level a message needs to be shown.
     """
+    if log_level is None:
+        log_level = logging.INFO
+
     logging.basicConfig(
         level=log_level,
         format='[%(levelname)s] %(message)s (%(name)s,%(lineno)d)',
-        stream=stdout,
     )
 
 
@@ -76,24 +77,39 @@ class Simulation:
         if combat_length is None:
             combat_length = timedelta(minutes=5)
 
-        if log_level is None:
-            log_level = logging.INFO
+        self.combat_length: timedelta = combat_length
 
         if execute_time is None:
             execute_time = timedelta(seconds=60)
 
+        self.execute_time: timedelta = execute_time
+
+        if iterations is None:
+            iterations = 100
+
+        self.iterations: int = iterations
+
+        self.log_event_filter: Pattern = None
+
+        if log_event_filter is not None:
+            self.log_event_filter = re.compile(log_event_filter)
+
         if log_pushes is None:
             log_pushes = True
+
+        self.log_pushes: bool = log_pushes
 
         if log_pops is None:
             log_pops = True
 
+        self.log_pops: bool = log_pops
+
         if log_action_attempts is None:
             log_action_attempts = False
 
-        self.combat_length: timedelta = combat_length
-        self.execute_time: timedelta = execute_time
-        self.iterations: int = iterations
+        self.log_action_attempts: bool = log_action_attempts
+
+        configure_logging(log_level)
 
         self.current_iteration: int = None
         self.actors: List[Actor] = []
@@ -103,16 +119,6 @@ class Simulation:
         self.events: queue.PriorityQueue[  # pylint: disable=unsubscriptable-object
             Tuple[datetime, datetime, Event]
         ] = queue.PriorityQueue()
-
-        self.log_event_filter: Pattern = None
-        if log_event_filter is not None:
-            self.log_event_filter = re.compile(log_event_filter)
-
-        self.log_pushes: bool = log_pushes
-        self.log_pops: bool = log_pops
-        self.log_action_attempts: bool = log_action_attempts
-
-        configure_logging(log_level)
 
     @property
     def in_execute(self) -> bool:

@@ -11,7 +11,7 @@ import bokeh.transform
 import numpy as np
 import pandas as pd
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class Reporter(ABC):
@@ -37,7 +37,7 @@ class TerminalReporter(Reporter):
         mean_dps = (self.damage.groupby([self.damage.index, 'source'])[
                         'damage'].sum()) / self.sim.combat_length.total_seconds()
         mean_dps = mean_dps.groupby('source').mean().to_frame()
-        logger.info('Average DPS:\n\n%s\n', mean_dps)
+        LOGGER.info('Average DPS:\n\n%s\n', mean_dps)
 
         def create_pct_total(original):
             def pct_total(x):
@@ -55,14 +55,14 @@ class TerminalReporter(Reporter):
                 .sort_values(by='sum', ascending=False)
 
         mean_dmg_per_action_df = get_damage_grouping(self.damage, ['source', 'action'])
-        logger.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
+        LOGGER.info('Damage Dealt by Action\n\n%s\n', mean_dmg_per_action_df)
 
         mean_tick_dmg_per_action_df = get_damage_grouping(self.damage.loc[self.damage['dot'] == True],
                                                           ['source', 'action'])
-        logger.info('Tick Damage Dealt by Action\n\n%s\n', mean_tick_dmg_per_action_df)
+        LOGGER.info('Tick Damage Dealt by Action\n\n%s\n', mean_tick_dmg_per_action_df)
 
         mean_dmg_per_target_df = get_damage_grouping(self.damage, ['source', 'target'])
-        logger.info('Damage Dealt by Target\n\n%s\n', mean_dmg_per_target_df)
+        LOGGER.info('Damage Dealt by Target\n\n%s\n', mean_dmg_per_target_df)
         # @formatter:on
 
 
