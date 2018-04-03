@@ -117,9 +117,11 @@ class Action:
             >>> bloodletter.can_recast_at == rain_of_death.can_recast_at
             True
         """
-        logger.debug('[%s] @@ %s %s uses %s', self.sim.current_iteration,
+        logger.debug('[%s] @@ %s %s uses %s',
+                     self.sim.current_iteration,
                      self.sim.relative_timestamp,
-                     self.source, self)
+                     self.source,
+                     self)
 
         self.set_recast_at(self.animation_execute_time + self.recast_time)
         self.schedule_resource_consumption()
@@ -170,8 +172,7 @@ class Action:
         if self.potency is not None:
             self.sim.schedule(
                 DamageEvent(self.sim, self.source, self.source.target, self, self.potency,
-                            self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit),
+                            self._trait_multipliers, self._buff_multipliers, self.guarantee_crit),
                 self.animation_execute_time)
 
     def set_recast_at(self, delta: timedelta):
@@ -284,18 +285,18 @@ class Action:
         type_1_mod = 0
         type_2_mod = self.type_ii_speed_mod
 
-        gcd_m = floor(
-            (1000 - floor(130 * (speed - sub_stat) / divisor)) * action_delay.total_seconds())
+        gcd_m = 1000 - floor(130 * (speed - sub_stat) / divisor)
+        gcd_m = floor(gcd_m * action_delay.total_seconds())
 
-        gcd_c_a = floor(
-            floor(floor((100 - arrow_mod) * (100 - type_1_mod) / 100) * (
-                    100 - haste_mod) / 100) - fey_wind_mod
-        )
-        gcd_c_b = (type_2_mod - 100) / -100
-        gcd_c = floor(
-            floor(floor(ceil(
-                gcd_c_a * gcd_c_b) * gcd_m / 100) * riddle_of_fire_mod / 1000) * astral_umbral_mod / 100
-        )
+        gcd_c_a = floor(100 - arrow_mod) * ((100 - type_1_mod) / 100)
+        gcd_c_a = floor(gcd_c_a * ((100 - haste_mod) / 100))
+        gcd_c_a = floor(gcd_c_a - fey_wind_mod)
+        gcd_c_b = (100 - type_2_mod) / 100
+
+        gcd_c = ceil(gcd_c_a * gcd_c_b)
+        gcd_c = floor(gcd_c * gcd_m / 100)
+        gcd_c = floor(gcd_c * riddle_of_fire_mod / 1000)
+        gcd_c = floor(gcd_c * astral_umbral_mod / 100)
 
         gcd = gcd_c / 100
 
@@ -335,8 +336,7 @@ class AutoAttackAction(Action):
     def create_damage_event(self):
         self.sim.schedule(
             AutoAttackEvent(self.sim, self.source, self.source.target, self, self.potency,
-                            self._trait_multipliers,
-                            self._buff_multipliers, self.guarantee_crit))
+                            self._trait_multipliers, self._buff_multipliers, self.guarantee_crit))
 
 
 class MeleeAttackAction(AutoAttackAction):
