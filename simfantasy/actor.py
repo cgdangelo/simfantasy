@@ -27,6 +27,14 @@ class Actions:
     def __init__(self, sim: Simulation, source: 'Actor') -> None:
         pass
 
+    def invalidate_speed_caches(self):
+        for _, action in vars(self).items():
+            # Safety check in case classes dervied from Actor set instance attributes.
+            if not hasattr(action, 'speed') or not hasattr(action.speed, '__wrapped__'):
+                continue
+
+            action.speed.cache_clear()
+
 
 class Buffs:
     def __init__(self, sim: Simulation, source: 'Actor') -> None:
@@ -113,8 +121,6 @@ class Actor:
 
         self.resources: Dict[Resource, Tuple[int, int]] = {}
 
-        self.invalidate_speed_cache: bool = False
-
         self.sim.actors.append(self)
         logger.debug('Initialized: %s', self)
 
@@ -138,8 +144,6 @@ class Actor:
         self._target_data.clear()
         self.create_actions()
         self.create_buffs()
-
-        self.invalidate_speed_cache = True
 
     def create_actions(self):
         self.actions = Actions(self.sim, self)

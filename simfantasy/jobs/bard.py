@@ -589,12 +589,12 @@ class ArmysPaeonBuff(BardSongBuff):
 
         target.resources[Resource.REPERTOIRE] = (0, 4)
 
-        target.invalidate_speed_cache = True
+        target.actions.invalidate_speed_caches()
 
     def expire(self, target: Actor):
         super().expire(target)
 
-        target.invalidate_speed_cache = True
+        target.actions.invalidate_speed_caches()
 
 
 class ArmysPaeonAction(BardSongAction):

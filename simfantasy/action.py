@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Abilities and weaponskills that can be performed by an actor."""
+
 import logging
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -12,7 +15,7 @@ from simfantasy.event import ActorReadyEvent, ApplyAuraEvent, AutoAttackEvent, D
     DotTickEvent, ExpireAuraEvent, RefreshAuraEvent, ResourceEvent
 from simfantasy.simulator import Simulation
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class Action:
@@ -65,6 +68,11 @@ class Action:
 
     @property
     def ready(self):
+        """Flag that indicates if the action can be performed or not.
+
+        Returns:
+            bool: True if the action can be performed, False otherwise.
+        """
         return not self.on_cooldown \
                and (self.source.animation_up or self.animation == timedelta()) \
                and (self.is_off_gcd or self.source.gcd_up)
@@ -117,7 +125,7 @@ class Action:
             >>> bloodletter.can_recast_at == rain_of_death.can_recast_at
             True
         """
-        logger.debug('[%s] @@ %s %s uses %s',
+        LOGGER.debug('[%s] @@ %s %s uses %s',
                      self.sim.current_iteration,
                      self.sim.relative_timestamp,
                      self.source,
@@ -256,10 +264,6 @@ class Action:
         return 0
 
     def _speed(self, action_delay: timedelta) -> timedelta:
-        if self.source.invalidate_speed_cache is True:
-            self.speed.cache_clear()
-            self.source.invalidate_speed_cache = False
-
         speed = self.source.stats[self.hastened_by]
 
         sub_stat = sub_stat_per_level[self.source.level]
