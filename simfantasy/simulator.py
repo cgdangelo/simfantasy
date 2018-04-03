@@ -5,7 +5,7 @@ import logging
 import queue
 import re
 from datetime import datetime, timedelta
-from typing import List, Pattern, TYPE_CHECKING, Tuple
+from typing import List, Optional, Pattern, TYPE_CHECKING, Tuple
 
 import humanfriendly
 import pandas as pd
@@ -89,7 +89,7 @@ class Simulation:
 
         self.iterations: int = iterations
 
-        self.log_event_filter: Pattern = None
+        self.log_event_filter: Optional[Pattern] = None
 
         if log_event_filter is not None:
             self.log_event_filter = re.compile(log_event_filter)
@@ -111,10 +111,10 @@ class Simulation:
 
         configure_logging(log_level)
 
-        self.current_iteration: int = None
         self.actors: List[Actor] = []
-        self.start_time: datetime = None
-        self.current_time: datetime = None
+        self.current_iteration: int = 0
+        self.start_time: datetime = datetime.now()
+        self.current_time: datetime = datetime.now()
 
         self.events: queue.PriorityQueue[  # pylint: disable=unsubscriptable-object
             Tuple[datetime, datetime, Event]
