@@ -193,6 +193,17 @@ class Action:
         Arguments:
             delta (datetime.timedelta): The amount of time that must pass to perform this action
                 again.
+
+        Examples:
+            .. testsetup::
+                >>> class MyAction(Action): pass
+                >>> sim = Simulation()
+                >>> actor = Actor(sim)
+                >>> action = MyAction(sim, actor)
+
+            >>> action.set_recast_at(timedelta(seconds=30))
+            >>> action.can_recast_at == sim.current_time + timedelta(seconds=30)
+            True
         """
         recast_at = self.sim.current_time + delta
 
@@ -206,6 +217,45 @@ class Action:
                 self.shares_recast_with.can_recast_at = recast_at
 
     def schedule_aura_events(self, target: Actor, aura: Aura):
+        """Schedule events to apply and remove an aura from a target.
+
+        For a new aura, :class:`simfantasy.event.ApplyAuraEvent` and
+        :class:`simfantasy.event.ExpireAuraEvent` will be scheduled. If the aura already exists on
+        the target, a :class:`simfantasy.event.RefreshAuraEvent` will be scheduled instead, which
+        will subsequently adjust the timestamps of the existing events.
+
+        Arguments:
+            target (simfantasy.actor.Actor): The actor that will receive the aura.
+            aura (simfantasy.aura.Aura): The aura to apply to the actor.
+
+        Examples:
+            .. testsetup::
+                >>> class MyAction(Action): pass
+                >>> sim = Simulation()
+                >>> actor = Actor(sim)
+                >>> action = MyAction(sim, actor)
+                >>> class MyAura(Aura): duration = timedelta(seconds=10)
+                >>> aura = MyAura(sim, actor)
+
+            A new aura will have its events scheduled for the first time:
+
+            >>> aura.application_event is None
+            True
+            >>> aura.expiration_event is None
+            True
+            >>> action.schedule_aura_events(actor, aura)
+            >>> aura.application_event # doctest: +ELLIPSIS
+            <simfantasy.event.ApplyAuraEvent ...>
+            >>> aura.expiration_event # doctest: +ELLIPSIS
+            <simfantasy.event.ExpireAuraEvent ...>
+
+            An existing aura will not receive new events, but instead will have its expiry event
+            adjusted and rescheduled accordingly:
+
+            >>> original_expiry = aura.expiration_event
+            >>> action.schedule_aura_events(actor, aura)
+            >>> original_expiry is aura.expiration_event
+        """
         delta = self.animation_execute_time
 
         if aura.expiration_event is not None:
